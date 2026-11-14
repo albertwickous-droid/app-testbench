@@ -18,8 +18,10 @@ def _wrapper(directory: Path, stem: str, script: Path) -> Path:
     else:
         path = directory / stem
         content = f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n'
-        path.chmod(0o755)
+
     path.write_text(content, encoding="utf-8", newline="\n")
+    if os.name != "nt":
+        path.chmod(0o755)
     return path
 
 

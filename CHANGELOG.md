@@ -71,6 +71,8 @@ Initial public release.
 
 ### Fixed
 
+- Fixed POSIX fake-tool wrapper setup so the executable is written before
+  `chmod`, resolving Ubuntu CI failures in the test fixtures.
 - YAML mappings with non-string field names now produce a structured flow
   validation error instead of an uncaught `TypeError`.
 - `app-testbench init --format json` now defaults to `mumu-flow.json`; the YAML
