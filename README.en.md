@@ -21,8 +21,9 @@ It addresses three practical needs: running the same test repeatedly, identifyin
 
 - The first release supports Windows 10/11, MuMu Player, and ADB.
 - Automated tests use deterministic fake `adb` and `MuMuManager` backends and cover command construction, flows, reports, and failure semantics.
-- A passing CI run means the automated checks passed. It does not claim live compatibility with every MuMu release or every Android app.
-- Live-device results must be recorded separately; fake-backend results are never presented as live verification.
+- GitHub CI passes on Windows and Ubuntu with Python 3.10, 3.11, and 3.12.
+- A live smoke test passed 7/7 steps on MuMu Player 6.8.8.0 and Android 12 using the Android Settings app; see [`docs/validation.md`](docs/validation.md) for the exact scope.
+- CI and one live smoke test do not claim compatibility with every MuMu release, Android image, or business app.
 - The tool has no telemetry, cloud upload, or account system.
 
 ## Why MuMu is the default runtime

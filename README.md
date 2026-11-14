@@ -21,8 +21,9 @@ App TestBench 是一个面向 Windows 的 Android App 自动化测试命令行�
 
 - 首版支持 Windows 10/11、MuMu Player 和 ADB。
 - 自动化测试使用确定性的假 `adb` / `MuMuManager`，覆盖命令构造、流程、报告和失败语义。
-- CI 通过只说明自动化检查通过，不代表所有 MuMu 版本和所有 App 都完成了真实兼容性验证。
-- 真实设备测试结果应在发布记录中单独标注，不用假后端结果冒充真机结论。
+- GitHub CI 已在 Windows / Ubuntu × Python 3.10 / 3.11 / 3.12 上通过。
+- 已在 MuMu Player 6.8.8.0、Android 12 上完成一次真实系统设置 App 冒烟测试，7/7 步骤通过；详细范围见 [`docs/validation.md`](docs/validation.md)。
+- CI 和单次冒烟测试不代表所有 MuMu 版本、Android 镜像或业务 App 都已完成兼容性验证。
 - 工具没有遥测、云端上传或账号体系。
 
 ## 为什么默认用 MuMu

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Public validation record covering the GitHub CI matrix, a clean-venv wheel
+  install, and a live MuMu Player 6.8.8.0 / Android 12 Settings-app smoke flow.
 - Opt-in Android boot-readiness gate using `sys.boot_completed`, available
   through `device.wait_for_boot`/`device.boot_timeout` and `run --wait-for-boot`.
 - Optional JUnit XML export for flow runs via `run --junit-xml`, including
@@ -31,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   environments, execution flow, and evidence outputs; added a dedicated
   agent deployment runbook with explicit approval and private-to-public gates.
 
-## [0.1.0] - 2026-11-11
+## [0.1.0] - 2026-11-15
 
 Initial public release.
 
