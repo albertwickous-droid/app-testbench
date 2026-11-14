@@ -14,14 +14,14 @@ This page records the actual validation performed for the App TestBench v0.1.0 r
 | --- | --- |
 | 本地完整门禁 | 108 passed；Ruff、格式检查、构建和 `twine check` 通过 |
 | GitHub Actions `CI` | Windows 与 Ubuntu 的 Python 3.10、3.11、3.12 全部通过；`Build package` 通过 |
-| 代码基线 | `6105f3387c295e32f5df0abc2fd2b72f77b17a7f` |
+| 代码基线 | `2f54fad450b500dff1253d9e369767499be09175` |
 | 干净虚拟环境安装 | wheel 安装成功 |
 | CLI 冒烟 | `--version`、`--help`、`skill-path`、`init --format json` 通过 |
 
 GitHub Actions run：
 
 ```text
-https://github.com/albertwickous-droid/app-testbench/actions/runs/43629188207
+https://github.com/albertwickous-droid/app-testbench/actions/runs/43630666609
 ```
 
 ## 真实 MuMu 冒烟测试 / Live MuMu smoke test

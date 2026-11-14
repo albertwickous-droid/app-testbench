@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   concurrent worktree edits.
 - Dependabot proposes GitHub Actions minor and patch updates automatically;
   major Action upgrades require manual review and validation.
+- GitHub Release workflow now uses the versioned release notes file and fails when
+  expected distribution assets are missing.
 - Rewrote the user-facing introductions around concrete behavior, supported
   environments, execution flow, and evidence outputs; added a dedicated
   agent deployment runbook with explicit approval and private-to-public gates.
