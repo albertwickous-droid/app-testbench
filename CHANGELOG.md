@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   major Action upgrades require manual review and validation.
 - GitHub Release workflow now uses the versioned release notes file and fails when
   expected distribution assets are missing.
+- GitHub Release drafts now bind explicitly to the pushed tag instead of receiving
+  an `untagged-*` placeholder tag.
 - Rewrote the user-facing introductions around concrete behavior, supported
   environments, execution flow, and evidence outputs; added a dedicated
   agent deployment runbook with explicit approval and private-to-public gates.

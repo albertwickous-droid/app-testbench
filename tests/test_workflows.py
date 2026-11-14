@@ -21,6 +21,7 @@ def test_github_release_does_not_depend_on_pypi() -> None:
         for step in release_job["steps"]
         if step.get("uses") == "softprops/action-gh-release@v2"
     )
+    assert release_step["with"]["tag_name"] == "${{ github.ref_name }}"
     assert release_step["with"]["draft"] is True
     assert release_step["with"]["body_path"] == "docs/releases/${{ github.ref_name }}.md"
     assert release_step["with"]["fail_on_unmatched_files"] is True
