@@ -80,6 +80,16 @@ The project is not an AI demo that instantiates an ad-hoc Android environment an
 
 营销时重点讲“运行时选择”和“证据链”，不要点名嘲讽具体竞品。真机仍然必要，本项目不是要替代最终真机验收。
 
+### 3.2 高意向使用场景 / High-intent use cases
+
+- Web 端功能不全时，在授权测试环境中验证原生 App 流程。
+- 专用测试账号正常登录后的已登录态回归。
+- 不同 MuMu 实例、安装版本和启动状态下的兼容性定位。
+- 小团队冒烟测试、失败复现和缺陷证据交付。
+- AI / Codex 辅助生成 flow，断言和原始证据负责判决。
+
+对外只描述“授权测试、原生端验证、测试态复用和环境覆盖”。不要把“保持登录态”说成绕过登录，也不要把“Web 受限”说成反爬绕过。
+
 ## 4. 转化漏斗 / Conversion funnel
 
 每个入口都按这五步设计：

@@ -61,6 +61,21 @@ App TestBench separates execution into four layers:
 
 The final output is an offline-readable execution report rather than a stream of terminal logs.
 
+## Use cases for authorized testing
+
+App TestBench is designed for apps, accounts, devices, and environments **you are authorized to test**:
+
+- **Incomplete web coverage:** when a capability exists only in the native app or differs from the web experience, validate the real native flow through app automation.
+- **Authenticated regression:** use a dedicated test account to complete the normal login flow in an isolated MuMu instance, then reuse that test state for authenticated pages and permissions.
+- **Instance and version coverage:** switch MuMu instances, installed app versions, and boot states to isolate environment-specific regressions.
+- **Small-team smoke testing:** describe critical journeys in JSON/YAML and generate offline reports with screenshots, UI, logcat, and timing.
+- **Defect handoff:** package the failure scene as reviewable evidence instead of a one-line “it failed here” report.
+- **AI-assisted authoring:** AI or Codex can draft flows and explain failures, while explicit assertions and raw evidence determine pass/fail.
+
+> Every scenario requires authorization. App TestBench is not for bypassing login, CAPTCHA, anti-automation, anti-scraping, risk controls, rate limits, paywalls, or regional restrictions. It does not provide cookie/token export, session forgery, or unauthorized access.
+
+See [`docs/use-cases.md`](docs/use-cases.md) for detailed boundaries.
+
 ## Features
 
 - `doctor` checks MuMuManager, ADB, instances, ADB connections, and versions

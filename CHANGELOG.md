@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   actions and the one-shot `install` command.
 - Versioned draft 2020-12 JSON Schema contracts for `result.json` and the
   `--json` CLI envelope, packaged with the wheel and sdist.
+- Bilingual authorized-testing use cases covering incomplete web coverage,
+  isolated authenticated regression, instance/version coverage, evidence-based
+  defect handoff, and AI-assisted flow authoring, with explicit anti-bypass
+  boundaries.
 
 ### Changed
 
