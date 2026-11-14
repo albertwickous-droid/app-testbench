@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "name": "smoke-json",
+  "device": {
+    "instance": 0,
+    "package": "com.example.app"
+  },
+  "report": {
+    "capture_screenshots": "all",
+    "collect_logcat": true
+  },
+  "setup": [
+    {
+      "name": "Install APK",
+      "action": "install",
+      "apk": "./app.apk"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Launch app",
+      "action": "launch"
+    },
+    {
+      "name": "Wait for first UI text",
+      "action": "wait_for_text",
+      "text": "Login",
+      "timeout": 20
+    },
+    {
+      "name": "Capture first screen",
+      "action": "screenshot",
+      "label": "first-screen"
+    }
+  ],
+  "teardown": [
+    {
+      "name": "Capture final logcat",
+      "action": "logcat",
+      "label": "final",
+      "lines": 2000
+    }
+  ]
+}

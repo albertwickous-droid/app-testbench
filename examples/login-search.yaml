@@ -1,0 +1,65 @@
+version: 1
+name: login-search
+description: Example login and search regression flow.
+device:
+  instance: 0
+  package: com.example.app
+report:
+  capture_screenshots: failures
+  collect_logcat: true
+  clear_logcat: true
+setup:
+  - name: Install APK
+    action: install
+    apk: ./app.apk
+    grant_permissions: true
+steps:
+  - name: Launch app
+    action: launch
+  - name: Wait for login
+    action: wait_for_text
+    text: Login
+    timeout: 20
+  - name: Tap email field
+    action: tap
+    x: 540
+    y: 620
+  - name: Enter email
+    action: text
+    text: qa@example.com
+  - name: Tap password field
+    action: tap
+    x: 540
+    y: 760
+  - name: Enter password
+    action: text
+    text: example-password
+  - name: Submit login
+    action: tap
+    x: 540
+    y: 900
+  - name: Wait for home
+    action: wait_for_text
+    text: Home
+    timeout: 30
+  - name: Open search
+    action: tap
+    x: 980
+    y: 180
+  - name: Enter query
+    action: text
+    text: app-testbench
+  - name: Submit search
+    action: keyevent
+    key: ENTER
+  - name: Verify results
+    action: wait_for_text
+    text: Results
+    timeout: 20
+  - name: Capture results
+    action: screenshot
+    label: search-results
+teardown:
+  - name: Close app
+    action: close
+    continue_on_error: true

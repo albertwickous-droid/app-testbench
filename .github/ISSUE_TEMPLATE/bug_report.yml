@@ -1,0 +1,67 @@
+name: Bug report / 问题报告
+description: Report a reproducible problem / 报告可复现的问题
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include tokens, cookies, personal screenshots, account data, or unredacted logcat.
+        不要提交 token、cookie、个人截图、账号数据或未脱敏 logcat。
+  - type: input
+    id: version
+    attributes:
+      label: app-testbench version / 版本
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: mumu
+    attributes:
+      label: MuMu Player version / MuMu 版本
+      placeholder: "12 / 15 / build number"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows and Python version / Windows 与 Python 版本
+      placeholder: "Windows 11 23H2, Python 3.11.8"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or flow / 命令或流程
+      description: Redact paths, package names, and secrets if needed. / 必要时脱敏路径、包名和密钥。
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / 实际行为
+      description: Include the relevant structured JSON error and traceback. / 请包含相关结构化 JSON 错误和 traceback。
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: doctor --json output / 输出
+      description: Redact personal paths and device identifiers as needed. / 必要时脱敏个人路径和设备标识。
+      render: json
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist / 检查
+      options:
+        - label: I searched existing issues. / 我已搜索现有 issue。
+          required: true
+        - label: I removed secrets and personal data. / 我已移除密钥和个人数据。
+          required: true

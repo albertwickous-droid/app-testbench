@@ -1,0 +1,43 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to publish (tag such as v0.1.0, or main)"
+        required: true
+        default: main
+        type: string
+      confirm:
+        description: "Type PUBLISH to confirm this irreversible release"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: inputs.confirm == 'PUBLISH'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/app-testbench
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build tools
+        run: python -m pip install build twine
+      - name: Build
+        run: python -m build
+      - name: Check metadata
+        run: python -m twine check dist/*
+      - name: Publish with trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:app-testbench:cli:1.0",
+  "title": "app-testbench CLI JSON envelope",
+  "description": "Stable success and error envelope emitted by --json.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/success"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "success": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "ok",
+        "command",
+        "generated_at",
+        "data"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "pattern": "^1\\.[0-9]+$"
+        },
+        "ok": {
+          "const": true
+        },
+        "command": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "data": {}
+      },
+      "additionalProperties": true
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "ok",
+        "command",
+        "generated_at",
+        "error"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "pattern": "^1\\.[0-9]+$"
+        },
+        "ok": {
+          "const": false
+        },
+        "command": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "error": {
+          "$ref": "#/$defs/error_detail"
+        }
+      },
+      "additionalProperties": true
+    },
+    "error_detail": {
+      "type": "object",
+      "required": [
+        "type",
+        "message",
+        "hint"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

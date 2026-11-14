@@ -1,0 +1,35 @@
+name: Feature request / 功能请求
+description: Suggest a bounded improvement / 建议一个范围明确的改进
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / 问题
+      description: What is difficult or impossible today? / 当前哪里困难或无法完成？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建议行为
+      description: Include CLI or flow syntax if relevant. / 可附 CLI 或 flow 语法。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / 已考虑的替代方案
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Real-world use case / 真实使用场景
+      description: Describe the app/emulator scenario without private data. / 请在不包含隐私数据的情况下描述场景。
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check / 范围检查
+      options:
+        - label: This is not a request to bypass application security or authenticate to third-party accounts. / 这不是绕过应用安全或登录第三方账号的请求。
+          required: true
