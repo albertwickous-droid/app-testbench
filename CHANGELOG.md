@@ -27,9 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Daily maintenance now documents Codex native Scheduled as the canonical
   scheduler and keeps the Windows Task Scheduler task disabled to prevent
   concurrent worktree edits.
-- Sharpened the README, social preview, and launch copy around a mature MuMu
-  runtime, deterministic app testing, and evidence-first verdicts while retaining
-  the Beta, authorized-testing, and privacy boundaries.
+- Rewrote the user-facing introductions around concrete behavior, supported
+  environments, execution flow, and evidence outputs; added a dedicated
+  agent deployment runbook with explicit approval and private-to-public gates.
 
 ## [0.1.0] - 2026-11-11
 

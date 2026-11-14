@@ -15,11 +15,11 @@
 
 **中文**
 
-> 成熟 MuMu 运行时 + 可重复 App 测试 + 可交付的原始证据：一条 YAML 完成安装、启动、交互、断言、截图和 logcat。
+> 用 MuMu 跑可重复的 Android App 测试：一条 YAML 串起安装、启动、交互、断言、截图和 logcat，失败后生成离线 HTML 报告。
 
 **English**
 
-> A mature MuMu runtime, repeatable app tests, and raw evidence: one YAML flow for install, launch, actions, assertions, screenshots, and logcat.
+> Repeatable Android app tests on MuMu: one YAML flow for install, launch, actions, assertions, screenshots, and logcat, with an offline HTML report when the run finishes.
 
 **传播版备选 / Hook-first variants**
 

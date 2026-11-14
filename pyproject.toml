@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "app-testbench"
 version = "0.1.0"
-description = "Evidence-first Android app testing on a mature MuMu runtime, with YAML flows and self-contained HTML reports."
+description = "Repeatable Android app testing on MuMu Player with JSON/YAML flows and self-contained HTML evidence reports."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

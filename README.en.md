@@ -4,11 +4,11 @@
 
 ![App TestBench](assets/banner.svg)
 
-**A mature MuMu runtime. Repeatable app tests. Evidence you can hand off.**
+**Repeatable Android app tests on MuMu, with screenshots, UI dumps, and logs when a step fails.**
 
-Not a prompt-built Android demo. It turns a mature emulator, ADB, explicit assertions, and raw evidence into a repeatable app automation pipeline.
+App TestBench is a Windows command-line tool for automated Android app testing. It drives MuMu Player through `MuMuManager.exe` and `adb`, with commands for installation, launch, tapping, input, screenshots, UI hierarchy dumps, and logcat collection. Tests are described in JSON/YAML flows, and each run produces a self-contained HTML report plus a machine-readable `result.json`.
 
-App TestBench wraps `MuMuManager.exe` and `adb` in a Python CLI. It supports JSON/YAML flows, UI assertions, screenshots, UI hierarchy dumps, logcat collection, and self-contained HTML reports. It is designed for App QA, regression scripts, delivery automation, and Codex or other agent tooling.
+It addresses three practical needs: running the same test repeatedly, identifying the exact failing step with useful evidence, and exposing results in a form that CI or an agent can consume.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
@@ -19,38 +19,28 @@ App TestBench wraps `MuMuManager.exe` and `adb` in a Python CLI. It supports JSO
 
 ## v0.1.0 status
 
-- The first release focuses on Windows 10/11 + MuMu Player + ADB.
+- The first release supports Windows 10/11, MuMu Player, and ADB.
 - Automated tests use deterministic fake `adb` and `MuMuManager` backends and cover command construction, flows, reports, and failure semantics.
-- CI success does not claim live compatibility with every MuMu release or every Android app.
-- Document live-device coverage explicitly; never present fake-backend results as a real-device verification.
-- No telemetry, cloud upload, or account system.
+- A passing CI run means the automated checks passed. It does not claim live compatibility with every MuMu release or every Android app.
+- Live-device results must be recorded separately; fake-backend results are never presented as live verification.
+- The tool has no telemetry, cloud upload, or account system.
 
 ## Why MuMu is the default runtime
 
-App automation should not be built on a disposable Android environment where “it booted” is treated as success. App TestBench uses the mature MuMu Player runtime and keeps reliability in explicit engineering boundaries:
+Starting a temporary Android environment for a demo is easy on Windows. Reproducing the same failure several days later is harder. App TestBench reuses MuMu's existing instance management, Android system, and ADB connection rather than maintaining another non-standard Android environment inside the test tool. It adds tool discovery, flow validation, waits, assertions, timeouts, and evidence collection so that environment problems, version differences, and test-step failures can be investigated separately.
 
-- **Mature runtime:** reuse MuMu instance lifecycle, Android system, and ADB connectivity instead of assembling a black-box runtime inside the test tool;
-- **Deterministic execution:** taps, input, waits, and assertions are explicit commands or JSON/YAML actions, not guesses based on screenshots;
-- **Raw evidence:** every step retains status, timing, screenshots, UI hierarchy, and logcat for post-failure review;
-- **AI assists, evidence decides:** AI or Codex can author flows, explain failures, and summarize reports, but pass/fail comes from assertions and artifacts;
-- **Local first:** no cloud black box or telemetry; screenshots, logs, and reports stay on the local machine.
+This design is intended for frequent smoke and regression runs. Physical devices are still appropriate for final acceptance. Compared with an ad-hoc environment driven only by visual model clicks, App TestBench executes explicit commands and flow actions; the tradeoff is that v0.1 has no OCR or image-template matching, and text inside WebViews, game engines, or custom-rendered surfaces may not be available in the UI hierarchy.
 
-“Mature” here describes the architecture choice: reuse MuMu's existing instance, Android system, and ADB capabilities. It is not a claim that every MuMu release has passed this project's live compatibility tests.
-
-AI is useful, but it should not simultaneously be the runtime, executor, and final judge. Physical devices still matter for final acceptance; this project targets the earlier, more frequent, and more repeatable smoke and regression stages.
-
-| Approach | Strength | Main limitation |
+| Approach | Good fit | Main limitation |
 | --- | --- | --- |
-| Manual physical-device testing | Closest to the final user environment | Expensive to repeat; evidence is assembled by hand |
-| Ad-hoc AI environment / vision-only tapping | Fast for a demo | Environment and model behavior are hard to reproduce |
-| One-off ADB scripts | Low automation cost | Flows, assertions, and failure evidence are usually ad hoc |
-| App TestBench + MuMu | Mature runtime with deterministic CLI, assertions, and evidence | v0.1 is Windows + MuMu focused; final device validation is still required |
+| Manual physical-device testing | Final acceptance and hardware-dependent behavior | Expensive to repeat; evidence is assembled by hand |
+| Ad-hoc AI environment / vision-only tapping | Fast demos | Environment and model behavior are difficult to reproduce |
+| One-off ADB scripts | A single action or short-lived task | Steps, assertions, and failure evidence are usually ad hoc |
+| App TestBench + MuMu | Frequent smoke, regression, compatibility checks, and evidence handoff | v0.1 is Windows + MuMu focused; final device validation is still required |
 
-## Why not another emulator script collection
+## How a flow runs
 
-Most scripts concatenate a few ADB commands. They can tap, but they do not reliably explain what happened, which step failed, or what the screen and logs looked like at failure time.
-
-App TestBench separates execution into four layers:
+The runner locates MuMuManager, ADB, and the selected instance, then executes installation, actions, waits, and assertions in order. When a step fails, later steps stop and the error, duration, screenshot, UI hierarchy, and current logcat are written to the run directory. The finished run produces an HTML report.
 
 | Layer | Responsibility |
 | --- | --- |
@@ -59,18 +49,18 @@ App TestBench separates execution into four layers:
 | Flow orchestration | JSON/YAML actions, environment variables, waits, assertions, setup/teardown |
 | Evidence output | Per-step timing, errors, screenshots, UI XML, logs, `result.json`, `report.html`, optional JUnit XML |
 
-The final output is an offline-readable execution report rather than a stream of terminal logs.
+`report.html` opens offline and can be handed to developers, QA, or product staff for review. `result.json` is intended for CI, scripts, and agents.
 
 ## Use cases for authorized testing
 
 App TestBench is designed for apps, accounts, devices, and environments **you are authorized to test**:
 
-- **Incomplete web coverage:** when a capability exists only in the native app or differs from the web experience, validate the real native flow through app automation.
-- **Authenticated regression:** use a dedicated test account to complete the normal login flow in an isolated MuMu instance, then reuse that test state for authenticated pages and permissions.
-- **Instance and version coverage:** switch MuMu instances, installed app versions, and boot states to isolate environment-specific regressions.
-- **Small-team smoke testing:** describe critical journeys in JSON/YAML and generate offline reports with screenshots, UI, logcat, and timing.
-- **Defect handoff:** package the failure scene as reviewable evidence instead of a one-line “it failed here” report.
-- **AI-assisted authoring:** AI or Codex can draft flows and explain failures, while explicit assertions and raw evidence determine pass/fail.
+- **Incomplete web coverage:** when a capability exists only in the native app or behaves differently from the web experience, test the app flow with an authorized test account.
+- **Authenticated regression:** sign in with a dedicated test account in an isolated MuMu instance through the normal login flow, then reuse that test instance's authenticated state for later flows.
+- **Instance and version coverage:** switch MuMu instances, installed app versions, and boot states to isolate regressions that appear only in a specific environment.
+- **Small-team smoke testing:** describe critical journeys in JSON/YAML and generate offline reports with screenshots, UI hierarchy, logcat, and timing.
+- **Defect handoff:** keep the failing step, screenshot, UI hierarchy, and logs in one report so developers, QA, and product staff do not have to reconstruct the scene from messages.
+- **AI-assisted authoring:** AI or Codex can draft flows, explain failures, and summarize reports; explicit assertions and raw evidence still determine pass/fail.
 
 > Every scenario requires authorization. App TestBench is not for bypassing login, CAPTCHA, anti-automation, anti-scraping, risk controls, rate limits, paywalls, or regional restrictions. It does not provide cookie/token export, session forgery, or unauthorized access.
 
@@ -400,6 +390,7 @@ See:
 
 - [`docs/publishing.md`](docs/publishing.md)
 - [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
+- [`docs/agent-deployment.md`](docs/agent-deployment.md): deployment runbook for agents
 - [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 - [docs/promotion.md](docs/promotion.md)
 - [docs/launch-copy.md](docs/launch-copy.md)

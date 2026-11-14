@@ -4,11 +4,11 @@
 
 ![App TestBench](assets/banner.svg)
 
-**成熟 MuMu 运行时，可重复的 App 测试，可交付的现场证据。**
+**用 MuMu 跑可重复的 Android App 测试；失败时保留截图、UI 树和日志。**
 
-不是用提示词临时拼一个“能跑就行”的安卓环境，而是把成熟模拟器、ADB、显式断言和原始证据串成可回归的 App 自动化流程。
+App TestBench 是一个面向 Windows 的 Android App 自动化测试命令行工具。它通过 `MuMuManager.exe` 和 `adb` 操作 MuMu Player，提供安装、启动、点击、输入、截图、UI 树读取和 logcat 收集等命令。测试流程写在 JSON/YAML 中，运行后生成自包含 HTML 报告和机器可读的 `result.json`。
 
-App TestBench 用 Python 封装 `MuMuManager.exe` 与 `adb`，提供统一命令行、JSON/YAML 流程 DSL 和自包含 HTML 报告。它面向 App 自动化测试、回归验证、交付脚本，以及 Codex / 其他 AI Agent 的工具调用。
+它主要解决三类问题：同一条流程需要反复执行；失败后要能查到具体步骤和现场；测试结果要能被 CI 或 Agent 稳定读取。
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
@@ -19,58 +19,48 @@ App TestBench 用 Python 封装 `MuMuManager.exe` 与 `adb`，提供统一命令
 
 ## v0.1.0 状态
 
-- 首版聚焦 Windows 10/11 + MuMu Player + ADB。
+- 首版支持 Windows 10/11、MuMu Player 和 ADB。
 - 自动化测试使用确定性的假 `adb` / `MuMuManager`，覆盖命令构造、流程、报告和失败语义。
-- CI 通过不代表所有 MuMu 版本和所有 App 都已完成真实兼容性验证。
-- 真实设备测试结果应在发布记录中明确标注，不用假后端结果冒充真机结论。
-- 无遥测、无云端上传、无账号体系。
+- CI 通过只说明自动化检查通过，不代表所有 MuMu 版本和所有 App 都完成了真实兼容性验证。
+- 真实设备测试结果应在发布记录中单独标注，不用假后端结果冒充真机结论。
+- 工具没有遥测、云端上传或账号体系。
 
-## 为什么默认运行在 MuMu 上
+## 为什么默认用 MuMu
 
-App 自动化不应该建立在一个“能启动就算成功”的临时安卓环境上。App TestBench 选择成熟的 MuMu Player 作为默认运行时，把可靠性建立在可检查的工程边界上：
+Windows 上临时启动一个 Android 环境做演示并不难，难的是几天后仍然能复现同一次失败。选用 MuMu，是为了复用已有的实例管理、Android 系统和 ADB 通道，而不是让测试工具再维护一套非标准 Android 环境。App TestBench 在这些能力之上增加工具发现、流程校验、等待、断言、超时和证据收集，使环境问题、版本差异和执行步骤可以分开排查。
 
-- **成熟运行时**：复用 MuMu 的实例生命周期、Android 系统和 ADB 通道，而不是在测试工具内部临时拼一个不可控的黑盒环境；
-- **确定性执行**：点击、输入、等待和断言都是显式命令或 JSON/YAML 动作，不依赖“看截图猜下一步”；
-- **原始证据**：每一步保留状态、耗时、截图、UI 树和 logcat，失败后仍能复盘现场；
-- **AI 可参与，但不负责判决**：AI / Codex 可以帮助编写 flow、解释失败和整理报告，pass/fail 仍由断言和证据决定；
-- **本地优先**：没有云端黑盒和遥测，截图、日志和测试报告留在本机。
+这套方案更适合日常高频、需要重复执行的冒烟和回归测试。物理设备仍然适合最终验收。与依赖视觉模型逐屏点击的临时环境相比，App TestBench 的步骤由命令和 flow 明确定义；代价是首版没有 OCR 和图像模板匹配，WebView、游戏引擎或自绘界面的文本也不一定能从 UI 树中读取。
 
-这里的“成熟”是架构选择：复用 MuMu 已有的实例、Android 系统和 ADB 能力，不代表所有 MuMu 版本都已通过本项目的真实兼容性测试。
-
-AI 很重要，但 AI 不应该同时扮演运行环境、执行器和最终裁判。真实设备仍适合最终验收；本项目解决的是更靠前、更频繁、更需要可重复性的 App 冒烟和回归测试。
-
-| 方案 | 优势 | 主要边界 |
+| 方式 | 适合的场景 | 主要限制 |
 | --- | --- | --- |
-| 人工操作真机 | 最接近最终用户环境 | 重复成本高，截图和日志依赖人工整理 |
-| AI 临时搭环境 / 纯视觉点击 | 演示速度快 | 环境和模型行为不确定，难以稳定回归 |
-| 一次性 ADB 脚本 | 自动化成本低 | 流程、断言和失败证据通常不成体系 |
-| App TestBench + MuMu | 成熟运行时有确定性 CLI、断言和完整证据 | 首版聚焦 Windows + MuMu，仍需真机终验 |
+| 人工操作真机 | 最终验收、真实硬件相关功能 | 重复成本高，证据依赖人工整理 |
+| 临时 AI 环境 / 纯视觉点击 | 快速演示 | 环境和模型行为不容易复现 |
+| 一次性 ADB 脚本 | 单个简单动作或临时任务 | 步骤、断言和失败证据通常不成体系 |
+| App TestBench + MuMu | 高频冒烟、回归、兼容性定位和证据交付 | 首版聚焦 Windows + MuMu，仍需真机终验 |
 
-## 为什么不是“模拟器脚本合集”
+## 一条 flow 如何执行
 
-多数脚本只把几条 ADB 命令拼在一起：能点，但不能稳定说明“发生了什么、哪一步失败、失败时界面和日志是什么”。
+执行 flow 时，工具先定位 MuMuManager、ADB 和实例，再按顺序执行安装、操作、等待和断言。某一步失败后，后续步骤会停止，错误、耗时、截图、UI 树和当前 logcat 会写入本次运行目录。全部步骤结束后生成 HTML 报告。
 
-App TestBench 把执行过程拆成四层：
-
-| 层 | 职责 |
+| 层 | 具体职责 |
 | --- | --- |
-| 工具发现 | 自动定位 MuMuManager、ADB、实例和 ADB 端口 |
+| 工具发现 | 定位 MuMuManager、ADB、实例和 ADB 端口 |
 | 设备操作 | 安装、启动、关闭、点击、滑动、输入、截图、UI 树、logcat |
-| 流程编排 | JSON/YAML 动作、环境变量、等待/断言、setup/teardown |
-| 证据输出 | 每步耗时、错误、截图、UI XML、日志、`result.json`、`report.html` |
+| 流程编排 | JSON/YAML 动作、环境变量、等待、断言、setup/teardown |
+| 证据输出 | 每步耗时、错误、截图、UI XML、日志、`result.json`、`report.html`，可选 JUnit XML |
 
-最终产物是一个离线可读的执行报告，而不是终端里滚过去的一串日志。
+`report.html` 可以直接离线打开，适合转给开发、测试或产品复核；`result.json` 用于 CI、脚本和 Agent 读取。
 
 ## 适用场景（合规测试）
 
 App TestBench 适合验证**你有权测试的 App、账号、设备和环境**：
 
-- **Web 端功能不全**：产品能力只在原生 App 中提供，或 Web 与移动交互存在差异时，用 App 自动化验证原生端真实流程。
-- **登录后的回归测试**：在隔离 MuMu 实例中使用专用测试账号正常登录，后续 flow 复用该测试态，验证已登录页面和权限。
-- **环境与版本覆盖**：切换 MuMu 实例、安装包版本和启动状态，定位特定环境下的兼容性回归。
-- **小团队冒烟测试**：用 JSON/YAML 描述关键路径，生成带截图、UI、logcat 和耗时的离线报告。
-- **缺陷交付**：把失败现场打包成可复核证据，而不是只留一句“点到这里失败了”。
-- **AI 辅助编写**：AI / Codex 可以生成 flow 和解释失败，最终 pass/fail 仍由显式断言和原始证据决定。
+- **Web 端功能不全**：某项能力只在原生 App 中提供，或 Web 与移动端行为不同时，用授权测试账号验证 App 流程。
+- **登录后的回归测试**：在隔离 MuMu 实例中用专用测试账号走正常登录，后续 flow 复用该测试实例的登录态，验证已登录页面和权限。
+- **环境与版本覆盖**：切换 MuMu 实例、安装包版本和启动状态，定位只在特定环境中出现的回归。
+- **小团队冒烟测试**：用 JSON/YAML 描述关键路径，生成带截图、UI 树、logcat 和耗时的离线报告。
+- **缺陷交付**：失败时把步骤、截图、UI 树和日志放在同一份报告里，减少开发、测试和产品之间的信息丢失。
+- **AI 辅助编写**：AI / Codex 可以起草 flow、解释失败和整理报告，是否通过仍由显式断言和原始证据决定。
 
 > 这些场景都要求合法授权。App TestBench 不用于绕过登录、验证码、反自动化、反爬、风控、限流、付费墙或地域限制，也不提供 Cookie/token 导出、会话伪造或未授权访问能力。
 
@@ -400,6 +390,7 @@ python -m twine check dist/*
 
 - [`docs/publishing.md`](docs/publishing.md)
 - [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
+- [`docs/agent-deployment.md`](docs/agent-deployment.md)：给执行部署任务的 Agent 使用
 - [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 - [docs/promotion.md](docs/promotion.md)
 - [docs/launch-copy.md](docs/launch-copy.md)

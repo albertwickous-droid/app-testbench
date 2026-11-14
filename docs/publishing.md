@@ -8,6 +8,10 @@ This is the complete publishing runbook for the first public `app-testbench` rel
 >
 > The confirmed repository owner is `albertwickous-droid`. Do not run `tag` or any release action before the final review.
 
+> Agent 执行入口：如果你是由 Agent 执行的部署任务，先按 [`agent-deployment.md`](agent-deployment.md) 操作。
+>
+> Agent entry point: if an agent is executing the deployment, follow [`agent-deployment.md`](agent-deployment.md) first.
+
 ## 0. 最快发布路径 / Quick path
 
 1. 在 GitHub 创建一个空的 **Private** 仓库，不要勾选 README、`.gitignore` 或 License。
