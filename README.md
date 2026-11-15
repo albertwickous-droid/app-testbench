@@ -2,7 +2,7 @@
 
 [English](README.en.md) | **简体中文**
 
-![App TestBench](assets/banner.svg)
+![App TestBench：在 MuMu 上执行可重复的 Android 应用测试流程](assets/banner.png)
 
 **用 MuMu 跑可重复的 Android App 测试；失败时保留截图、UI 树和日志。**
 

@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-![App TestBench](assets/banner.svg)
+![App TestBench: repeatable Android app tests on MuMu](assets/banner.png)
 
 **Repeatable Android app tests on MuMu, with screenshots, UI dumps, and logs when a step fails.**
 
