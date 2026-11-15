@@ -7,8 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-15
+
+### Added
+
+- Two live MuMu cases with reproducible flows, pinned dependencies, public
+  screenshots, and recorded validation results: Markor note persistence
+  (47/47 steps) and Android Settings navigation/scroll (23/23 steps).
+- Markor case preparation scripts that download the official F-Droid APK into
+  an ignored local directory, verify size and SHA256, reset app data, and clean
+  up only the note and package created by the test.
+- A bilingual real-case index linking the flows, screenshots, passed and failed
+  report evidence, selection rationale, and honest environment limits.
+- Validation coverage for the exact MuMu Player, Android, ADB, display, Python,
+  and system-language configuration used by the live cases.
+
+### Changed
+
+- `app-testbench init` now defaults to `app-testbench-flow.yaml` / `.json`;
+  explicit `--output` remains supported.
+- Automation docs now require updating the native Scheduled project path after a
+  repository rename and verifying the fallback task name before enabling it.
+- Package version is now `0.1.1`.
+
 ### Fixed
 
+- Failed `run --json` output now conforms to `cli-v1.schema.json`: it returns a
+  structured `error` object while preserving the complete failed run in `data`.
+  The process exit code remains `1`, and failure screenshots, UI trees, logcat,
+  HTML, and JUnit evidence are unchanged.
+- `dump-ui --json` on a Windows GBK console now falls back to ASCII JSON escapes
+  instead of crashing after the UI XML has already been written.
 - GitHub Release drafts now bind explicitly to the pushed tag instead of receiving
   an `untagged-*` placeholder tag.
 
