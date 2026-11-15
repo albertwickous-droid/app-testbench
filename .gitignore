@@ -54,3 +54,59 @@ secrets.*
 .secrets/
 .codex/
 AGENTS.local.md
+
+# Additional Python and test caches
+.hypothesis/
+.nox/
+.pyre/
+.pytype/
+test-results/
+
+# Local packaging output
+*.whl
+*.tar.gz
+*.zip
+*.7z
+.eggs/
+*.egg
+.installed.cfg
+pip-wheel-metadata/
+
+# Root-level artifacts created by direct commands
+/screenshot.png
+/screenshot-*.png
+/ui.xml
+/ui-*.xml
+/logcat.txt
+/logcat-*.txt
+/report.html
+/result.json
+/junit.xml
+
+# Credential stores and private client configuration
+.netrc
+.npmrc
+.pypirc
+.git-credentials
+.gitconfig.local
+*.ppk
+*.jks
+*.keystore
+*.kdbx
+id_rsa*
+id_ed25519*
+credentials*.json
+cookies*.json
+session*.json
+storage-state*.json
+*.local.toml
+*.secret
+*.secrets
+.aws/
+.azure/
+.gcloud/
+
+# Local Android build state
+.gradle/
+local.properties
+captures/
