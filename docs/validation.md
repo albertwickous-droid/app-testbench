@@ -17,6 +17,9 @@ This page records App TestBench v0.1.1 release-candidate validation on a live Mu
 | Ruff format check | 64 files already formatted |
 | wheel + sdist build | `app_testbench-0.1.1-py3-none-any.whl` and `app_testbench-0.1.1.tar.gz` built |
 | `twine check` | wheel and sdist PASSED |
+| `check-wheel-contents` | final wheel returned `OK` |
+| sdist-only clean install | built from the published sdist, then `--version`, `skill-path`, `init`, and `validate` passed |
+| sdist archive inspection | 111 files; required live-case scripts, site, range server, and `SHA256SUMS` present; no APK/AAB/MP4/log/run/venv entries |
 | packaged JSON Schemas | success and failure results validated against `result-v1.schema.json`; failed CLI output validated against packaged `cli-v1.schema.json` |
 | public evidence test | 12 PNG files checked for expected dimensions and SHA256 manifest coverage |
 | self-contained HTML check | success and failure reports contain embedded PNG data and no external resource elements (`img src`, script `src`, stylesheet `href`, or CSS imports); captured command/log text may still contain a local media URL |

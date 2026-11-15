@@ -20,7 +20,7 @@
 - [ ] 全仓敏感模式扫描完成 / sensitive-pattern scan completed
 - [ ] 没有 cookie、Authorization、Bearer、JWT、API key、PAT、私钥或证书 / no secrets
 - [ ] 没有 `.env`、`auth.json`、cookies、Codex/MCP 配置 / no local credentials
-- [ ] 没有 APK、真实截图、UI XML、logcat、`runs/` 或报告 / no private evidence
+- [ ] 没有 APK、原始或未审查截图、UI XML、原始 logcat、`runs/` 或未筛选报告 / no raw or unreviewed screenshots, UI XML, raw logcat, `runs/`, or unfiltered reports
 - [ ] 示例只使用 `com.example.app` 等明显占位值 / examples use obvious placeholders
 - [ ] `git status --ignored --short` 显示运行时目录已被忽略 / runtime folders ignored
 - [ ] `git add -n .` 文件列表已逐项检查 / dry-run staging reviewed
