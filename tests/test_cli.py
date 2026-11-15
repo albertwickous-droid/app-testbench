@@ -5,11 +5,12 @@ import os
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 
-from app_testbench.cli import build_parser, main
+from app_testbench.cli import _emit_json, build_parser, main
 from app_testbench.config import build_settings
 from app_testbench.errors import ConfigError
 from app_testbench.flow import load_flow
@@ -510,3 +511,72 @@ def test_install_cli_mismatch_returns_device_error(
     assert code == 1
     assert payload["error"]["type"] == "device_error"
     assert "versionCode" in payload["error"]["hint"]
+
+
+def test_failed_run_json_matches_cli_schema(
+    fake_tools: dict[str, Path], tmp_path: Path, capsys
+) -> None:
+    jsonschema = pytest.importorskip("jsonschema")
+    flow = tmp_path / "failure.yaml"
+    flow.write_text(
+        """
+version: 1
+name: cli-failure-contract
+device:
+  package: com.example.app
+report:
+  capture_screenshots: failures
+steps:
+  - action: launch
+  - action: assert_ui_contains
+    text: APP_TESTBENCH_EXPECTED_MISSING_TEXT
+""".strip(),
+        encoding="utf-8",
+    )
+
+    code = main(
+        [
+            "run",
+            str(flow),
+            "--output",
+            str(tmp_path / "runs"),
+            "--adb",
+            str(fake_tools["adb"]),
+            "--mumumanager",
+            str(fake_tools["manager"]),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 1
+    assert payload["ok"] is False
+    assert payload["error"]["type"] == "step_failure"
+    assert "APP_TESTBENCH_EXPECTED_MISSING_TEXT" in payload["error"]["message"]
+    assert payload["data"]["status"] == "failed"
+    assert payload["data"]["summary"]["failed"] == 1
+
+    schema = json.loads(
+        files("app_testbench.schemas").joinpath("cli-v1.schema.json").read_text(encoding="utf-8")
+    )
+    jsonschema.Draft202012Validator(schema).validate(payload)
+
+
+def test_json_output_falls_back_to_ascii_escapes_on_gbk_console(monkeypatch) -> None:
+    class GbkConsole:
+        encoding = "gbk"
+
+        def __init__(self) -> None:
+            self.value = ""
+
+        def write(self, text: str) -> None:
+            self.value += text
+
+        def flush(self) -> None:
+            pass
+
+    console = GbkConsole()
+    monkeypatch.setattr(sys, "stdout", console)
+    _emit_json({"text": "¯\\_(ツ)_/¯"})
+    payload = json.loads(console.value)
+    assert payload["text"] == "¯\\_(ツ)_/¯"

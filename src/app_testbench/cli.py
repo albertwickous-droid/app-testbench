@@ -22,9 +22,9 @@ from app_testbench.device import (
     validate_package,
 )
 from app_testbench.doctor import collect_doctor_checks
-from app_testbench.errors import ConfigError, DeviceError, RunnerError
+from app_testbench.errors import ConfigError, DeviceError, RunnerError, StepFailure
 from app_testbench.flow import load_flow, starter_document
-from app_testbench.models import Instance
+from app_testbench.models import Instance, RunResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.runner import FlowRunner
 from app_testbench.utils import ProcessRunner, atomic_write_text, now_iso, unique_path
@@ -295,11 +295,22 @@ def _payload(command: str, data: Any) -> dict[str, Any]:
 
 
 def _emit_json(value: dict[str, Any]) -> None:
-    print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+    text = json.dumps(value, ensure_ascii=False, indent=2, default=str)
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        text.encode(encoding)
+    except (LookupError, UnicodeEncodeError):
+        # A Windows console can be cp936/GBK while device UI text is arbitrary
+        # Unicode. JSON escapes keep the command machine-readable in that case.
+        text = json.dumps(value, ensure_ascii=True, indent=2, default=str)
+    print(text)
 
 
-def _error_payload(command: str, error: RunnerError) -> dict[str, Any]:
-    return {
+_MISSING = object()
+
+
+def _error_payload(command: str, error: RunnerError, data: Any = _MISSING) -> dict[str, Any]:
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "ok": False,
         "command": command,
@@ -310,6 +321,9 @@ def _error_payload(command: str, error: RunnerError) -> dict[str, Any]:
             "hint": error.hint,
         },
     }
+    if data is not _MISSING:
+        payload["data"] = data
+    return payload
 
 
 def _settings_from_args(args: argparse.Namespace) -> Settings:
@@ -413,6 +427,18 @@ def _print_checks(checks: list[Any]) -> None:
                 print(f"       {hint}")
 
 
+def _failure_from_result(result: RunResult) -> RunnerError:
+    failed_step = next((step for step in result.steps if step.status == "failed"), None)
+    if failed_step is not None:
+        message = f"Flow step '{failed_step.name}' failed: {failed_step.error or 'unknown error'}"
+        hint = failed_step.hint or f"Inspect the run artifacts: {result.report_path}"
+        return StepFailure(message, hint=hint)
+    return RunnerError(
+        f"Flow finished with status '{result.status}'.",
+        hint=f"Inspect the run artifacts: {result.report_path}",
+    )
+
+
 def _finish(
     args: argparse.Namespace,
     command: str,
@@ -420,10 +446,17 @@ def _finish(
     human: Any = None,
     *,
     ok: bool = True,
+    error: RunnerError | None = None,
 ) -> int:
     if getattr(args, "json_output", False):
-        payload = _payload(command, data)
-        payload["ok"] = ok
+        if ok:
+            payload = _payload(command, data)
+        else:
+            failure = error or RunnerError(
+                f"{command} finished with a failed status.",
+                hint="Inspect data for the structured failure details.",
+            )
+            payload = _error_payload(command, failure, data)
         _emit_json(payload)
     elif human:
         human(data)
@@ -449,7 +482,15 @@ def _command_doctor(args: argparse.Namespace, settings: Settings) -> int:
         _print_checks(checks)
         print(f"\nOverall: {status.upper()}")
 
-    return _finish(args, "doctor", data, human, ok=not failed)
+    failure = (
+        RunnerError(
+            "One or more doctor checks failed.",
+            hint="Inspect data.checks for the failing environment checks.",
+        )
+        if failed
+        else None
+    )
+    return _finish(args, "doctor", data, human, ok=not failed, error=failure)
 
 
 def _instance_index(args: argparse.Namespace, settings: Settings) -> int:
@@ -639,7 +680,14 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
         if payload.get("junit_path"):
             print(f"JUnit:  {payload['junit_path']}")
 
-    return _finish(args, "run", data, human, ok=result.status == "passed")
+    return _finish(
+        args,
+        "run",
+        data,
+        human,
+        ok=result.status == "passed",
+        error=None if result.status == "passed" else _failure_from_result(result),
+    )
 
 
 def _command_init(args: argparse.Namespace, _: Settings) -> int:
