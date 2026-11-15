@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from app_testbench.config import Settings, build_settings
+from app_testbench.errors import RunnerError
 from app_testbench.flow import load_flow
 from app_testbench.runner import FlowRunner
 
@@ -177,6 +178,42 @@ steps:
     assert "UI text was not found" in report
     assert "data:image/png;base64," in report
     assert "sample error" in report
+
+
+def test_wait_for_text_retries_transient_ui_dump_errors(
+    fake_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    flow_path = tmp_path / "retry-wait.yaml"
+    flow_path.write_text(
+        """
+version: 1
+device:
+  package: com.example.app
+steps:
+  - action: wait_for_text
+    text: Login
+    timeout: 1
+    interval: 0.1
+""".strip(),
+        encoding="utf-8",
+    )
+    runner = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs")
+    calls: list[int] = []
+
+    def flaky_dump(step, result) -> tuple[list[str], Path]:
+        calls.append(1)
+        if len(calls) < 3:
+            raise RunnerError("uiautomator dump failed.", hint="null root node")
+        return ["Login"], Path("unused")
+
+    monkeypatch.setattr(runner, "_dump_ui_for_result", flaky_dump)
+    result = runner.run()
+
+    assert result.status == "passed"
+    assert len(calls) == 3
+    assert result.steps[0].output["attempts"] == 3
 
 
 def test_teardown_continues_after_a_teardown_failure(

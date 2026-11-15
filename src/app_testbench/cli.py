@@ -19,7 +19,10 @@ from app_testbench.device import (
     normalize_keyevent,
     validate_activity,
     validate_coordinate,
+    validate_mime_type,
+    validate_open_uri,
     validate_package,
+    validate_port,
 )
 from app_testbench.doctor import collect_doctor_checks
 from app_testbench.errors import ConfigError, DeviceError, RunnerError, StepFailure
@@ -78,7 +81,11 @@ def _guess_command(argv: list[str]) -> str:
         "instance",
         "install",
         "launch",
+        "open",
         "close",
+        "clear-data",
+        "orientation",
+        "reverse-port",
         "tap",
         "swipe",
         "text",
@@ -176,9 +183,37 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--activity", help="Activity component, class name, or relative .Activity")
     launch.set_defaults(handler="launch")
 
+    open_uri = subparsers.add_parser(
+        "open", parents=[common], help="Open an HTTP(S), file, or content URI"
+    )
+    open_uri.add_argument("uri")
+    open_uri.add_argument("--package", help="Restrict the VIEW intent to one Android package")
+    open_uri.add_argument("--mime-type", help="Optional MIME type such as video/mp4")
+    open_uri.set_defaults(handler="open")
+
     close = subparsers.add_parser("close", parents=[common], help="Force-stop an app")
     close.add_argument("package")
     close.set_defaults(handler="close")
+
+    clear_data = subparsers.add_parser(
+        "clear-data", parents=[common], help="Clear an app's data and stop its process"
+    )
+    clear_data.add_argument("package")
+    clear_data.set_defaults(handler="clear_app_data")
+
+    orientation = subparsers.add_parser(
+        "orientation", parents=[common], help="Lock or reset the device screen orientation"
+    )
+    orientation.add_argument("mode", choices=["portrait", "landscape", "auto"])
+    orientation.set_defaults(handler="orientation")
+
+    reverse_port = subparsers.add_parser(
+        "reverse-port", parents=[common], help="Map a device TCP port to a host TCP port"
+    )
+    reverse_port.add_argument("port", type=int, help="Device-side port")
+    reverse_port.add_argument("--local-port", type=int, help="Host-side port (default: same port)")
+    reverse_port.add_argument("--remove", action="store_true", help="Remove the mapping")
+    reverse_port.set_defaults(handler="reverse_port")
 
     tap = subparsers.add_parser("tap", parents=[common], help="Tap screen coordinates")
     tap.add_argument("x", type=int)
@@ -374,10 +409,24 @@ def _preflight_device_command(args: argparse.Namespace) -> Path | None:
                 raise ConfigError(
                     "--expected-package is required when verifying an installed version."
                 )
-        elif action in {"launch", "close"}:
+        elif action == "launch":
             validate_package(args.package)
-            if action == "launch" and args.activity is not None:
+            if args.activity is not None:
                 validate_activity(args.activity)
+        elif action == "open":
+            validate_open_uri(args.uri)
+            if args.package is not None:
+                validate_package(args.package)
+            if args.mime_type is not None:
+                validate_mime_type(args.mime_type)
+        elif action in {"close", "clear_app_data"}:
+            validate_package(args.package)
+        elif action == "reverse_port":
+            validate_port(args.port, name="port")
+            if args.local_port is not None:
+                validate_port(args.local_port, name="local-port")
+            if args.remove and args.local_port is not None:
+                raise ConfigError("--local-port cannot be used with --remove")
         elif action == "tap":
             validate_coordinate(args.x, name="x")
             validate_coordinate(args.y, name="y")
@@ -566,12 +615,48 @@ def _command_device(args: argparse.Namespace, settings: Settings) -> int:
             "package": args.package,
             "message": message,
         }
+    elif action == "open":
+        message = device.open_uri(args.uri, package=args.package, mime_type=args.mime_type)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "uri": args.uri,
+            "package": args.package,
+            "mime_type": args.mime_type,
+            "message": message,
+        }
     elif action == "close":
         message = device.close(args.package)
         data = {
             "instance": instance,
             "serial": serial,
             "package": args.package,
+            "message": message,
+        }
+    elif action == "clear_app_data":
+        message = device.clear_app_data(args.package)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "package": args.package,
+            "message": message,
+        }
+    elif action == "orientation":
+        message = device.set_orientation(args.mode)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "mode": args.mode,
+            "message": message,
+        }
+    elif action == "reverse_port":
+        message = device.reverse_port(args.port, local_port=args.local_port, remove=args.remove)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "port": args.port,
+            "local_port": args.local_port,
+            "remove": args.remove,
             "message": message,
         }
     elif action == "tap":
@@ -725,7 +810,11 @@ def _dispatch(args: argparse.Namespace, settings: Settings) -> int:
     if handler in {
         "install",
         "launch",
+        "open",
         "close",
+        "clear_app_data",
+        "orientation",
+        "reverse_port",
         "tap",
         "swipe",
         "text",

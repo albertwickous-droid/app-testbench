@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from app_testbench.errors import DeviceError, RunnerError
 from app_testbench.utils import BinaryResult, ProcessRunner
@@ -17,6 +18,8 @@ PACKAGE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$")
 KEY_RE = re.compile(r"^[A-Za-z0-9_]+$")
 ACTIVITY_RE = re.compile(r"^[A-Za-z_.$][A-Za-z0-9_.$]*(?:/[A-Za-z_.$][A-Za-z0-9_.$]*)?$")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+MIME_TYPE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+-]*/[A-Za-z0-9][A-Za-z0-9.+-]*$")
+OPEN_URI_SCHEMES = frozenset({"http", "https", "file", "content"})
 
 
 def validate_package(package: str) -> str:
@@ -65,6 +68,58 @@ def normalize_keyevent(key: str) -> str:
         raise DeviceError(f"Invalid keyevent: {key!r}")
     value = value.upper()
     return value if value.startswith("KEYCODE_") else f"KEYCODE_{value}"
+
+
+def validate_mime_type(mime_type: str) -> str:
+    value = str(mime_type).strip().lower()
+    if not MIME_TYPE_RE.fullmatch(value):
+        raise DeviceError(f"Invalid MIME type: {mime_type!r}")
+    return value
+
+
+def validate_port(value: int, *, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise DeviceError(f"{name} must be an integer")
+    if value < 1 or value > 65_535:
+        raise DeviceError(f"{name} must be between 1 and 65535")
+    return value
+
+
+def validate_open_uri(uri: str) -> str:
+    if not isinstance(uri, str):
+        raise DeviceError("uri must be a string")
+    if uri != uri.strip() or not uri:
+        raise DeviceError("uri cannot be empty or contain leading/trailing whitespace")
+    if len(uri) > 8192:
+        raise DeviceError("uri is too long; maximum length is 8192 characters")
+    if any(
+        character.isspace() or ord(character) < 32 or ord(character) == 127 for character in uri
+    ):
+        raise DeviceError("uri cannot contain whitespace or control characters")
+    parsed = urlsplit(uri)
+    scheme = parsed.scheme.lower()
+    if scheme not in OPEN_URI_SCHEMES:
+        raise DeviceError(
+            f"Unsupported URI scheme: {scheme or '<missing>'}",
+            hint="Use an http, https, file, or content URI.",
+        )
+    if scheme in {"http", "https"} and not parsed.netloc:
+        raise DeviceError(f"{scheme} URI must include a host")
+    if scheme in {"http", "https"} and (parsed.username is not None or parsed.password is not None):
+        raise DeviceError("URI credentials are not allowed; use an app login flow instead")
+    if scheme == "file":
+        if parsed.netloc not in {"", "localhost"}:
+            raise DeviceError("file URI must not include a remote host")
+        if not (
+            parsed.path.startswith("/sdcard/") or parsed.path.startswith("/storage/emulated/0/")
+        ):
+            raise DeviceError(
+                "file URI must point inside /sdcard/ or /storage/emulated/0/",
+                hint="Push test media with ADB and open its public storage path.",
+            )
+    if scheme == "content" and not parsed.netloc:
+        raise DeviceError("content URI must include an authority")
+    return uri
 
 
 def encode_input_text(text: str) -> str:
@@ -119,6 +174,13 @@ def parse_package_identity(output: str) -> dict[str, Any]:
         "version_code": int(version_code_match.group(1)) if version_code_match else None,
         "version_name": version_name,
     }
+
+
+def parse_surface_orientation(output: str) -> int | None:
+    """Return the current Android SurfaceOrientation value when available."""
+
+    match = re.search(r"^\s*SurfaceOrientation:\s*([0-3])\s*$", output, re.MULTILINE)
+    return int(match.group(1)) if match else None
 
 
 class AndroidDevice:
@@ -362,10 +424,134 @@ class AndroidDevice:
             )
         return output.strip()
 
+    def open_uri(
+        self,
+        uri: str,
+        *,
+        package: str | None = None,
+        mime_type: str | None = None,
+    ) -> str:
+        uri = validate_open_uri(uri)
+        if package is not None:
+            package = validate_package(package)
+        if mime_type is not None:
+            mime_type = validate_mime_type(mime_type)
+
+        arguments = [
+            "am",
+            "start",
+            "-W",
+            "-a",
+            "android.intent.action.VIEW",
+            "-d",
+            uri,
+        ]
+        if mime_type is not None:
+            arguments.extend(["-t", mime_type])
+        if package is not None:
+            arguments.extend(["-p", package])
+        remote_command = " ".join(shlex.quote(argument) for argument in arguments)
+        result = self._run("shell", remote_command)
+        output = result.combined_output
+        lowered = output.lower()
+        if any(
+            marker in lowered
+            for marker in (
+                "error type 3",
+                "unable to resolve intent",
+                "does not exist",
+                "permission denial",
+            )
+        ):
+            target = package or uri
+            raise DeviceError(f"URI could not be opened with {target}.", hint=output[:2000])
+        return output.strip() or f"Opened {uri}"
+
     def close(self, package: str) -> str:
         package = validate_package(package)
         result = self._run("shell", "am", "force-stop", package)
         return result.combined_output.strip() or f"Stopped {package}"
+
+    def clear_app_data(self, package: str) -> str:
+        package = validate_package(package)
+        result = self._run("shell", "pm", "clear", package)
+        output = result.combined_output.strip()
+        if "success" not in output.lower():
+            raise DeviceError(
+                f"Could not clear app data for {package}.",
+                hint=output[:2000] or "pm clear did not report success.",
+            )
+        return output
+
+    def set_orientation(self, mode: str, *, timeout: float = 8.0) -> str:
+        normalized = str(mode).strip().lower()
+        if normalized not in {"portrait", "landscape", "auto"}:
+            raise DeviceError("orientation mode must be portrait, landscape, or auto")
+        if timeout <= 0:
+            raise DeviceError("orientation timeout must be greater than zero")
+        if normalized == "auto":
+            fixed = self._run("shell", "wm", "fixed-to-user-rotation", "default")
+            free = self._run("shell", "wm", "user-rotation", "free")
+            output = "\n".join(
+                part
+                for part in (fixed.combined_output.strip(), free.combined_output.strip())
+                if part
+            )
+            return output or "Orientation reset to auto"
+
+        rotation = "0" if normalized == "portrait" else "1"
+        fixed = self._run("shell", "wm", "fixed-to-user-rotation", "enabled")
+        locked = self._run("shell", "wm", "user-rotation", "lock", rotation)
+        expected = int(rotation)
+        deadline = time.monotonic() + timeout
+        observed: int | None = None
+        while True:
+            probe = self._run("shell", "dumpsys", "input", check=False)
+            observed = parse_surface_orientation(probe.combined_output)
+            if observed == expected:
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise DeviceError(
+                    f"Orientation did not change to {normalized} within {timeout:g}s.",
+                    hint=(
+                        "Expected SurfaceOrientation "
+                        f"{expected}; last observed value: {observed if observed is not None else 'unavailable'}."
+                    ),
+                )
+            time.sleep(min(0.25, remaining))
+        output = "\n".join(
+            part for part in (fixed.combined_output.strip(), locked.combined_output.strip()) if part
+        )
+        detail = f"Orientation locked to {normalized} (SurfaceOrientation {expected})"
+        return f"{output}\n{detail}" if output else detail
+
+    def reverse_port(
+        self,
+        port: int,
+        *,
+        local_port: int | None = None,
+        remove: bool = False,
+    ) -> str:
+        port = validate_port(port, name="port")
+        if local_port is not None:
+            local_port = validate_port(local_port, name="local_port")
+        if remove:
+            if local_port is not None:
+                raise DeviceError("local_port cannot be used when removing a reverse mapping")
+            result = self._run("reverse", "--remove", f"tcp:{port}")
+            return result.combined_output.strip() or f"Removed reverse tcp:{port}"
+        local_port = port if local_port is None else local_port
+        result = self._run("reverse", f"tcp:{port}", f"tcp:{local_port}")
+        lowered = result.combined_output.lower()
+        if "error" in lowered or "cannot" in lowered:
+            raise DeviceError(
+                f"Could not reverse device port {port} to host port {local_port}.",
+                hint=result.combined_output[:2000],
+            )
+        return (
+            result.combined_output.strip() or f"Reversed device tcp:{port} to host tcp:{local_port}"
+        )
 
     def tap(self, x: int, y: int) -> str:
         x = validate_coordinate(x, name="x")

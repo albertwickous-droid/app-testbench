@@ -580,3 +580,128 @@ def test_json_output_falls_back_to_ascii_escapes_on_gbk_console(monkeypatch) -> 
     _emit_json({"text": "¯\\_(ツ)_/¯"})
     payload = json.loads(console.value)
     assert payload["text"] == "¯\\_(ツ)_/¯"
+
+
+def test_open_cli_builds_view_intent(fake_tools: dict[str, Path], capsys) -> None:
+    code = main(
+        [
+            "open",
+            "http://127.0.0.1:18765/",
+            "--package",
+            "org.mozilla.fennec_fdroid",
+            "--mime-type",
+            "text/html",
+            "--adb",
+            str(fake_tools["adb"]),
+            "--mumumanager",
+            str(fake_tools["manager"]),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["ok"] is True
+    assert payload["data"]["uri"] == "http://127.0.0.1:18765/"
+    assert payload["data"]["package"] == "org.mozilla.fennec_fdroid"
+    commands = [
+        json.loads(line)
+        for line in (fake_tools["adb_state"] / "adb-commands.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(
+        "shell" in command
+        and "am start -W -a android.intent.action.VIEW" in command[command.index("shell") + 1]
+        for command in commands
+    )
+
+
+def test_reverse_port_cli_supports_add_and_remove(fake_tools: dict[str, Path], capsys) -> None:
+    common = [
+        "--adb",
+        str(fake_tools["adb"]),
+        "--mumumanager",
+        str(fake_tools["manager"]),
+        "--json",
+    ]
+    assert main(["reverse-port", "18765", "--local-port", "18766", *common]) == 0
+    capsys.readouterr()
+    assert main(["reverse-port", "18765", "--remove", *common]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["ok"] is True
+    assert payload["data"]["remove"] is True
+    commands = [
+        json.loads(line)
+        for line in (fake_tools["adb_state"] / "adb-commands.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    reverse_commands = [
+        command[command.index("reverse") :] for command in commands if "reverse" in command
+    ]
+    assert ["reverse", "tcp:18765", "tcp:18766"] in reverse_commands
+    assert ["reverse", "--remove", "tcp:18765"] in reverse_commands
+
+
+def test_reverse_port_cli_rejects_local_port_when_removing(capsys) -> None:
+    code = main(
+        [
+            "reverse-port",
+            "18765",
+            "--local-port",
+            "18766",
+            "--remove",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert payload["error"]["type"] == "config_error"
+
+
+def test_tap_cli_executes_and_returns_coordinates(fake_tools: dict[str, Path], capsys) -> None:
+    code = main(
+        [
+            "tap",
+            "360",
+            "1057",
+            "--adb",
+            str(fake_tools["adb"]),
+            "--mumumanager",
+            str(fake_tools["manager"]),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["data"]["x"] == 360
+    assert payload["data"]["y"] == 1057
+
+
+def test_clear_data_and_orientation_cli(fake_tools: dict[str, Path], capsys, monkeypatch) -> None:
+    monkeypatch.setenv("FAKE_ADB_SURFACE_ORIENTATION", "1")
+    common = [
+        "--adb",
+        str(fake_tools["adb"]),
+        "--mumumanager",
+        str(fake_tools["manager"]),
+        "--json",
+    ]
+    assert main(["clear-data", "com.example.app", *common]) == 0
+    cleared = json.loads(capsys.readouterr().out)
+    assert cleared["data"]["package"] == "com.example.app"
+    assert cleared["data"]["message"] == "Success"
+
+    assert main(["orientation", "landscape", *common]) == 0
+    oriented = json.loads(capsys.readouterr().out)
+    assert oriented["data"]["mode"] == "landscape"
+    commands = [
+        json.loads(line)
+        for line in (fake_tools["adb_state"] / "adb-commands.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any("pm" in command and "clear" in command for command in commands)
+    assert any("user-rotation" in command and "lock" in command for command in commands)

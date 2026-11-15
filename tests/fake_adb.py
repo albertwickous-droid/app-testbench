@@ -64,6 +64,15 @@ def main() -> int:
     if command == "install":
         print("Success")
         return 0
+    if command == "reverse":
+        if os.environ.get("FAKE_ADB_FAIL_REVERSE") == "1":
+            print("adb reverse failed", file=sys.stderr)
+            return 1
+        if "--remove" in argv:
+            print(f"{argv[-1]}")
+        else:
+            print(f"{argv[1]} {argv[2]}")
+        return 0
     if command == "logcat":
         if "-c" in argv:
             return 0
@@ -82,6 +91,21 @@ def main() -> int:
                 sys.stdout.buffer.write(UI_XML.replace(b"Login", text.encode("utf-8")))
             return 0
     if command == "shell":
+        if len(argv) >= 3 and argv[1] == "dumpsys" and argv[2] == "input":
+            sequence = os.environ.get("FAKE_ADB_SURFACE_ORIENTATION_SEQUENCE")
+            if sequence:
+                values = [value.strip() for value in sequence.split(",") if value.strip()]
+                state = Path(os.environ.get("FAKE_ADB_STATE", "."))
+                state.mkdir(parents=True, exist_ok=True)
+                counter = state / "orientation-count.txt"
+                index = int(counter.read_text(encoding="utf-8")) if counter.exists() else 0
+                print(f"  SurfaceOrientation: {values[min(index, len(values) - 1)]}")
+                counter.write_text(str(index + 1), encoding="utf-8")
+            else:
+                print(
+                    f"  SurfaceOrientation: {os.environ.get('FAKE_ADB_SURFACE_ORIENTATION', '0')}"
+                )
+            return 0
         if len(argv) >= 3 and argv[1] == "getprop" and argv[2] == "sys.boot_completed":
             sequence = os.environ.get("FAKE_ADB_BOOT_SEQUENCE")
             if sequence:
@@ -113,6 +137,14 @@ def main() -> int:
             return 0
         if len(argv) >= 2 and argv[1] == "monkey":
             print("Events injected: 1")
+            return 0
+        if len(argv) >= 4 and argv[1] == "pm" and argv[2] == "clear":
+            if os.environ.get("FAKE_ADB_FAIL_CLEAR_DATA") == "1":
+                print("Failed", file=sys.stderr)
+                return 1
+            print("Success")
+            return 0
+        if len(argv) >= 3 and argv[1] == "wm":
             return 0
         if len(argv) >= 3 and argv[1] == "am" and argv[2] == "force-stop":
             if os.environ.get("FAKE_ADB_FAIL_FORCE_STOP") == "1":

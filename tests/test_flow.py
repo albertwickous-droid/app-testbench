@@ -297,3 +297,96 @@ def test_device_boot_gate_configuration(tmp_path: Path) -> None:
     flow = load_flow(path)
     assert flow.device["wait_for_boot"] is True
     assert flow.device["boot_timeout"] == 2.5
+
+
+def test_open_action_defaults_package_and_validates_mime(tmp_path: Path) -> None:
+    path = tmp_path / "open.yaml"
+    path.write_text(
+        """
+version: 1
+device:
+  package: org.mozilla.fennec_fdroid
+steps:
+  - action: open
+    uri: http://127.0.0.1:18765/
+    mime_type: Text/HTML
+""".strip(),
+        encoding="utf-8",
+    )
+
+    flow = load_flow(path)
+    assert flow.steps[0].params == {
+        "uri": "http://127.0.0.1:18765/",
+        "package": "org.mozilla.fennec_fdroid",
+        "mime_type": "text/html",
+    }
+
+
+def test_open_action_rejects_unsafe_uri(tmp_path: Path) -> None:
+    path = tmp_path / "open.yaml"
+    path.write_text(
+        """
+version: 1
+steps:
+  - action: open
+    uri: javascript:alert(1)
+""".strip(),
+        encoding="utf-8",
+    )
+    with pytest.raises(FlowError, match="Unsupported URI scheme"):
+        load_flow(path)
+
+
+def test_reverse_port_action_is_normalized(tmp_path: Path) -> None:
+    path = tmp_path / "reverse.yaml"
+    path.write_text(
+        """
+version: 1
+setup:
+  - action: reverse-port
+    port: 18765
+    local_port: 18766
+teardown:
+  - action: reverse_port
+    port: 18765
+    remove: true
+""".strip(),
+        encoding="utf-8",
+    )
+    flow = load_flow(path)
+    assert flow.setup[0].action == "reverse_port"
+    assert flow.setup[0].params == {
+        "port": 18765,
+        "local_port": 18766,
+        "remove": False,
+    }
+    assert flow.teardown[0].params == {"port": 18765, "remove": True}
+
+
+def test_clear_data_and_orientation_actions(tmp_path: Path) -> None:
+    path = tmp_path / "device-state.yaml"
+    path.write_text(
+        """
+version: 1
+device:
+  package: com.example.app
+setup:
+  - action: clear-data
+  - action: orientation
+    mode: Portrait
+""".strip(),
+        encoding="utf-8",
+    )
+    flow = load_flow(path)
+    assert flow.setup[0].params == {"package": "com.example.app"}
+    assert flow.setup[1].params == {"mode": "portrait"}
+
+
+def test_orientation_action_rejects_unknown_mode(tmp_path: Path) -> None:
+    path = tmp_path / "orientation.yaml"
+    path.write_text(
+        "version: 1\nsteps:\n  - action: orientation\n    mode: sideways\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(FlowError, match="portrait, landscape, or auto"):
+        load_flow(path)

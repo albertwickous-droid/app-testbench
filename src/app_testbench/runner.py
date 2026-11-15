@@ -340,8 +340,24 @@ class FlowRunner:
             )
         elif action == "launch":
             message = self.device.launch(params["package"], params.get("activity"))
+        elif action == "open":
+            message = self.device.open_uri(
+                params["uri"],
+                package=params.get("package"),
+                mime_type=params.get("mime_type"),
+            )
         elif action == "close":
             message = self.device.close(params["package"])
+        elif action == "clear_app_data":
+            message = self.device.clear_app_data(params["package"])
+        elif action == "orientation":
+            message = self.device.set_orientation(params["mode"])
+        elif action == "reverse_port":
+            message = self.device.reverse_port(
+                params["port"],
+                local_port=params.get("local_port"),
+                remove=bool(params.get("remove", False)),
+            )
         elif action == "tap":
             message = self.device.tap(params["x"], params["y"])
         elif action == "swipe":
@@ -436,17 +452,27 @@ class FlowRunner:
         interval = float(params.get("interval", 0.5))
         attempts = 0
         texts: list[str] = []
+        last_dump_error: str | None = None
         while True:
             attempts += 1
-            texts, _ = self._dump_ui_for_result(step, result)
+            try:
+                texts, _ = self._dump_ui_for_result(step, result)
+            except RunnerError as exc:
+                last_dump_error = str(exc)
+                texts = []
+            else:
+                last_dump_error = None
             haystack = "\n".join(texts)
             haystack = haystack.casefold() if ignore_case else haystack
             if needle in haystack:
                 return {"message": f"Found UI text: {target}", "attempts": attempts}
             if time.monotonic() >= deadline:
                 detail = ", ".join(repr(value) for value in texts[:20])
+                hint = f"Visible text: {detail or '<none>'}"
+                if last_dump_error is not None:
+                    hint = f"Last UI dump error: {last_dump_error}"
                 raise StepFailure(
                     f"UI text was not found within {float(params.get('timeout', 10)):g}s: {target}",
-                    hint=f"Visible text: {detail or '<none>'}",
+                    hint=hint,
                 )
             time.sleep(min(interval, max(0.0, deadline - time.monotonic())))
