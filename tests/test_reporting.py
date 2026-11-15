@@ -53,6 +53,13 @@ def test_report_embeds_images_logs_and_escapes_user_content(tmp_path: Path) -> N
     assert "bad &lt;state&gt;" in report
     assert "&lt;unsafe&gt; &amp; log" in report
     assert "Failed" in report
+    assert '<meta name="viewport"' in report
+    assert 'class="report-layout"' in report
+    assert 'aria-pressed="true"' in report
+    assert "@media (max-width: 620px)" in report
+    assert "prefers-reduced-motion" in report
+    assert "<script src=" not in report
+    assert "<link" not in report
     assert result_path.is_file()
     assert '"schema_version": "1.0"' in result_path.read_text(encoding="utf-8")
 
