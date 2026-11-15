@@ -72,7 +72,8 @@ Artifacts are written under the ignored `runs/examples/markor-note-persistence/<
 | Saved note | ![Saved note](../../docs/assets/cases/markor/note-saved.png) |
 | Note found after relaunch | ![Persisted note search](../../docs/assets/cases/markor/note-search.png) |
 | Reopened note with persisted body | ![Reopened note](../../docs/assets/cases/markor/note-reopened.png) |
-| Passed HTML report | ![Passed report](../../docs/assets/cases/markor/report-passed.png) |
+| Passed HTML report, light theme | ![Passed report](../../docs/assets/cases/markor/report-passed.png) |
+| Passed HTML report, dark theme | ![Passed report, dark theme](../../docs/assets/cases/markor/report-passed-dark.png) |
 
 ## 已知限制 / Known limits
 

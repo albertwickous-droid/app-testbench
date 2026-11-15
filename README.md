@@ -289,9 +289,9 @@ runs/20261111-153000-login-smoke/
 
 ### 报告预览
 
-![app-testbench HTML 报告合成预览](assets/report-preview.png)
+![app-testbench HTML 报告预览](assets/report-preview.png)
 
-> 合成示意：使用虚构流程、占位账号和模拟截图，不代表真实应用数据。
+> 来自 Markor 笔记冷启动持久化真实运行（47/47 通过）。报告内置浅色/深色切换；截图、样式和脚本均嵌入单个 HTML，不依赖 CDN、外部样式表或外部服务。
 
 ## 给 Codex 使用
 

@@ -34,7 +34,12 @@ This case does more than launch the app and take a screenshot. It installs a pin
 | Editor after save | ![Saved Markor note](assets/cases/markor/note-saved.png) |
 | Exact file search after relaunch | ![Markor search result](assets/cases/markor/note-search.png) |
 | Reopened note with persisted body | ![Reopened Markor note](assets/cases/markor/note-reopened.png) |
-| Generated HTML report | ![Passed report](assets/cases/markor/report-passed.png) |
+
+同一份报告支持浅色与深色主题 / The same report supports light and dark themes:
+
+| Light | Dark |
+| --- | --- |
+| ![Passed report, light theme](assets/cases/markor/report-passed.png) | ![Passed report, dark theme](assets/cases/markor/report-passed-dark.png) |
 
 Observed run:
 
@@ -74,7 +79,12 @@ The second case covers a different failure mode. Settings restores its previous 
 | --- | --- |
 | Network and internet page | ![Settings network page](assets/cases/settings/network.png) |
 | Scrolled system section | ![Settings system section](assets/cases/settings/scrolled-list.png) |
-| A real failure retained during development | ![Failed Settings report](assets/cases/settings/report-failed.png) |
+
+真实失败报告也支持两种主题 / The retained failure report supports both themes:
+
+| Light | Dark |
+| --- | --- |
+| ![Failed Settings report, light theme](assets/cases/settings/report-failed.png) | ![Failed Settings report, dark theme](assets/cases/settings/report-failed-dark.png) |
 
 Observed pass:
 

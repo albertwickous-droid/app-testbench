@@ -17,7 +17,7 @@ This page records the actual validation performed for the App TestBench v0.1.1 r
 | Ruff format check | 62 files already formatted |
 | wheel + sdist build | `app_testbench-0.1.1-py3-none-any.whl`、`app_testbench-0.1.1.tar.gz` 构建成功 |
 | `twine check` | wheel 与 sdist 均 PASSED |
-| 公开截图测试 | 7 张公开 PNG 存在，尺寸符合 1280×720 或 1440×1100 |
+| 公开截图测试 | 9 张公开 PNG 存在，尺寸符合 1280×720 或 1440×1100 |
 
 不包含真实 MuMu 的结果不会被 CI 伪造。CI 继续使用确定性的假 `adb` / `MuMuManager` 后端验证命令构造、流程、报告和 Schema；真实案例单独在 MuMu 上执行并记录如下。
 
@@ -194,12 +194,14 @@ The regression test `test_failed_run_json_matches_cli_schema` executes a failed 
 - HTML 内包含 `data:image/png;base64,...` 截图，不依赖 CDN。
 - 检测到的外部 script、stylesheet 和 CSS import 数量均为 0。
 - 公开截图来自真实运行，不是 AI 生成或手绘模拟。
+- 浅色/深色主题、主题切换持久化、桌面侧栏独立滚动和移动端单列布局均已在本地浏览器验证。
 - 原始 APK、完整运行目录、原始 logcat、UI XML 和未筛选报告保留在被 `.gitignore` 排除的 `runs/` 中。
 
 - Passed and failed reports open offline.
 - HTML embeds screenshots as `data:image/png;base64,...` and does not depend on a CDN.
 - External script, stylesheet, and CSS-import counts were all zero.
 - Public screenshots come from live runs, not AI generation or hand-drawn mockups.
+- Light/dark themes, persisted theme selection, desktop rail scrolling, and the mobile single-column layout were verified in a local browser.
 - Raw APKs, complete run directories, logcat, UI XML, and unselected reports remain under the ignored `runs/` directory.
 
 ## 未覆盖范围 / Not covered

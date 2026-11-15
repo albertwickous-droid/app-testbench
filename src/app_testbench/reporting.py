@@ -108,8 +108,34 @@ REPORT_CSS = r"""
   --shadow: 0 18px 44px rgba(26, 38, 34, .07);
   --radius: 16px;
 }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+    --bg: #101715;
+    --grid: rgba(213, 242, 232, .025);
+    --panel: #17201e;
+    --panel-strong: #1b2623;
+    --text: #e7f0ec;
+    --muted: #a4b0ac;
+    --quiet: #7e8c87;
+    --line: #2d3a36;
+    --line-strong: #40504a;
+    --accent: #76d8c9;
+    --accent-strong: #9ce9de;
+    --accent-wash: #1b3a34;
+    --passed: #75daa1;
+    --passed-wash: #193229;
+    --failed: #ff9187;
+    --failed-wash: #3a211f;
+    --skipped: #a9b4b0;
+    --warning: #f2c16e;
+    --warning-wash: #352b1c;
+    --code: #0b1210;
+    --code-text: #d7e8e1;
+    --shadow: 0 18px 50px rgba(0, 0, 0, .22);
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #101715;
     --grid: rgba(213, 242, 232, .025);
     --panel: #17201e;
@@ -134,6 +160,7 @@ REPORT_CSS = r"""
     --shadow: 0 18px 50px rgba(0, 0, 0, .22);
   }
 }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
@@ -157,6 +184,21 @@ a:hover { color: var(--accent-strong); }
 code, pre { font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace; }
 button, summary, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; }
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 6px 10px; white-space: nowrap; }
+.theme-toggle svg { width: 15px; height: 15px; flex: none; }
+.theme-icon-sun { display: none; }
+.theme-label-light { display: none; }
+html[data-theme="dark"] .theme-icon-sun { display: block; }
+html[data-theme="dark"] .theme-icon-moon { display: none; }
+html[data-theme="dark"] .theme-label-dark { display: none; }
+html[data-theme="dark"] .theme-label-light { display: inline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-icon-sun { display: block; }
+  :root:not([data-theme]) .theme-icon-moon { display: none; }
+  :root:not([data-theme]) .theme-label-dark { display: none; }
+  :root:not([data-theme]) .theme-label-light { display: inline; }
+}
 
 .hero {
   position: relative;
@@ -243,7 +285,27 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px soli
   margin-top: 18px;
 }
 .report-main { grid-area: main; min-width: 0; }
-.report-rail { grid-area: rail; display: grid; gap: 18px; position: sticky; top: 18px; }
+.report-rail {
+  grid-area: rail;
+  display: grid;
+  gap: 18px;
+  position: sticky;
+  top: 18px;
+  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  scroll-padding-block: 18px;
+  padding-right: 4px;
+}
+.report-rail::-webkit-scrollbar { width: 8px; }
+.report-rail::-webkit-scrollbar-track { background: transparent; }
+.report-rail::-webkit-scrollbar-thumb { border: 2px solid var(--bg); border-radius: 999px; background: var(--line-strong); }
+.report-rail::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+.report-rail:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .panel {
   padding: 20px;
   border: 1px solid var(--line);
@@ -378,12 +440,14 @@ footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line);
   .hero-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 14px 0 0; border-top: 1px solid var(--line); border-left: 0; }
   .hero-status > strong { margin-left: auto; }
   .report-layout { grid-template-columns: 1fr; grid-template-areas: "rail" "main"; }
-  .report-rail { position: static; }
+  .report-rail { position: static; max-height: none; overflow: visible; scrollbar-gutter: auto; padding-right: 0; }
 }
 @media (max-width: 620px) {
   main { width: min(100% - 20px, 1180px); padding-bottom: 40px; }
   .hero { padding: 19px; border-radius: 13px; }
-  .hero-topline { align-items: flex-start; flex-direction: column; gap: 5px; margin-bottom: 18px; }
+  .hero-topline { align-items: flex-start; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .hero-actions { width: 100%; justify-content: space-between; }
+  .theme-toggle { min-height: 44px; }
   h1 { max-width: none; font-size: clamp(1.85rem, 9vw, 2.7rem); }
   .hero-meta { display: grid; gap: 8px; }
   .metrics { grid-template-columns: repeat(2, 1fr); }
@@ -403,12 +467,37 @@ footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line);
 }
 @media print {
   @page { margin: 14mm; }
+  :root, :root[data-theme="dark"] {
+    color-scheme: light;
+    --bg: #fff;
+    --grid: transparent;
+    --panel: #fff;
+    --panel-strong: #fff;
+    --text: #111;
+    --muted: #444;
+    --quiet: #666;
+    --line: #ccc;
+    --line-strong: #aaa;
+    --accent: #0f6a5e;
+    --accent-strong: #084c44;
+    --accent-wash: #eef7f4;
+    --passed: #13784b;
+    --passed-wash: #eef8f2;
+    --failed: #b33c33;
+    --failed-wash: #fff0ef;
+    --skipped: #555;
+    --warning: #7a4b0f;
+    --warning-wash: #fff8e8;
+    --code: #f5f5f5;
+    --code-text: #111;
+    --shadow: none;
+  }
   body { background: #fff; color: #111; }
   main { width: 100%; padding: 0; }
   .hero { box-shadow: none; }
   .report-layout { display: block; }
-  .report-rail { position: static; margin-top: 18px; }
-  .toolbar, button { display: none; }
+  .report-rail { position: static; max-height: none; overflow: visible; scrollbar-gutter: auto; margin-top: 18px; padding-right: 0; }
+  .toolbar, button, .theme-toggle { display: none; }
   .step, .panel, .hero, .callout { break-inside: avoid; box-shadow: none; }
   details:not([open]) > :not(summary) { display: block !important; }
   a { color: #111; text-decoration: underline; }
@@ -641,6 +730,19 @@ def render_html(result: RunResult, output_dir: Path) -> str:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
+  <script>
+  (() => {{
+    try {{
+      const requested = new URLSearchParams(window.location.search).get('theme');
+      const saved = localStorage.getItem('app-testbench-report-theme');
+      if (requested === 'light' || requested === 'dark') {{
+        document.documentElement.dataset.theme = requested;
+      }} else if (saved === 'light' || saved === 'dark') {{
+        document.documentElement.dataset.theme = saved;
+      }}
+    }} catch (error) {{}}
+  }})();
+  </script>
   <title>{_escape(title)} · App TestBench</title>
   <style>{REPORT_CSS}</style>
 </head>
@@ -649,7 +751,17 @@ def render_html(result: RunResult, output_dir: Path) -> str:
   <header class="hero">
     <div class="hero-topline">
       <span class="eyebrow">App TestBench</span>
-      <span class="report-type">Android app automation / execution report</span>
+      <div class="hero-actions">
+        <span class="report-type">Android app automation / execution report</span>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false" title="Toggle light and dark mode">
+          <span class="theme-icon" aria-hidden="true">
+            <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+            <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+          </span>
+          <span class="theme-label theme-label-dark">Dark</span>
+          <span class="theme-label theme-label-light">Light</span>
+        </button>
+      </div>
     </div>
     <div class="hero-grid">
       <div class="hero-copy">
@@ -698,7 +810,7 @@ def render_html(result: RunResult, output_dir: Path) -> str:
         {logs_html}
       </section>
     </div>
-    <aside class="report-rail" aria-label="Run context">
+    <aside class="report-rail" aria-label="Run context; scroll for all details" tabindex="0">
       <section class="panel rail-panel">
         <div class="panel-head">
           <div><span class="section-kicker">Context</span><h2>Environment</h2></div>
@@ -716,8 +828,27 @@ def render_html(result: RunResult, output_dir: Path) -> str:
 </main>
 <script>
 (() => {{
+  const root = document.documentElement;
   const buttons = Array.from(document.querySelectorAll('[data-filter]'));
   const steps = Array.from(document.querySelectorAll('#steps [data-status]'));
+  const themeButton = document.querySelector('[data-theme-toggle]');
+  const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+  const currentTheme = () => root.dataset.theme || (themeMedia.matches ? 'dark' : 'light');
+  const syncThemeButton = () => {{
+    const isDark = currentTheme() === 'dark';
+    themeButton.setAttribute('aria-pressed', String(isDark));
+    themeButton.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  }};
+  themeButton.addEventListener('click', () => {{
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {{ localStorage.setItem('app-testbench-report-theme', next); }} catch (error) {{}}
+    syncThemeButton();
+  }});
+  if (themeMedia.addEventListener) {{
+    themeMedia.addEventListener('change', syncThemeButton);
+  }}
+  syncThemeButton();
   const applyFilter = (activeButton) => {{
     buttons.forEach((button) => {{
       const active = button === activeButton;

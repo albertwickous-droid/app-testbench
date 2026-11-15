@@ -56,6 +56,15 @@ def test_report_embeds_images_logs_and_escapes_user_content(tmp_path: Path) -> N
     assert '<meta name="viewport"' in report
     assert 'class="report-layout"' in report
     assert 'aria-pressed="true"' in report
+    assert "data-theme-toggle" in report
+    assert 'data-theme="dark"' in report
+    assert "new URLSearchParams(window.location.search)" in report
+    assert "localStorage.getItem('app-testbench-report-theme')" in report
+    assert "max-height: calc(100dvh - 36px)" in report
+    assert "scrollbar-width: thin" in report
+    assert "min-height: 44px" in report
+    assert ':root, :root[data-theme="dark"]' in report
+    assert ".toolbar, button, .theme-toggle { display: none; }" in report
     assert "@media (max-width: 620px)" in report
     assert "prefers-reduced-motion" in report
     assert "<script src=" not in report

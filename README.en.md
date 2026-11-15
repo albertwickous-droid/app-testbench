@@ -289,9 +289,9 @@ Open `report.html` in a browser for offline review. See [`docs/flow-reference.md
 
 ### Report preview
 
-![Synthetic app-testbench HTML report preview](assets/report-preview.png)
+![app-testbench HTML report preview](assets/report-preview.png)
 
-> Synthetic preview using a fictional flow, placeholder account, and mock screenshot. It does not represent real application data.
+> Captured from the real 47/47 Markor note-persistence run. The report includes built-in light and dark themes; screenshots, styles, and scripts are embedded in one HTML file with no CDN, external stylesheet, or external service.
 
 ## Codex skill
 

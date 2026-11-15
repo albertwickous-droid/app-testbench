@@ -50,7 +50,9 @@ def test_public_case_screenshots_exist_with_expected_dimensions() -> None:
     ]
     report_assets = [
         ROOT / "docs" / "assets" / "cases" / "markor" / "report-passed.png",
+        ROOT / "docs" / "assets" / "cases" / "markor" / "report-passed-dark.png",
         ROOT / "docs" / "assets" / "cases" / "settings" / "report-failed.png",
+        ROOT / "docs" / "assets" / "cases" / "settings" / "report-failed-dark.png",
     ]
 
     for path in app_assets:

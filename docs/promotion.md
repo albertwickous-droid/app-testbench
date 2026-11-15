@@ -207,10 +207,10 @@ GitHub 首屏应该回答：
 - [x] Markor 真实页面：`docs/assets/cases/markor/note-saved.png`
 - [x] Markor 搜索结果：`docs/assets/cases/markor/note-search.png`
 - [x] Markor 冷启动后重开：`docs/assets/cases/markor/note-reopened.png`
-- [x] 成功 HTML 报告截图：`docs/assets/cases/markor/report-passed.png`
+- [x] 成功 HTML 报告截图（浅色/深色）：`docs/assets/cases/markor/report-passed.png`、`docs/assets/cases/markor/report-passed-dark.png`
 - [x] Settings 页面：`docs/assets/cases/settings/network.png`
 - [x] Settings 长列表：`docs/assets/cases/settings/scrolled-list.png`
-- [x] 失败 HTML 报告截图：`docs/assets/cases/settings/report-failed.png`
+- [x] 失败 HTML 报告截图（浅色/深色）：`docs/assets/cases/settings/report-failed.png`、`docs/assets/cases/settings/report-failed-dark.png`
 - [x] GitHub Release notes：`docs/releases/v0.1.1.md`
 - [x] 各渠道文案：见 `docs/launch-copy.md`
 - [x] 真实 MuMu 验证记录：`docs/validation.md`

@@ -41,7 +41,8 @@ Markor covers installation, onboarding, text input, and persistence. Settings ex
 | --- | --- |
 | Network page | ![Network page](../../docs/assets/cases/settings/network.png) |
 | Scrolled system section | ![Scrolled Settings list](../../docs/assets/cases/settings/scrolled-list.png) |
-| Failure report retained from development | ![Failure report](../../docs/assets/cases/settings/report-failed.png) |
+| Failure report, light theme | ![Failure report](../../docs/assets/cases/settings/report-failed.png) |
+| Failure report, dark theme | ![Failure report, dark theme](../../docs/assets/cases/settings/report-failed-dark.png) |
 
 失败报告来自本案例调试阶段的一次真实失败：Flow 启动时直接假设 Settings 位于顶部，但 Android 恢复了上次滚动位置。报告保留了失败步骤、可见文本、UI 树、logcat、HTML 和 JUnit。最终 flow 已修复为显式复位滚动位置。
 
