@@ -137,6 +137,17 @@ app-testbench --instance 0 screenshot --output .\artifacts\screen.png
 app-testbench --instance 0 dump-ui --output .\artifacts\screen.xml
 ```
 
+Additional deterministic setup actions are available when the authorized test requires them:
+
+```powershell
+app-testbench open "https://example.test/" --package com.example.app --mime-type text/html
+app-testbench reverse-port 18765 --local-port 18765
+app-testbench clear-data com.example.app
+app-testbench orientation landscape
+```
+
+`clear-data` is destructive to that app's local state. `reverse-port`, `orientation`, and `open` may change device/runtime state; declare them in the flow, not as unexplained side effects.
+
 Use coordinates supported by the screenshot and UI hierarchy. Prefer text waits and assertions where the UI exposes readable text. Keep test credentials in environment variables or an approved secret store; do not write production credentials, cookies, tokens, or personal data into the flow or report.
 
 Run the validated flow:
@@ -184,44 +195,57 @@ Completion criterion: the reported pass/fail can be reproduced from the flow, ex
 
 ## 8. Reproduce the public live cases
 
-The v0.1.1 release includes two real Android cases. Use them as executable examples, not as synthetic documentation.
+The v0.1.1 release includes two real Android cases. Treat them as executable examples, not synthetic documentation.
 
-### Markor note persistence
+### Fennec local web session
 
 ```powershell
-.\examples\markor-note-persistence\run.ps1
+.\examples\fennec-local-web-session\run.ps1
 ```
 
-The script downloads Markor `2026.10.0` (`versionCode 164`) from F-Droid into ignored `runs/case-assets/`, verifies:
+The script downloads Fennec F-Droid `160.0.0` (`versionCode 1600020`) from the official F-Droid repository into ignored `runs/case-assets/` and verifies:
 
 ```text
-Size: 11849016 bytes
-SHA256: c29412e02d03e4f0511746a1bcef48c6b73fc1f70c1024fbf04903b0b3f4c485
+SHA256: 43cf491bbc677244d7b56ba2e8ae20ccd802c9d8f6b44d6b6aff7eb1753eab1b
 ```
 
-It then installs the APK, clears only this app's data, grants the storage app-op required by Markor on the test image, runs the 47-step flow, and removes the note and package it created unless `-KeepInstalled` is supplied.
+It starts a hidden repository-owned FieldDesk HTTP server, verifies the homepage marker, exposes it through `adb reverse`, installs and verifies the APK, completes onboarding and login, exercises asynchronous search and detail navigation, force-stops and cold-launches Fennec, verifies `localStorage` session/query restoration, logs out, and stops only the server it started.
 
 Require all of the following before calling the case passed:
 
 - process exit code `0`;
-- CLI JSON has `ok: true` and `data.summary.passed == 47`;
-- JUnit contains 47 testcases with zero failures and zero errors;
-- five real screenshots exist at 1280x720;
-- the reopened-note screenshot contains `App TestBench persistence check`;
-- `report.html` embeds its images and has no external script or stylesheet dependency.
+- CLI JSON has `ok: true` and `data.summary.passed == 71`;
+- JUnit contains 71 testcases with zero failures and zero errors;
+- 11 real screenshots exist at 720x1280;
+- the local run contains UI XML, Fennec/Gecko logcat, `report.html`, `result.json`, and JUnit;
+- `report.html` embeds its images and has no external script, stylesheet, or CDN dependency;
+- the public assets in `docs/assets/cases/fennec/` match the recorded SHA256 manifest.
 
-### Android Settings navigation and scroll
+### VLC HTTP playback
 
 ```powershell
-app-testbench run .\examples\settings-network-scroll\flow.yaml `
-  --output .\runs\examples\settings-network-scroll `
-  --junit-xml .\runs\examples\settings-network-scroll\junit.xml `
-  --wait-for-boot --boot-timeout 60 --json
+.\examples\vlc-http-playback\run.ps1
 ```
 
-Require exit code `0`, `data.summary.passed == 23`, 23 JUnit testcases, the `settings-network` screenshot, the `settings-about-entry` screenshot, a UI tree for each declared dump, and final logcat.
+The script downloads VLC `3.7.2` (`versionCode 13070208`) and the Sintel trailer from their published sources into ignored `runs/case-assets/` and verifies the pinned SHA256 values. It starts the repository Range server and first requires a `206 Partial Content` response with the exact `Content-Range` before running the flow.
 
-Cleanup rule: stop the tested app and any Android instance started for the case. If the owner supplied a time window, follow it exactly. Do not commit APKs, raw run directories, full logs, UI XML, or unselected screenshots.
+Require exit code `0`, `data.summary.passed == 30`, 30 JUnit testcases, five 1280x720 screenshots, the welcome/tutorial/playback images, and logcat evidence for HTTP, demux, MediaCodec, H.264/AVC, and AAC.
+
+### Failure envelope contract
+
+Create a temporary failing flow under `runs/` that launches an installed app and waits for a marker guaranteed not to exist. Run it with `--json`, capture stdout as UTF-8, and require:
+
+- process exit code `1`;
+- `ok: false`;
+- `error.type == "step_failure"`;
+- a complete `data` object with `status == "failed"`;
+- the JSON envelope validates against `src/app_testbench/schemas/cli-v1.schema.json` using Draft 2020-12;
+- a failure screenshot, UI XML, final logcat, HTML report, and JUnit file exist;
+- later main steps are recorded as skipped while teardown still runs.
+
+Do not relax the schema to make this pass. The regression test is `tests/test_cli.py::test_failed_run_json_matches_cli_schema`.
+
+Cleanup rule: stop the tested apps, remove any test `adb reverse` mappings, uninstall test APKs, stop any MuMu instance started for the case, and close the MuMu main window when the owner's timing rule requires it. Do not commit APKs, raw run directories, full logs, UI XML, or unselected screenshots.
 
 Completion criterion: the committed flow and scripts reproduce the documented step counts and real evidence on the stated MuMu/Android/display/language baseline, or the agent reports the exact environment difference.
 

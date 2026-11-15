@@ -14,8 +14,8 @@ include SECURITY.md
 include SUPPORT.md
 include RELEASE_CHECKLIST.md
 recursive-include docs *.md
-recursive-include docs/assets *.png
-recursive-include examples *.md *.yaml *.json
+recursive-include docs/assets *.png SHA256SUMS
+recursive-include examples *.md *.yaml *.json *.ps1 *.py *.html
 recursive-include skills *.md
 recursive-include src/app_testbench/schemas *.json
 recursive-include scripts *.ps1 *.md

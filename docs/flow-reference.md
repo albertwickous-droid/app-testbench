@@ -107,6 +107,17 @@ old install behavior is preserved and `dumpsys` is not called.
 
 `package` falls back to `device.package`. Without `activity`, the runner uses the Launcher Intent through `monkey`. With `activity`, it calls `am start -W -n`. A plain class name such as `MainActivity` expands to `package.MainActivity`; `.Activity` becomes the package-relative class, and a fully qualified class name is passed through.
 
+### `open`
+
+```yaml
+- action: open
+  uri: https://example.test/
+  package: com.example.app
+  mime_type: text/html
+```
+
+Opens an `http`, `https`, `file`, or `content` URI through an Android `ACTION_VIEW` intent. `package` is optional and restricts the intent to one app. `mime_type` is optional and normalized to lowercase. Unsafe schemes such as `javascript:` are rejected.
+
 ### `close`
 
 ```yaml
@@ -115,6 +126,35 @@ old install behavior is preserved and `dumpsys` is not called.
 ```
 
 Uses `am force-stop`. `package` falls back to `device.package`.
+
+### `clear-data`
+
+```yaml
+- action: clear-data
+  package: com.example.app
+```
+
+Runs `pm clear`, which stops the app process and clears its data. `package` falls back to `device.package`. This is destructive to the app under test and should be explicit in `setup`.
+
+### `orientation`
+
+```yaml
+- action: orientation
+  mode: landscape
+```
+
+Accepted modes are `portrait`, `landscape`, and `auto`. Fixed modes call `wm fixed-to-user-rotation enabled`, lock the requested rotation, then poll `dumpsys input` until `SurfaceOrientation` matches. `auto` restores free rotation. MuMu may take a moment to settle after the orientation call, so an explicit `wait` can still be useful after relaunching an activity.
+
+### `reverse-port`
+
+```yaml
+- action: reverse-port
+  port: 18765
+  local_port: 18765
+```
+
+Adds an `adb reverse tcp:<device-port> tcp:<host-port>` mapping. `local_port` defaults to the device port. Set `remove: true` in teardown, without `local_port`, to remove the mapping.
+
 
 ### `tap`
 
@@ -230,7 +270,7 @@ Fails if the text is present. `ignore_case` defaults to `false`.
   ignore_case: false
 ```
 
-Polls `uiautomator dump` until the text appears. `timeout` is seconds (default `10`), `interval` is seconds (default `0.5`). The last UI XML is kept with the failing step.
+Polls `uiautomator dump` until the text appears. `timeout` is seconds (default `10`), `interval` is seconds (default `0.5`). Transient dump failures such as `null root node` are retried until the timeout; the last real dump error and UI XML are kept if the wait still fails.
 
 ## Report settings
 
@@ -289,6 +329,8 @@ These aliases are accepted and normalized:
 - `assert-ui-contains` → `assert_ui_contains`
 - `assert-ui-not-contains` → `assert_ui_not_contains`
 - `wait-for-text` → `wait_for_text`
+- `clear-data` → `clear_app_data`
+- `reverse-port` → `reverse_port`
 
 Prefer underscore names in committed examples.
 

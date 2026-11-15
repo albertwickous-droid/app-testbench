@@ -80,13 +80,15 @@ Users must obtain lawful licenses for these components and comply with the terms
 
 ### Live-case applications
 
-- **Markor** is a separate open-source Android application. The repository links to its official F-Droid download and stores a pin (version, size, and SHA256), but does not redistribute the APK or claim endorsement by its maintainers. See <https://github.com/gsantner/markor> and the app's own license and notices.
-- **Android Settings** refers to the AOSP Settings app included in the user's MuMu Android image. The project does not distribute the system image or app.
+- **Fennec F-Droid** is a separate open-source Android browser. The repository links to an official F-Droid download and pins the version and SHA256, but does not redistribute the APK or claim endorsement by Mozilla or the Fennec maintainers. App names, icons, and UI remain subject to the upstream project's licenses and notices.
+- **VLC for Android** is a separate open-source media application. The repository links to an official F-Droid download and pins the version and SHA256, but does not redistribute the APK or claim endorsement by VideoLAN. App names, icons, and UI remain subject to the upstream project's licenses and notices.
+- **Sintel trailer** is an open test media asset published by the Blender Foundation. The test scripts download it from `media.w3.org` and verify SHA256; the repository does not redistribute the video. Sintel and related marks belong to the Blender Foundation.
 - Public case screenshots are selected from real test runs. Third-party app names, icons, and UI text remain the property of their respective rights holders and are shown only to document interoperability and test evidence.
 
-- **Markor** 是独立的开源 Android 应用。本仓库只链接其官方 F-Droid 下载并记录版本、大小和 SHA256，不重新分发 APK，也不表示获得其维护者背书。许可证与声明以 Markor 项目自身为准。
-- **Android Settings** 指用户 MuMu Android 镜像中自带的 AOSP 系统设置应用；本仓库不分发系统镜像或该应用。
-- 公开案例截图为真实测试运行中的筛选结果。第三方应用名称、图标和 UI 文本归各自权利人所有，仅用于说明互操作与测试证据。
+- **Fennec F-Droid** 是独立的开源 Android 浏览器。本仓库只链接官方 F-Droid 下载并记录版本和 SHA256，不重新分发 APK，也不表示获得 Mozilla 或 Fennec 维护者背书。应用名称、图标和 UI 的权利与许可以其上游项目为准。
+- **VLC for Android** 是独立的开源媒体应用。本仓库只链接官方 F-Droid 下载并记录版本和 SHA256，不重新分发 APK，也不表示获得 VideoLAN 背书。应用名称、图标和 UI 的权利与许可以其上游项目为准。
+- **Sintel trailer** 是 Blender Foundation 发布的公开测试媒体。测试脚本从 `media.w3.org` 下载并校验 SHA256；仓库不重新分发视频。Sintel 及相关标识归 Blender Foundation 所有。
+- 公开案例截图来自真实测试运行的筛选结果。第三方应用名称、图标和 UI 文本归各自权利人所有，仅用于说明互操作和测试证据。
 
 ## 6. 开发与 CI 工具 / Development and CI tools
 

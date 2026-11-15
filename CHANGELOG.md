@@ -7,28 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-11-15
+## [0.1.1] - 2026-11-16
 
 ### Added
 
-- Two live MuMu cases with reproducible flows, pinned dependencies, public
-  screenshots, and recorded validation results: Markor note persistence
-  (47/47 steps) and Android Settings navigation/scroll (23/23 steps).
-- Markor case preparation scripts that download the official F-Droid APK into
-  an ignored local directory, verify size and SHA256, reset app data, and clean
-  up only the note and package created by the test.
-- A bilingual real-case index linking the flows, screenshots, passed and failed
-  report evidence, selection rationale, and honest environment limits.
-- Validation coverage for the exact MuMu Player, Android, ADB, display, Python,
-  and system-language configuration used by the live cases.
+- Two live MuMu cases with reproducible flows, pinned open-source APKs, public
+  screenshots, and recorded validation results: Fennec local browser session
+  (71/71 steps) and VLC HTTP playback (30/30 steps).
+- `open`, `reverse-port`, `clear-data`, and `orientation` device commands and
+  flow actions, including URI/MIME, TCP port, package, and orientation
+  validation.
+- Fennec case with first-run onboarding, Android system prompts, `adb reverse`,
+  asynchronous UI waits, login, search, detail navigation, cold restart,
+  `localStorage` session/query restoration, logout, screenshot, UI tree,
+  logcat, HTML, JSON, and JUnit evidence.
+- VLC case with a byte-range HTTP server, fixed H.264/AAC media, first-play
+  tutorial, landscape handling, real playback screenshots, and MediaCodec /
+  HTTP / demux logcat evidence.
+- Reproducible PowerShell preparation scripts that download APKs and media from
+  trusted upstream sources, verify version and SHA256, and keep binaries under
+  ignored local storage.
+- Validation and public-image provenance records, including SHA256 checksums for
+  committed case screenshots.
 
 ### Changed
 
-- `app-testbench init` now defaults to `app-testbench-flow.yaml` / `.json`;
-  explicit `--output` remains supported.
-- Automation docs now require updating the native Scheduled project path after a
-  repository rename and verifying the fallback task name before enabling it.
-- Package version is now `0.1.1`.
+- `app-testbench init` defaults to `app-testbench-flow.yaml` / `.json`; explicit
+  `--output` remains supported.
+- Documentation, Codex skill, and Agent runbook now center the Fennec and VLC
+  live cases and distinguish fake-backend CI checks from real MuMu validation.
+- Package version is `0.1.1`.
 
 ### Fixed
 
@@ -36,10 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   structured `error` object while preserving the complete failed run in `data`.
   The process exit code remains `1`, and failure screenshots, UI trees, logcat,
   HTML, and JUnit evidence are unchanged.
-- `dump-ui --json` on a Windows GBK console now falls back to ASCII JSON escapes
+- `wait_for_text` retries transient `uiautomator dump` errors, including
+  `null root node`, instead of failing the first poll during Android activity
+  startup.
+- `dump-ui --json` on a Windows GBK console falls back to ASCII JSON escapes
   instead of crashing after the UI XML has already been written.
-- GitHub Release drafts now bind explicitly to the pushed tag instead of receiving
+- GitHub Release drafts bind explicitly to the pushed tag instead of receiving
   an `untagged-*` placeholder tag.
+
 
 ## [0.1.0] - 2026-11-15
 

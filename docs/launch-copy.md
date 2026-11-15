@@ -51,9 +51,9 @@
 - Live cases: [REPO_URL]/blob/main/docs/cases.md
 - Security policy: [REPO_URL]/blob/main/SECURITY.md
 
-本版包含两条真实 MuMu 案例：Markor 笔记冷启动持久化 **47/47** 步通过，Android Settings 导航与滚动 **23/23** 步通过；同时保留一份真实失败报告，并修复失败 `run --json` 的公开 Schema 契约。
+本版包含两条真实 MuMu 案例：Fennec 本地 Web 会话 **71/71** 步通过，VLC HTTP 播放 **30/30** 步通过；同时保留一份真实失败报告，并修复失败 `run --json` 的公开 Schema 契约。
 
-This release includes two live MuMu cases: Markor note persistence passed **47/47** steps and Android Settings navigation/scroll passed **23/23** steps. It also includes a real failed report and fixes the published Schema contract for failed `run --json` output.
+This release includes two live MuMu cases: the Fennec local web session passed **71/71** steps and VLC HTTP playback passed **30/30** steps. It also includes a real failed report and fixes the published Schema contract for failed `run --json` output.
 ```
 
 ---
@@ -77,7 +77,7 @@ Welcome to app-testbench — start here / 从这里开始
 
 1. 按 README 完成安装
 2. 运行 `app-testbench doctor --json`
-3. 跑 `examples/settings-network-scroll/flow.yaml`，或按 `examples/markor-note-persistence/README.md` 复现 Markor 案例
+3. 跑 `examples/fennec-local-web-session/run.ps1` 或 `examples/vlc-http-playback/run.ps1` 复现真实案例
 4. 告诉我你的 MuMu 版本、Windows/Python 版本和卡住的位置
 
 请不要在公开讨论中粘贴 token、cookie、真实账号截图、未脱敏 logcat 或私有业务包名。
@@ -104,7 +104,7 @@ AI 可以写测试，但测试环境不能靠猜：我把 App 自动化跑在成
 
 AI 可以帮助写流程、解释失败和整理报告，但我更在意测试能不能重复：环境要成熟、步骤要显式、失败要证据。因此默认运行时选择成熟的 MuMu Player，而不是把运行环境、执行器和最终裁判都交给模型。
 
-它也不是单纯把几条 ADB 命令包一层，而是解决一个很具体的问题：脚本点完以后，怎么知道哪一步失败、当时界面是什么、logcat 里发生了什么。v0.1.1 用 Markor 的 47 步冷启动持久化链路和 Settings 的 23 步导航/滚动链路做了实测，还保留了一份由系统恢复滚动位置触发的真实失败报告。
+它也不是单纯把几条 ADB 命令包一层，而是解决一个很具体的问题：脚本点完以后，怎么知道哪一步失败、当时界面是什么、logcat 里发生了什么。v0.1.1 用 Fennec 的 71 步浏览器登录/冷启动持久化链路和 VLC 的 30 步 HTTP 播放/解码链路做了实测，还保留了预定失败契约的真实报告。
 
 典型合规场景：
 
@@ -159,8 +159,8 @@ AI 可以写测试，但测试环境不能靠猜：为什么我把 App 自动化
 6. 失败时如何自动抓截图和 logcat
 7. HTML 报告为什么必须自包含
 8. 如何用 fake backend 测命令边界
-9. Markor 47 步链路：如何验证冷启动后数据仍然存在
-10. Settings 真实失败复盘：如何恢复起始状态而不是放宽断言
+9. Fennec 71 步链路：如何验证浏览器登录态和查询条件在冷启动后仍然存在
+10. VLC 30 步链路：如何用 HTTP Range、截图和 logcat 证明真实媒体播放
 11. v0.1.1 的限制和下一步
 10. CTA：[REPO_URL]
 
@@ -183,7 +183,7 @@ AI 可以写测试，但环境不能靠猜：在成熟 MuMu 上跑可重复 App 
 **简介**
 
 ```text
-不用把测试环境交给模型临时发挥：app-testbench v0.1.1 在成熟 MuMu 运行时上演示 doctor 检查环境 → YAML 描述流程 → 安装 Markor 并执行 47 步冷启动持久化验证 → 生成带截图、UI 树、logcat、耗时和 JUnit 的 HTML 报告。
+不用把测试环境交给模型临时发挥：app-testbench v0.1.1 在成熟 MuMu 运行时上演示 doctor 检查环境 → YAML 描述流程 → 安装 Fennec 并执行 71 步登录、异步搜索和冷启动持久化验证 → 生成带截图、UI 树、logcat、耗时和 JUnit 的 HTML 报告。
 
 项目：[REPO_URL]
 文档：[REPO_URL]/tree/main/docs
@@ -265,7 +265,7 @@ You need to know:
 **Post 4**
 
 ```text
-v0.1.1 ships two live MuMu cases: Markor persistence (47/47) and Settings navigation/scroll (23/23).
+v0.1.1 ships two live MuMu cases: Fennec browser session persistence (71/71) and VLC HTTP playback/decoding (30/30).
 
 Windows + MuMu focused. No telemetry. No upload. MIT.
 Reports can contain sensitive data, so they stay local.
@@ -292,7 +292,7 @@ The runtime choice is deliberate. Instead of asking a model to instantiate an ad
 
 The design goal is evidence, not just input replay. A JSON/YAML flow can install/launch an app, wait for UI text, tap/swipe, assert UI state, take screenshots, dump the UI hierarchy, and collect logcat. The result is a structured JSON file plus a self-contained HTML report with embedded screenshots.
 
-The scope is intentionally narrow: Windows + MuMu + ADB. No OCR, no universal RPA, no bypassing app security. Automated tests use deterministic fake ADB/MuMuManager backends; v0.1.1 separately records live Markor (47/47) and Settings (23/23) runs. Compatibility with each MuMu release still needs real-device feedback.
+The scope is intentionally narrow: Windows + MuMu + ADB. No OCR, no universal RPA, no bypassing app security. Automated tests use deterministic fake ADB/MuMuManager backends; v0.1.1 separately records live Fennec (71/71) and VLC (30/30) runs. Compatibility with each MuMu release still needs real-device feedback.
 
 Repo: [REPO_URL]
 Docs: [REPO_URL]/tree/main/docs
@@ -319,7 +319,7 @@ I kept running into the same problem with emulator scripts: they could send taps
 
 So I built app-testbench on the mature MuMu Player runtime, with a Python CLI around MuMuManager and ADB. It supports JSON/YAML flows, UI assertions, screenshots, `dump-ui`, logcat, and a self-contained HTML report. AI can help write the flow, but deterministic assertions and raw evidence decide whether it passed.
 
-It is deliberately scoped: Windows + MuMu + ADB for v0.1.1. No OCR, no universal RPA, no security bypassing. The automated suite uses fake backends, while Markor persistence (47/47) and Settings navigation/scroll (23/23) were run live on MuMu; broader compatibility still needs external testing.
+It is deliberately scoped: Windows + MuMu + ADB for v0.1.1. No OCR, no universal RPA, no security bypassing. The automated suite uses fake backends, while Fennec browser persistence (71/71) and VLC HTTP playback (30/30) were run live on MuMu; broader compatibility still needs external testing.
 
 Repo: [REPO_URL]
 
@@ -340,7 +340,7 @@ I’m the maintainer. Happy to answer implementation questions.
 ```text
 AI can generate a quick Android demo, but a demo is not a regression suite. Small teams need a mature runtime, a reproducible way to exercise an Android app, and evidence when it fails.
 
-I published app-testbench v0.1.1: a Python CLI for MuMu Player that combines MuMuManager and ADB with JSON/YAML flows, UI assertions, screenshots, UI dumps, logcat, and self-contained HTML reports. This version includes live Markor persistence (47/47) and Settings navigation/scroll (23/23) cases plus a retained failure report.
+I published app-testbench v0.1.1: a Python CLI for MuMu Player that combines MuMuManager and ADB with JSON/YAML flows, UI assertions, screenshots, UI dumps, logcat, and self-contained HTML reports. This version includes a live Fennec browser session with cold-start persistence (71/71) and VLC HTTP playback with codec evidence (30/30), plus a retained failure report.
 
 It is local-first, MIT licensed, and deliberately scoped to Windows + MuMu + ADB. Automated checks use deterministic fake backends; live results and limits are documented separately.
 
@@ -394,7 +394,7 @@ v0.1 刻意保持小而完整，使用坐标、UI 文本和显式断言。OCR/�
 ## 13. 图片 alt 文案 / Image alt text
 
 ```text
-Real app-testbench HTML report screenshot from a passed 47-step Markor note-persistence run, showing step timings, evidence artifacts, and embedded device screenshots.
+Real app-testbench HTML report screenshot from a passed 71-step Fennec browser-session run, showing step timings, evidence artifacts, and embedded device screenshots.
 ```
 
 ```text

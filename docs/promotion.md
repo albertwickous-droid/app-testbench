@@ -58,9 +58,9 @@ Do not market it as a universal RPA platform, a tool that operates any app, or a
 - 本地优先、无遥测、不上传报告
 - 内置 Codex skill
 - Windows/Linux CI 测试矩阵、打包和 `twine check`
-- Markor 笔记冷启动持久化真实案例，47/47 步通过
-- Android Settings 导航、返回栈与长滚动真实案例，23/23 步通过
-- 一份真实的 Settings 状态恢复失败报告，保留失败截图、UI 树、logcat、HTML 和 JUnit
+- Fennec 浏览器登录、异步搜索、冷启动持久化真实案例，71/71 步通过
+- VLC HTTP Range、真实播放与 MediaCodec 证据案例，30/30 步通过
+- 一份预定失败契约报告，保留失败截图、UI 树、logcat、HTML 和 JUnit
 - 失败 `run --json` 已通过打包后的 `cli-v1.schema.json` 回归测试
 
 避免宣称“支持所有 MuMu 版本”“可用于所有 App”“真实设备全部验证通过”，除非 Release 中明确记录了相应证据。
@@ -98,7 +98,7 @@ The project is not an AI demo that instantiates an ad-hoc Android environment an
 
 每个入口都按这五步设计：
 
-1. **看见 / See:** banner、真实 Markor 页面截图、成功报告截图和失败报告截图。
+1. **看见 / See:** banner、真实 Fennec/VLC 页面截图、成功报告截图和失败报告截图。
 2. **理解 / Understand:** 15 秒内看懂“给谁用、解决什么、怎么跑”。
 3. **尝试 / Try:** README 快速开始不超过 5 条命令。
 4. **信任 / Trust:** 真实边界、CI、安全政策、无遥测、MIT License。
@@ -117,8 +117,8 @@ GitHub 首屏应该回答：
 | 时间 | 动作 | 目标 |
 | --- | --- | --- |
 | D-7 | README、About、topics、social preview、Release notes 定稿 | 页面能独立完成解释 |
-| D-5 | 在干净 Windows 环境复跑 Markor 与 Settings 案例 | 记录版本、步数和失败边界，不夸大 |
-| D-3 | 录制 30–60 秒 Markor demo；使用 `docs/assets/cases/` 的真实截图 | 准备可视化素材 |
+| D-5 | 在干净 Windows 环境复跑 Fennec 与 VLC 案例 | 记录版本、步数和失败边界，不夸大 |
+| D-3 | 录制 30–60 秒 Fennec/VLC demo；使用 `docs/assets/cases/` 的真实截图 | 准备可视化素材 |
 | D-2 | 找 2–3 位可信用户内测，只收可复现反馈 | 提前发现首次体验问题 |
 | D-1 | 建立 Private→Public 发布流程、Issue labels、Discussions | 避免公开后手忙脚乱 |
 | D0 | 发布 `v0.1.1` Release、发首批 2–3 个渠道 | 用真实案例获得第一批有效访问 |
@@ -165,8 +165,8 @@ GitHub 首屏应该回答：
 
 ### A. 演示 / Demos
 
-- Markor 从固定 APK 安装、首次引导、输入、保存到冷启动持久化的全过程
-- Settings 如何从真实失败中定位“系统恢复了上次滚动位置”并改成正向断言
+- Fennec 从固定 APK 安装、首次引导、登录、异步搜索到冷启动持久化的全过程
+- VLC 如何通过 ADB reverse、HTTP 206、真实视频帧和 MediaCodec logcat 证明播放链路
 - 失败步骤如何自动保留截图和 logcat
 - `doctor --json` 如何帮助 Agent 决策
 - 失败 `run --json` 如何同时满足 Schema 并保留完整 `data`
@@ -197,20 +197,20 @@ GitHub 首屏应该回答：
 7. 失败时自动截图 + 抓 logcat 的实现细节
 8. 一次 MuMu 版本差异导致的 bug
 9. 如何给 Android 自动化写 fake backend 测试
-10. Markor 冷启动持久化：一条 YAML 如何验证“保存真的成功”
+10. Fennec 冷启动持久化：一条 YAML 如何验证浏览器会话和查询条件仍然存在
 11. Android 恢复了上次滚动位置：一次真实测试失败如何变成稳定回归
 
 ## 8. 素材清单 / Asset checklist
 
 - [x] `assets/banner.png`
 - [x] `assets/social-preview.png`，1280×640
-- [x] Markor 真实页面：`docs/assets/cases/markor/note-saved.png`
-- [x] Markor 搜索结果：`docs/assets/cases/markor/note-search.png`
-- [x] Markor 冷启动后重开：`docs/assets/cases/markor/note-reopened.png`
-- [x] 成功 HTML 报告截图（浅色/深色）：`docs/assets/cases/markor/report-passed.png`、`docs/assets/cases/markor/report-passed-dark.png`
-- [x] Settings 页面：`docs/assets/cases/settings/network.png`
-- [x] Settings 长列表：`docs/assets/cases/settings/scrolled-list.png`
-- [x] 失败 HTML 报告截图（浅色/深色）：`docs/assets/cases/settings/report-failed.png`、`docs/assets/cases/settings/report-failed-dark.png`
+- [x] Fennec 真实登录页：`docs/assets/cases/fennec/logged-out.png`
+- [x] Fennec 搜索结果：`docs/assets/cases/fennec/search-result.png`
+- [x] Fennec 冷启动后恢复：`docs/assets/cases/fennec/session-restored.png`
+- [x] Fennec 成功 HTML 报告截图：`docs/assets/cases/fennec/report-passed.png`
+- [x] VLC 真实播放与控制条：`docs/assets/cases/vlc/playback-controls.png`
+- [x] VLC 首次播放教程：`docs/assets/cases/vlc/tutorial.png`
+- [x] 失败 HTML 报告截图：`docs/assets/cases/evidence/report-failed.png`
 - [x] GitHub Release notes：`docs/releases/v0.1.1.md`
 - [x] 各渠道文案：见 `docs/launch-copy.md`
 - [x] 真实 MuMu 验证记录：`docs/validation.md`
@@ -223,12 +223,12 @@ GitHub 首屏应该回答：
 
 | 时间 | 画面 | 旁白/字幕 |
 | --- | --- | --- |
-| 0–3s | Settings 恢复上次滚动位置导致失败的真实截图 | “能跑一次，不代表能回归。” |
+| 0–3s | Fennec 真实浏览器登录页 | “不是空壳 App，是真实浏览器和真实异步状态。” |
 | 4–9s | `app-testbench doctor --json` | “成熟的 MuMu 运行时，先检查环境。” |
-| 10–16s | Markor 的 YAML flow | “安装、引导、输入、保存、冷启动、断言，写在流程里。” |
+| 10–16s | Fennec 的 YAML flow | “安装、引导、登录、搜索、冷启动、断言，写在流程里。” |
 | 17–27s | `app-testbench run flow.yaml` | “每一步都有状态、耗时、输出和证据。” |
-| 28–36s | `docs/assets/cases/markor/report-passed.png` | “47/47 步通过，报告离线可交付。” |
-| 37–43s | `docs/assets/cases/settings/report-failed.png` + logcat | “失败也保留现场，而不是只剩一行报错。” |
+| 28–36s | `docs/assets/cases/fennec/report-passed.png` | “71/71 步通过，报告离线可交付。” |
+| 37–43s | `docs/assets/cases/evidence/report-failed.png` + logcat | “失败也保留现场，而不是只剩一行报错。” |
 | 44–45s | repo CTA | “app-testbench，链接在简介。” |
 
 录屏使用 1280×720 或 1920×1080，字号至少 16px，命令逐行出现，不要加速到看不清。

@@ -47,8 +47,8 @@
 - [ ] screenshot、`dump-ui`、logcat 已验证 / evidence actions tested
 - [ ] 至少一个 JSON 或 YAML flow 生成报告 / one flow produces a report
 - [ ] `report.html` 离线打开且截图已内嵌 / report opens offline with embedded images
-- [ ] Markor 真实案例 47/47 步通过 / Markor live case passed 47/47 steps
-- [ ] Settings 真实案例 23/23 步通过 / Settings live case passed 23/23 steps
+- [ ] Fennec 真实案例 71/71 步通过 / Fennec live case passed 71/71 steps
+- [ ] VLC 真实案例 30/30 步通过 / VLC live case passed 30/30 steps
 - [ ] 失败 `run --json` 通过打包的 `cli-v1.schema.json` / failed `run --json` validates against the packaged schema
 - [ ] 测试的 MuMu 版本记录在 release notes / MuMu version documented
 - [ ] 无法完成的真实环境项明确列为限制 / unavailable live checks are documented as limits
