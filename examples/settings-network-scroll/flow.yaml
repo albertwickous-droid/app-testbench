@@ -1,0 +1,114 @@
+version: 1
+name: settings-network-scroll
+description: Exercise nested navigation, back-stack behavior, and long scrolling in MuMu's bundled Android Settings.
+device:
+  instance: 0
+  package: com.android.settings
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: Android Settings navigation and scroll / 系统设置导航与滚动
+  capture_screenshots: manual
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+  max_log_chars: 120000
+steps:
+  - name: Launch Android Settings
+    action: launch
+  - name: Allow Settings to restore its last state
+    action: wait
+    seconds: 1
+  - name: Reset Settings scroll to the top
+    action: swipe
+    x1: 640
+    y1: 160
+    x2: 640
+    y2: 650
+    duration_ms: 400
+  - name: Reset Settings scroll to the top again
+    action: swipe
+    x1: 640
+    y1: 160
+    x2: 640
+    y2: 650
+    duration_ms: 400
+  - name: Ensure Settings is scrolled to the top
+    action: swipe
+    x1: 640
+    y1: 160
+    x2: 640
+    y2: 650
+    duration_ms: 400
+  - name: Wait for the Settings home screen
+    action: wait_for_text
+    text: 网络和互联网
+    timeout: 20
+  - name: Capture Settings home
+    action: screenshot
+    label: settings-home
+  - name: Open Network and internet
+    action: tap
+    x: 640
+    y: 100
+  - name: Wait for the network page
+    action: wait_for_text
+    text: 飞行模式
+    timeout: 10
+  - name: Assert network page title
+    action: assert_ui_contains
+    text: 网络和互联网
+  - name: Capture network page
+    action: screenshot
+    label: settings-network
+  - name: Save network page UI tree
+    action: dump_ui
+    label: settings-network
+  - name: Return to Settings home
+    action: back
+  - name: Wait for Settings home after back
+    action: wait_for_text
+    text: 存储
+    timeout: 10
+  - name: Scroll toward system settings
+    action: swipe
+    x1: 640
+    y1: 650
+    x2: 640
+    y2: 160
+    duration_ms: 600
+  - name: Continue scrolling
+    action: swipe
+    x1: 640
+    y1: 650
+    x2: 640
+    y2: 160
+    duration_ms: 600
+  - name: Scroll to About phone
+    action: swipe
+    x1: 640
+    y1: 650
+    x2: 640
+    y2: 160
+    duration_ms: 600
+  - name: Wait for About phone entry
+    action: wait_for_text
+    text: 关于手机
+    timeout: 20
+  - name: Assert About phone entry is visible
+    action: assert_ui_contains
+    text: 关于手机
+  - name: Capture scrolled Settings page
+    action: screenshot
+    label: settings-about-entry
+  - name: Save scrolled UI tree
+    action: dump_ui
+    label: settings-about-entry
+teardown:
+  - name: Close Android Settings
+    action: close
+    continue_on_error: true
+  - name: Capture final logcat
+    action: logcat
+    label: final
+    lines: 1500
