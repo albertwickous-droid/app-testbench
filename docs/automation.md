@@ -2,7 +2,7 @@
 
 The canonical maintenance scheduler for this workspace is **Codex native Scheduled** in local-project mode. It runs daily at 04:00 Asia/Shanghai and uses `scripts/automation/codex-scheduled-prompt.md` as its prompt.
 
-The Windows Task Scheduler wrapper is retained only as a fallback. The `app-testbench-daily-optimizer` task is currently **disabled** so the native scheduler and the wrapper cannot edit the same worktree concurrently. Do not enable or start both schedulers for the same maintenance window.
+The Windows Task Scheduler wrapper is retained only as a fallback. The default task name is `app-testbench-daily-optimizer`; after a repository rename an existing task may still use the old name (for example `mumu-runner-daily-optimizer`). Verify the actual task name with `Get-ScheduledTask` and confirm it is **disabled** so the native scheduler and the wrapper cannot edit the same worktree concurrently. Do not enable or start both schedulers for the same maintenance window.
 
 The maintenance workflow has a deliberately narrow contract:
 
@@ -14,7 +14,7 @@ The maintenance workflow has a deliberately narrow contract:
 
 Create or edit the Codex Scheduled task with the local project folder selected, daily at 04:00, and paste the contents of [`scripts/automation/codex-scheduled-prompt.md`](../scripts/automation/codex-scheduled-prompt.md) as its prompt. The native prompt invokes the maintenance contract directly and performs MuMu cleanup as a final phase; it does not call `daily-maintenance.ps1`, so there is no nested Codex process.
 
-Use local-project mode for this workflow. An isolated worktree separates edits but is unnecessary here and can make cleanup/report paths confusing.
+Use local-project mode for this workflow. An isolated worktree separates edits but is unnecessary here and can make cleanup/report paths confusing. If the repository is moved or renamed, update the native Scheduled task's local project folder and prompt path before the next run; otherwise the scheduler may continue to target the old path.
 
 ## Windows Task Scheduler fallback (disabled)
 

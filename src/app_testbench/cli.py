@@ -243,7 +243,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument(
         "--output",
         type=Path,
-        help="Output file (default: mumu-flow.yaml for YAML, mumu-flow.json for JSON)",
+        help="Output file (default: app-testbench-flow.yaml for YAML, app-testbench-flow.json for JSON)",
     )
     init.add_argument("--format", choices=["yaml", "json"], default="yaml")
     init.add_argument("--force", action="store_true")
@@ -691,7 +691,7 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
 
 
 def _command_init(args: argparse.Namespace, _: Settings) -> int:
-    default_name = "mumu-flow.json" if args.format == "json" else "mumu-flow.yaml"
+    default_name = "app-testbench-flow.json" if args.format == "json" else "app-testbench-flow.yaml"
     output = _resolve_file_output(args.output or Path(default_name))
     if output.exists() and not args.force:
         raise ConfigError(

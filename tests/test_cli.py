@@ -379,13 +379,13 @@ def test_init_uses_default_extension_for_selected_format(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     assert main(["init"]) == 0
-    assert load_flow(tmp_path / "mumu-flow.yaml").name == "login-smoke"
+    assert load_flow(tmp_path / "app-testbench-flow.yaml").name == "login-smoke"
 
     assert main(["init", "--format", "json"]) == 0
-    assert load_flow(tmp_path / "mumu-flow.json").name == "login-smoke"
+    assert load_flow(tmp_path / "app-testbench-flow.json").name == "login-smoke"
     assert sorted(path.name for path in tmp_path.iterdir()) == [
-        "mumu-flow.json",
-        "mumu-flow.yaml",
+        "app-testbench-flow.json",
+        "app-testbench-flow.yaml",
     ]
 
 

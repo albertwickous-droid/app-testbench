@@ -71,7 +71,7 @@ app-testbench --instance 0 tap 540 1200
 app-testbench --instance 0 screenshot --output .\artifacts\home.png
 app-testbench --instance 0 dump-ui --output .\artifacts\home.xml
 app-testbench --instance 0 logcat --output .\artifacts\logcat.txt --lines 2000
-app-testbench run .\mumu-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml --wait-for-boot
+app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml --wait-for-boot
 ```
 
 ## Agent workflow for a requested App journey
