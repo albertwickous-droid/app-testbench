@@ -1,6 +1,6 @@
 # App TestBench
 
-[English](README.en.md) | **简体中文**
+**简体中文** | [English](README.en.md) | [Agent](docs/agent-deployment.md)
 
 ![App TestBench：在 MuMu 上执行可重复的 Android 应用测试流程](assets/banner.png)
 
@@ -391,7 +391,7 @@ python -m twine check dist/*
 
 - [`docs/publishing.md`](docs/publishing.md)
 - [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
-- [`docs/agent-deployment.md`](docs/agent-deployment.md)：给执行部署任务的 Agent 使用
+- [`docs/agent-deployment.md`](docs/agent-deployment.md)：English-only Agent runbook for installation, testing, deployment, and publishing
 - [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 - [docs/promotion.md](docs/promotion.md)
 - [docs/launch-copy.md](docs/launch-copy.md)

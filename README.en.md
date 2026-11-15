@@ -1,6 +1,6 @@
 # App TestBench
 
-[简体中文](README.md) | **English**
+[简体中文](README.md) | **English** | [Agent](docs/agent-deployment.md)
 
 ![App TestBench: repeatable Android app tests on MuMu](assets/banner.png)
 
@@ -391,7 +391,7 @@ See:
 
 - [`docs/publishing.md`](docs/publishing.md)
 - [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
-- [`docs/agent-deployment.md`](docs/agent-deployment.md): deployment runbook for agents
+- [`docs/agent-deployment.md`](docs/agent-deployment.md): English-only Agent runbook for installation, testing, deployment, and publishing
 - [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 - [docs/promotion.md](docs/promotion.md)
 - [docs/launch-copy.md](docs/launch-copy.md)

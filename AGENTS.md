@@ -4,12 +4,13 @@
 
 App TestBench is a Python 3.10+ CLI for repeatable Android app UI testing. MuMu Player through MuMuManager and ADB is the first runtime backend. Preserve the focused App-testing scope; do not turn it into a general RPA platform.
 
-## Deployment and publishing
+## Install, test, and publishing runbook
 
-If the user asks you to deploy, publish, or release this repository, read
-`docs/agent-deployment.md` first and follow it as the operational contract.
-Do not change repository visibility, create a tag, publish a GitHub Release, or
-publish to PyPI without explicit owner approval.
+If the user asks you to install this project, control MuMu for a test, write or
+run a flow, deploy, publish, or release the repository, read
+`docs/agent-deployment.md` first and follow the task-specific path. Do not change
+repository visibility, create a tag, publish a GitHub Release, or publish to PyPI
+without explicit owner approval.
 
 ## Before changing code
 

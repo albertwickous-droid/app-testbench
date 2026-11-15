@@ -1,284 +1,329 @@
-# Agent 部署手册 / Agent Deployment Runbook
+# App TestBench Agent Runbook
 
-> If you are an agent, follow this runbook to deploy App TestBench.
->
-> 如果你是执行部署任务的 Agent：请按以下步骤部署 App TestBench。不要重新设计产品，不要跳过验证，也不要自行切换仓库可见性、创建 tag、发布 GitHub Release 或 PyPI 包。
+[简体中文](../README.md) | [English](../README.en.md) | **Agent**
 
-## 1. 任务目标
+If you are an agent, use this runbook as the operating contract for App TestBench. Follow only the path that matches the request. Run the checks yourself when you have shell access, and stop at the first failed gate instead of working around it.
 
-把当前仓库安全地发布到：
+## Choose the task
 
-- Owner：`albertwickous-droid`
-- Repository：`app-testbench`
-- 初始可见性：**Private**
-- 默认分支：`main`
+| Request | Follow |
+| --- | --- |
+| Install the tool, control MuMu, write a flow, or run a test | Sections 1-7 |
+| Change source code or packaging | Sections 1-4 and 8 |
+| Push the repository or configure GitHub | Sections 1-4 and 9-10 |
+| Create a tag, GitHub Release, or PyPI package | Sections 1-4 and 11-12 |
 
-第一阶段只要求完成：
+State the intended task and external side effects before making changes. A request to test an app does not authorize publishing the repository. A request to push code does not authorize a tag, Release, visibility change, or PyPI upload.
 
-1. 本地检查通过。
-2. 首次 push 成功。
-3. Private 仓库的 CI 通过。
-4. GitHub 的 About、topics、安全功能和仓库策略配置完成。
+## 1. Establish the operating boundary
 
-切 Public、打 `v0.1.0` tag、发布 Release、触发 PyPI 都必须获得仓库所有者明确确认。
+App TestBench is a Windows-first CLI for repeatable Android app testing through MuMu Player, `MuMuManager.exe`, and ADB. The supported first-release path is Windows 10/11 with a MuMu instance that has ADB enabled.
 
-## 2. 先读这些文件
+Use the tool only for applications, accounts, devices, and test environments that the owner is authorized to test. Normal test-account login is allowed. Do not use the tool to bypass login, CAPTCHA, anti-automation controls, risk controls, rate limits, paywalls, or access controls.
 
-按顺序读取：
+Treat these actions as state-changing:
 
-1. `README.md`
-2. `AGENTS.md`
-3. `docs/publishing.md`
-4. `docs/github-repository-setup.md`
-5. `RELEASE_CHECKLIST.md`
-6. `docs/use-cases.md`
-7. `SECURITY.md`
-8. `PRIVACY.md`
-9. `RESPONSIBLE_USE.md`
+- starting, restarting, or stopping a MuMu instance
+- installing or uninstalling an APK
+- launching or force-stopping an app
+- writing screenshots, UI dumps, logs, reports, or downloaded packages
+- pushing commits, changing repository visibility, creating tags or Releases, or publishing a package
 
-发生冲突时，以更保守、更少暴露数据、更少改变外部状态的做法为准。
+Completion criterion: the requested outcome, the allowed side effects, and the required approvals are stated explicitly.
 
-## 3. 不可跳过的规则
+## 2. Read the repository sources of truth
 
-- 不向聊天、命令行参数、提交、Issue 或日志中写入 token、密码、cookie、私钥或 GitHub 凭据。
-- 不提交 `runs/`、真实截图、真实 logcat、APK、账号数据、`.env`、本机 Codex 配置或个人介绍。
-- 不执行 `git push --force`，不改写已有公开历史。
-- 不使用 `shell=True`，不为了部署临时修改产品代码或扩大依赖。
-- CI 失败时修复并重新运行，不通过跳过检查、删除测试或降低断言来“通过”。
-- 未获得明确许可，不把 Private 仓库切成 Public。
-- 未完成真实 MuMu 冒烟测试时，不声称所有 MuMu/App 环境已验证。
-- Git tag、GitHub Release 和 PyPI 发布是三个独立动作，不能假设其中一个会自动完成另外两个。
-- 遇到真实密钥泄露，先停止发布并提醒所有者轮换凭据；不要只删除文件后继续。
+Read these files before acting:
 
-## 4. 部署前检查
+1. `AGENTS.md`
+2. `README.en.md`
+3. `docs/flow-reference.md` when editing a flow
+4. `docs/publishing.md` when publishing
+5. `docs/github-repository-setup.md` when changing GitHub settings
+6. `RELEASE_CHECKLIST.md` when creating a Release
+7. `SECURITY.md`, `PRIVACY.md`, and `RESPONSIBLE_USE.md` before handling evidence or publishing data
 
-在仓库根目录运行：
+When two sources appear to conflict, prefer the action that exposes less data, mutates less external state, and preserves the documented product scope.
+
+Completion criterion: every branch used by the task has a current source of truth.
+
+## 3. Inspect the working state
+
+Run from the repository root:
 
 ```powershell
-git status --short
+git status --short --branch
 git log -3 --oneline --decorate
 git remote -v
 git config user.name
 git config user.email
 ```
 
-预期：
+If the worktree is not clean, identify which changes belong to the current task and which predate it. Preserve unrelated changes. Do not reset, discard, overwrite, or commit them without owner approval.
 
-- 工作区为空。若不是，先确认改动来源，不要擅自丢弃。
-- 当前分支是 `main`。
-- remote 指向 `https://github.com/albertwickous-droid/app-testbench.git`。
-- commit 使用项目身份，不包含私人邮箱。
+Completion criterion: the current branch, remote, author identity, and ownership of every uncommitted change are known.
 
-运行完整门禁：
+## 4. Install and verify the local tool
+
+Use the checked-out source when working inside the repository:
 
 ```powershell
-.\scripts\check.ps1 -SkipInstall
-git diff --check
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+app-testbench --version
+app-testbench --help
 ```
 
-门禁必须包含：
+For development work, install the development extras and run the full gate:
 
-- Ruff 检查通过。
-- 格式检查通过。
-- 全部测试通过。
-- wheel 与 sdist 构建成功。
-- `twine check` 通过。
+```powershell
+python -m pip install -e ".[dev]"
+.\scripts\check.ps1 -SkipInstall
+```
 
-检查 Git 跟踪文件中是否有不应发布的内容：
+The gate must include Ruff, formatting, the full test suite, wheel and sdist builds, and `twine check`. If the package is available from a package index and the task is end-user installation, verify the package entry point directly:
+
+```powershell
+python -m pip install app-testbench
+app-testbench --version
+```
+
+Do not claim PyPI availability unless the install command succeeds against the intended index and version.
+
+Completion criterion: `app-testbench --version` succeeds, and every required local check passes.
+
+## 5. Discover MuMu and ADB
+
+Start with read-only discovery:
+
+```powershell
+app-testbench doctor --json
+app-testbench instance list --json
+```
+
+If auto-discovery fails, pass explicit paths or set environment variables:
+
+```powershell
+$env:APP_TESTBENCH_MUMU_MANAGER = "C:\path\to\MuMuManager.exe"
+$env:APP_TESTBENCH_ADB = "C:\path\to\adb.exe"
+$env:APP_TESTBENCH_INSTANCE = "0"
+$env:APP_TESTBENCH_JSON = "1"
+
+app-testbench doctor --json
+app-testbench instance list --json
+```
+
+If testing a live app, select a dedicated test instance and verify that the instance is running, the Android boot has completed, and ADB reports the expected device before installing anything.
+
+Completion criterion: the JSON output identifies the MuMuManager path, ADB path, instance, serial or port, Android state, and any discovery error.
+
+## 6. Write and validate the flow
+
+Create a starter flow, then replace the example package and steps with the authorized test target:
+
+```powershell
+app-testbench init --output .\app-testbench-flow.yaml
+app-testbench validate .\app-testbench-flow.yaml
+```
+
+Before choosing coordinates, collect evidence from the actual screen:
+
+```powershell
+app-testbench --instance 0 screenshot --output .\artifacts\screen.png
+app-testbench --instance 0 dump-ui --output .\artifacts\screen.xml
+```
+
+Use coordinates supported by the screenshot and UI hierarchy. Prefer text waits and assertions where the UI exposes readable text. Keep test credentials in environment variables or an approved secret store; do not write production credentials, cookies, tokens, or personal data into the flow or report.
+
+Run the validated flow:
+
+```powershell
+app-testbench run .\app-testbench-flow.yaml `
+  --output .\runs `
+  --junit-xml .\artifacts\junit.xml `
+  --wait-for-boot `
+  --boot-timeout 60 `
+  --json
+```
+
+`--boot-timeout` implies the boot-readiness wait. A failed step stops later steps and should produce diagnostic evidence when the backend allows it.
+
+Completion criterion: validation succeeds before execution, and the run exits with a documented status rather than an unexplained shell error.
+
+## 7. Verify the evidence
+
+Read `result.json` and inspect the run directory. A run normally contains:
+
+```text
+runs/<timestamp>-<flow-name>/
+├── report.html
+├── result.json
+├── screenshots/
+├── ui/
+└── logs/
+```
+
+Check:
+
+1. The process exit code matches the result status.
+2. Every expected step appears with its duration.
+3. The first failed step includes the original error.
+4. Screenshots, UI XML, logcat, and JUnit output exist when the flow requests them.
+5. `report.html` opens locally and does not depend on a CDN.
+6. No token, cookie, account, private hostname, or personal data will be published with the evidence.
+
+Exit codes are `0` for success, `1` for execution failure, `2` for invalid arguments or flow configuration, and `130` for interruption.
+
+If MuMu was started only for this task, stop it after the evidence is written. Follow any owner-specified cleanup window or automation rule.
+
+Completion criterion: the reported pass/fail can be reproduced from the flow, exit code, and saved evidence.
+
+## 8. Change source code safely
+
+For code changes:
+
+```powershell
+python -m pip install -e ".[dev]"
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q
+```
+
+For packaging changes, also run:
+
+```powershell
+python -m build
+python -m twine check dist/*
+```
+
+Keep host command execution behind the process adapter and argument arrays. Keep flow validation strict. Escape report content, preserve offline reports, and keep telemetry and cloud uploads out of the product. Add or update tests whenever behavior changes.
+
+Do not describe fake-backend coverage as live MuMu coverage. Record the MuMu version, Windows version, Python version, selected instance, and observed result when a live test is performed.
+
+Completion criterion: tests and checks pass, and the final report distinguishes fake-backend tests from live-device evidence.
+
+## 9. Publish the repository
+
+Require explicit owner approval before changing visibility, creating a tag or Release, or publishing to a package index. A normal `git push` still requires approval to commit and push the owner's changes.
+
+Before publishing, run:
+
+```powershell
+git status --short
+git diff --check
+.\scripts\check.ps1
+```
+
+Check tracked paths for likely sensitive artifacts:
 
 ```powershell
 git ls-files | Select-String -Pattern '(^|/)(\.env|runs|reports|artifacts|dist|build)(/|$)|\.(apk|aab|xapk|log|pem|key|p12|pfx)$|(^|/)(cookies\.(txt|json)|auth\.json|secrets\.)'
 ```
 
-该命令应无输出。若命中，停止 push，逐个确认文件来源和敏感性。
+The command should return nothing relevant. If it finds an APK, log, screenshot, credential file, exported session, private key, personal profile, or other sensitive data, stop and ask the owner to classify or remove it. Do not merely delete the file and continue if a real secret may already have been exposed; report it and recommend credential rotation.
 
-## 5. 创建 GitHub 仓库
-
-先检查远程仓库是否存在：
+Push normally and verify the remote branch:
 
 ```powershell
+git push origin main
 git ls-remote --heads origin main
 ```
 
-如果返回 404、认证失败或提示仓库不存在：
+Never use `git push --force` or rewrite published history. If the repository uses a proxy because of network policy, pass it only for the command being run; do not persist credentials or proxy secrets in the repository.
 
-1. 请仓库所有者创建空仓库。
-2. Owner 选择 `albertwickous-droid`。
-3. 名称填写 `app-testbench`。
-4. 可见性选择 **Private**。
-5. 不勾选 README、`.gitignore` 或 License。
-6. 不要向 Agent 提供 GitHub 密码或 token；使用 Git Credential Manager 或浏览器登录。
+Completion criterion: the remote branch matches local `HEAD`, the working tree is understood, and no sensitive file is staged or tracked.
 
-仓库创建后再次运行 `git ls-remote --heads origin main`。空仓库返回空结果属于正常现象。
+## 10. Configure GitHub
 
-## 6. 推送主分支
+Follow `docs/github-repository-setup.md` for the current owner/repository. Verify:
 
-```powershell
-git push -u origin main
-git ls-remote --heads origin main
-git status --short
-```
+- the repository description matches the product
+- topics describe Android app testing rather than general RPA
+- default branch is the intended branch
+- Secret Scanning and push protection are enabled when available
+- Dependabot security updates and private vulnerability reporting are enabled when available
+- CodeQL or the configured code-scanning workflow passes
+- branch and tag rulesets protect `main` and release tags
+- Actions permissions follow least privilege
 
-要求：
+Changing a repository from private to public is an owner decision. Do not infer approval from a successful CI run.
 
-- push 使用普通 `git push`，不使用 force。
-- `origin/main` 的 commit 应与本地 `HEAD` 一致。
-- push 后确认 GitHub 默认分支为 `main`。
+Completion criterion: the repository settings match the documented setup, or the agent reports the exact setting it could not verify.
 
-如果认证失败，优先打开浏览器完成 GitHub 登录。不要把凭据粘贴到终端输出或聊天中。
+## 11. Create a release
 
-## 7. 等待 CI
+Before creating a tag, confirm:
 
-如果 `gh` 已安装并完成认证：
+- the owner explicitly approved the version and tag
+- `main` is clean and pushed
+- the version in `pyproject.toml` and `app_testbench.__version__` match
+- release notes describe actual changes and do not overstate live validation
+- release assets are built from the tagged commit
+- the Release workflow creates a Draft until the owner approves publication
 
-```powershell
-gh auth status
-gh run list --limit 5
-gh run watch <RUN_ID> --exit-status
-```
-
-如果没有 `gh`，打开仓库的 **Actions** 页面，等待 `CI` workflow 完成。
-
-必须通过后再继续：
-
-- Windows Python 3.10、3.11、3.12
-- Ubuntu Python 3.10、3.11、3.12
-- 打包构建与安装检查
-
-CI 失败时：
-
-1. 读取失败 job 的完整日志。
-2. 在本地复现并修复。
-3. 重新运行门禁。
-4. commit 并 push。
-5. 再次等待 CI 全绿。
-
-不要通过关闭 matrix、跳过测试或忽略错误来绕过失败。
-
-## 8. 配置 Private 仓库
-
-在 GitHub 仓库设置中完成：
-
-### About
-
-- Description：`Repeatable Android app testing on MuMu Player with JSON/YAML flows and evidence-rich HTML reports.`
-- Website：暂不填写，除非已有正式主页。
-- Topics：
-  `android`, `app-testing`, `adb`, `mumu`, `android-automation`, `qa`, `regression-testing`, `python`, `cli`, `html-report`
-- Social preview：上传 `assets/social-preview.png`
-
-### Code security and analysis
-
-开启：
-
-- Dependabot alerts
-- Dependabot security updates
-- Secret scanning
-- Secret scanning push protection
-- Private vulnerability reporting
-- CodeQL default setup for Python
-
-### General
-
-- Default branch：`main`
-- Releases：允许，但先保持 Draft
-- Automatically delete head branches：按维护习惯开启
-
-### Actions
-
-- Workflow permissions：默认只读
-- 只给 release job 授予 `contents: write`
-- 只给 PyPI job 授予 `id-token: write`
-- Release workflow 只能创建 Draft，不能自动公开
-- PyPI workflow 必须手动触发
-
-### Rulesets
-
-为 `main` 配置：
-
-- 禁止删除分支
-- 禁止 force push
-- 要求 CI 状态检查
-- 单人维护阶段允许管理员 bypass
-- 有第二名维护者后再要求 PR approval
-
-为 `v*` 配置：
-
-- 只允许维护者创建和删除
-- 已发布 tag 不允许移动
-
-## 9. 切换 Public 前的硬门槛
-
-只有同时满足以下条件，才向仓库所有者请求公开许可：
-
-- `main` 已 push。
-- 所有 CI job 通过。
-- Secret scanning 和 push protection 已开启。
-- 仓库中没有个人介绍、私人邮箱、真实账号、cookie、token、APK、真实截图或 logcat。
-- `LICENSE`、`SECURITY.md`、`PRIVACY.md`、`RESPONSIBLE_USE.md` 和 `DISCLAIMER.md` 均可正常访问。
-- README 首屏能说明用途、支持范围和限制。
-- 仓库所有者明确确认可以切 Public。
-
-得到明确确认后再切换。不要因为“CI 已通过”自行公开。
-
-## 10. Release 与 PyPI 门槛
-
-### GitHub Release
-
-创建 `v0.1.0` tag 前确认：
-
-- 仓库所有者明确批准。
-- 真实 MuMu 冒烟测试已完成并记录 MuMu 版本、Windows 版本、Python 版本和测试结果。
-- Release notes 没有把 fake-backend 测试写成真实设备验证。
-
-获得批准后：
+Then run only after approval:
 
 ```powershell
-git tag -a v0.1.0 -m "App TestBench v0.1.0"
-git push origin v0.1.0
+git tag -a vX.Y.Z -m "App TestBench vX.Y.Z"
+git push origin vX.Y.Z
 ```
 
-Release workflow 只应生成 Draft。检查 wheel、sdist、SHA256 和 Release notes 后再手动发布。
+Download the resulting wheel, sdist, and checksum file. Verify the checksums and a clean installation in a temporary environment. Do not move or delete a published tag.
 
-### PyPI
+Completion criterion: the tag points at the intended commit, CI passes for that tag, artifacts match their checksums, and the Release visibility matches the owner's approval.
 
-PyPI 不与 Git tag 自动联动。只有仓库所有者明确要求时才触发 `publish-pypi.yml`，并确认：
+## 12. Publish to PyPI
 
-- PyPI Trusted Publishing 已配置相同 owner/repository/workflow/environment。
-- `pypi` environment 已配置。
-- 包名 `app-testbench` 和目标版本已再次确认。
-- 发布后验证 `pip install app-testbench` 和 CLI 入口。
+PyPI is a separate release channel. A GitHub tag, GitHub Release, and PyPI upload do not publish one another automatically.
 
-## 11. 停止条件
+Before running the PyPI workflow, confirm:
 
-出现以下任一情况时停止并报告，不继续做外部状态变更：
+- the owner explicitly approved the package name and version
+- PyPI Trusted Publishing is configured for the exact owner, repository, workflow, and environment
+- the `pypi` environment exists in GitHub
+- the workflow is manually triggered
+- the wheel and sdist have passed `twine check`
+- installation and `app-testbench --version` succeed from the intended index
 
-- 仓库仍返回 404，或当前登录账号没有目标仓库权限。
-- 工作区有来源不明的改动。
-- 完整门禁失败。
-- 发现真实密钥、cookie、token、私钥或个人信息。
-- CI 未全绿。
-- 真实 MuMu 测试尚未完成，却被要求宣称已兼容。
-- 所有者没有明确确认 Public、tag、Release 或 PyPI。
-- 需要 force push、改写公开历史或关闭安全检查才能继续。
+After publication, verify the project page, the uploaded version, `pip install app-testbench`, and the CLI entry point. Report failure as failure; do not substitute a local editable install for a successful package publication.
 
-## 12. 完成后的报告格式
+Completion criterion: the intended version is visible on the package index and installs in a clean environment.
 
-Agent 完成后只报告可验证事实：
+## Stop conditions
+
+Stop and report immediately when any of these occurs:
+
+- required authorization, login, or owner approval is missing
+- the worktree contains unexplained changes
+- the full test gate fails
+- a real credential, cookie, token, private key, personal profile, or private user data is found
+- the live MuMu environment is unavailable and the task requires live evidence
+- CI fails
+- a command would require force-pushing or rewriting published history
+- a release step would change visibility or publish artifacts without explicit approval
+
+## Final report
+
+Report only facts that can be verified from commands or stored evidence:
 
 ```text
+Requested task:
 Repository:
-Default branch:
-Latest commit:
+Branch:
+Commit:
 Remote:
-Visibility:
-Checks:
+Worktree:
+Local checks:
 CI:
-Tag:
-GitHub Release:
+MuMu / Android:
+Flow validation:
+Run result:
+Evidence paths:
+Release:
 PyPI:
-Live MuMu smoke test:
+Cleanup:
 Outstanding risks:
 ```
 
-不要把“本地检查通过”写成“真实设备已验证”，也不要把“Draft Release 已生成”写成“已经正式发布”。
+Do not describe a Draft Release as a published Release. Do not describe fake-backend tests as a live-device test. Do not describe local build success as package-index availability.
