@@ -1,8 +1,8 @@
 # 发布方案 / GitHub Publishing Guide
 
-本文是 `app-testbench` 首次公开发布的完整操作方案。当前目标版本为 **v0.1.0**，仓库尚未产生公开提交，因此可以从干净的首次提交开始，不需要清理历史。
+本文是 `app-testbench` v0.1.1 的增量发布操作方案。当前目标版本为 **v0.1.1**；`v0.1.0` 已经公开，必须保留原 tag，不重写已发布历史。
 
-This is the complete publishing runbook for the first public `app-testbench` release. The target version is **v0.1.0**. The repository has no public commit history yet, so the safest approach is to create a clean initial commit rather than rewriting history.
+This is the incremental publishing runbook for App TestBench v0.1.1. The target version is **v0.1.1**. `v0.1.0` is already public; keep its tag unchanged and do not rewrite published history.
 
 > 仓库 owner 已确认：`albertwickous-droid`。不要在没有最终检查的情况下执行 `tag` 或发布。
 >
@@ -12,33 +12,35 @@ This is the complete publishing runbook for the first public `app-testbench` rel
 >
 > Agent entry point: if an agent is executing the deployment, follow [`agent-deployment.md`](agent-deployment.md) first.
 
-## 0. 最快发布路径 / Quick path
+## 0. 当前发布路径：v0.1.1 / Current path: v0.1.1
 
-1. 在 GitHub 创建一个空的 **Private** 仓库，不要勾选 README、`.gitignore` 或 License。
-2. 已替换 README 和 Release notes 中的仓库地址，并已在 `pyproject.toml` 配置 `[project.urls]`。
-3. 运行完整检查与敏感信息审计，确认 `runs/`、APK、日志、截图和本地配置都被忽略。
-4. 完成首次 commit，添加 remote，推送到 Private 仓库。
-5. 等待 GitHub Actions 和 Secret Scanning 通过，再切换为 Public。
-6. 配置 About、topics、social preview、Rulesets、Private Vulnerability Reporting 和 Dependabot。
-7. 推送 `v0.1.0` tag，审核自动生成的 GitHub Release draft，再手动发布。
-8. 按 [`promotion.md`](promotion.md) 和 [`launch-copy.md`](launch-copy.md) 做冷启动，不要把“发布 Release”当成“完成宣传”。
+`v0.1.0` 已经公开并保留原 tag。v0.1.1 是增量补丁版本，不得重新初始化仓库、改写已发布历史或移动 `v0.1.0`。
 
-English quick path:
+`v0.1.0` is already public and its tag must remain unchanged. v0.1.1 is an incremental patch release. Do not reinitialize the repository, rewrite published history, or move `v0.1.0`.
 
-1. Create an empty **Private** GitHub repository without README, `.gitignore`, or license.
-2. Repository URLs are configured in both READMEs, the release notes, and `[project.urls]` in `pyproject.toml`.
-3. Run the full checks and sensitive-content audit.
-4. Create the initial commit, add the remote, and push to the Private repository.
-5. Wait for GitHub Actions and Secret Scanning to pass, then switch to Public.
-6. Configure About, topics, social preview, rulesets, private vulnerability reporting, and Dependabot.
-7. Push the `v0.1.0` tag, review the draft GitHub Release, then publish it manually.
-8. Execute the promotion and launch-copy playbooks; publishing a release is not the same as launching a project.
+1. 从最新 `main` 创建 `release/v0.1.1`，保留并分类工作区已有改动。
+2. 更新版本、CHANGELOG、真实案例、验证记录和 release notes。
+3. 运行完整测试、构建、`twine check`、真实 MuMu 流程和敏感信息审计。
+4. 按逻辑拆分 commit，推送 release 分支并等待 GitHub Actions。
+5. 合并到 `main`，确认远端 `main` 与本地一致。
+6. 创建并推送新的 annotated tag `v0.1.1`；绝不移动 `v0.1.0`。
+7. 检查 Release workflow 生成的 draft、wheel、sdist、`SHA256SUMS.txt` 和双语说明，再决定是否公开 Release。
+8. 按 [`promotion.md`](promotion.md) 和 [`launch-copy.md`](launch-copy.md) 使用真实案例截图做后续宣传。
+
+1. Create `release/v0.1.1` from the latest `main` and classify any existing worktree changes.
+2. Update versions, CHANGELOG, live cases, validation, and release notes.
+3. Run the full test/build gate, `twine check`, live MuMu flows, and the sensitive-content audit.
+4. Commit in logical slices, push the release branch, and wait for GitHub Actions.
+5. Merge to `main` and verify that remote and local `main` match.
+6. Create and push a new annotated `v0.1.1` tag; never move `v0.1.0`.
+7. Review the draft Release, wheel, sdist, `SHA256SUMS.txt`, and bilingual notes before publishing the Release.
+8. Use the real case evidence in [`promotion.md`](promotion.md) and [`launch-copy.md`](launch-copy.md) for subsequent promotion.
 
 ## 1. 发布定位 / Release positioning
 
 **中文**
 
-- v0.1.0 的外层钩子是“AI 可以写测试，但测试环境不能靠猜”，内层定位是“基于成熟 MuMu 运行时、可重复、可留证据的 App 自动化测试工具”，不是通用 RPA 平台。
+- v0.1.1 的外层钩子是“AI 可以写测试，但测试环境不能靠猜”，内层定位是“基于成熟 MuMu 运行时、可重复、可留证据的 App 自动化测试工具”，不是通用 RPA 平台。
 - 首版明确支持 Windows、MuMu Player 和 ADB。
 - 自动化测试使用确定性的假后端；CI 通过不等于所有 MuMu 版本都完成真实集成验证。
 - 仓库不包含遥测、账号体系、云端服务或用户数据上传。
@@ -46,7 +48,7 @@ English quick path:
 
 **English**
 
-- The outer hook for v0.1.0 is “AI can write the test; it should not guess the test environment.” The precise positioning is a repeatable, evidence-rich app testing tool built on the mature MuMu runtime, not a general-purpose RPA platform.
+- The outer hook for v0.1.1 is “AI can write the test; it should not guess the test environment.” The precise positioning is a repeatable, evidence-rich app testing tool built on the mature MuMu runtime, not a general-purpose RPA platform.
 - The supported baseline is Windows, MuMu Player, and ADB.
 - Automated tests use deterministic fake backends. CI success does not claim live compatibility with every MuMu release.
 - The project has no telemetry, account system, cloud service, or artifact upload.
@@ -60,12 +62,13 @@ English quick path:
 | `docs/`, README, policies | 是 / Yes | 不含个人身份、真实账号或本机路径 |
 | `.github/workflows/`, templates | 是 / Yes | Release 只创建草稿；PyPI 必须手动触发 |
 | 通用维护自动化 | 是 / Yes | 必须先移除姓名、用户名和绝对路径 |
-| `assets/banner.svg`, synthetic social preview | 是 / Yes | 使用虚构界面和占位数据 |
+| `assets/banner.svg`, social preview | 是 / Yes | 不得包含个人或账号数据 |
 | `runs/`, `reports/`, `artifacts/` | 否 / No | 可能包含真实截图、UI、logcat 和设备信息 |
 | APK、AAB、XAPK、模拟器镜像 | 否 / No | 体积、许可证和隐私风险 |
 | `.env`, cookies, auth headers, tokens | 否 / No | 任何形式都不能提交 |
 | `.venv/`, caches, `dist/`, build output | 否 / No | 可由工具重新生成 |
-| 真实 App 截图、账号、订单、聊天 | 否 / No | 即使脱敏也不建议放入首版仓库 |
+| 经筛选和脱敏的真实案例截图 | 是 / Yes | 只允许 `docs/assets/cases/` 中用于复现说明的少量图片 |
+| 原始运行截图、账号、订单、聊天 | 否 / No | raw screenshots、完整 UI、日志和运行目录必须留在 ignored 路径 |
 | 个人 Codex 配置、MCP 配置、历史日志 | 否 / No | 与项目运行无关，可能包含密钥和身份信息 |
 | 简历、自我介绍、私人邮箱、学号 | 否 / No | 使用项目级贡献者署名 |
 
@@ -152,14 +155,14 @@ git diff --cached
 
 ## 5. 版本和元数据 / Version and metadata
 
-本版本固定为 `0.1.0`。发布前确认以下内容一致：
+本版本固定为 `0.1.1`。发布前确认以下内容一致：
 
-This release is fixed at `0.1.0`. Verify these values match:
+This release is fixed at `0.1.1`. Verify these values match:
 
 - `pyproject.toml` → `[project].version`
 - `src/app_testbench/__init__.py` → `__version__`
-- `CHANGELOG.md` → `[0.1.0]`
-- Git tag → `v0.1.0`
+- `CHANGELOG.md` → `[0.1.1]`
+- Git tag → `v0.1.1`
 
 建议 GitHub About：
 
@@ -179,7 +182,7 @@ The GitHub owner is confirmed; user-facing links are now standardized to `albert
 
 - `README.md`
 - `README.en.md`
-- `docs/releases/v0.1.0.md`
+- `docs/releases/v0.1.1.md`
 
 建议同时给 `pyproject.toml` 增加项目链接：
 
@@ -220,13 +223,13 @@ codex-skill
 Recommended repository metadata:
 
 - Repository name: `app-testbench`
-- Release title: `v0.1.0 — First Public Release / 首个公开版本`
+- Release title: `v0.1.1 — Real Cases and Contract Fix / 真实案例与契约修复`
 - Social preview: `assets/social-preview.png`，1280×640
 - License: MIT
 - Default branch: `main`
 - Issues: enabled
 - Discussions: optional; enable only when maintainers can respond
-- Wiki / Projects: off for v0.1.0 unless actively used
+- Wiki / Projects: off for v0.1.1 unless actively used
 
 具体点击路径和分支规则见 [`docs/github-repository-setup.md`](github-repository-setup.md)。
 
@@ -305,8 +308,8 @@ Before tagging, confirm `main` CI is green and the release checklist is complete
 git switch main
 git pull --ff-only
 git status --short
-git tag -a v0.1.0 -m "app-testbench v0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "app-testbench v0.1.1"
+git push origin v0.1.1
 ```
 
 tag 触发 `.github/workflows/release.yml` 后会：
@@ -318,9 +321,9 @@ The tag triggers `.github/workflows/release.yml`, which will:
 3. 生成 `SHA256SUMS.txt`；
 4. 创建 **draft** GitHub Release 并附加构建产物。
 
-进入 GitHub Releases，用 [`docs/releases/v0.1.0.md`](releases/v0.1.0.md) 的双语内容替换或补充自动生成说明，确认资产和校验和后发布。草稿模式可以防止配置错误直接公开。
+进入 GitHub Releases，用 [`docs/releases/v0.1.1.md`](releases/v0.1.1.md) 的双语内容替换或补充自动生成说明，确认资产和校验和后发布。草稿模式可以防止配置错误直接公开。
 
-Open GitHub Releases, use [`docs/releases/v0.1.0.md`](releases/v0.1.0.md) to finalize the bilingual notes, verify assets and checksums, then publish. Draft mode prevents an accidental public release.
+Open GitHub Releases, use [`docs/releases/v0.1.1.md`](releases/v0.1.1.md) to finalize the bilingual notes, verify assets and checksums, then publish. Draft mode prevents an accidental public release.
 
 ### 8.2 PyPI（可选，独立手动步骤） / PyPI (optional, manual)
 
@@ -337,14 +340,15 @@ PyPI is never published by a tag. `.github/workflows/publish-pypi.yml` is manual
    - Workflow: `.github/workflows/publish-pypi.yml`
    - Environment: `pypi`
 3. 在 GitHub 创建 `pypi` environment。
-4. 使用 tag `v0.1.0` 运行 workflow，确认输入 `PUBLISH`。
+4. 使用 tag `v0.1.1` 运行 workflow，确认输入 `PUBLISH`。
 5. 等待 environment review 和 PyPI 上传成功。
 
 ### 8.3 发布后验证 / Post-release verification
 
 ```powershell
-py -3.11 -m venv C:\Temp\app-testbench-smoke
-C:\Temp\app-testbench-smoke\Scripts\Activate.ps1
+$venv = Join-Path $env:TEMP "app-testbench-smoke"
+py -3.11 -m venv $venv
+& "$venv\Scripts\Activate.ps1"
 python -m pip install --upgrade pip
 python -m pip install app-testbench
 app-testbench --version
@@ -358,7 +362,7 @@ app-testbench doctor --json
 If PyPI is not part of this release, install the wheel in a clean environment instead:
 
 ```powershell
-python -m pip install .\dist\app_testbench-0.1.0-py3-none-any.whl
+python -m pip install .\dist\app_testbench-0.1.1-py3-none-any.whl
 ```
 
 同时验证 / Also verify:
@@ -389,7 +393,7 @@ python -m pip install .\dist\app_testbench-0.1.0-py3-none-any.whl
 
 - [`README.md`](../README.md) / [`README.en.md`](../README.en.md)：双语项目首页
 - [`docs/github-repository-setup.md`](github-repository-setup.md)：GitHub 设置与 About/topics
-- [`docs/releases/v0.1.0.md`](releases/v0.1.0.md)：首版双语发行说明
+- [`docs/releases/v0.1.1.md`](releases/v0.1.1.md)：v0.1.1 双语发行说明
 - [`docs/promotion.md`](promotion.md)：30 天冷启动与渠道策略
 - [`docs/launch-copy.md`](launch-copy.md)：可复制的双语发布文案
 - [`assets/report-preview.png`](../assets/report-preview.png)：HTML 报告合成预览

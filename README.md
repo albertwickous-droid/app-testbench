@@ -12,19 +12,37 @@ App TestBench 是一个面向 Windows 的 Android App 自动化测试命令行�
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
-![Status](https://img.shields.io/badge/status-v0.1.0-0B7A75.svg)
+![Status](https://img.shields.io/badge/status-v0.1.1-0B7A75.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 > 独立开源项目，与网易 / MuMu 官方无隶属关系。仅用于你有权测试的设备、应用和账号。
 
-## v0.1.0 状态
+## v0.1.1 状态
 
-- 首版支持 Windows 10/11、MuMu Player 和 ADB。
-- 自动化测试使用确定性的假 `adb` / `MuMuManager`，覆盖命令构造、流程、报告和失败语义。
-- GitHub CI 已在 Windows / Ubuntu × Python 3.10 / 3.11 / 3.12 上通过。
-- 已在 MuMu Player 6.8.8.0、Android 12 上完成一次真实系统设置 App 冒烟测试，7/7 步骤通过；详细范围见 [`docs/validation.md`](docs/validation.md)。
-- CI 和单次冒烟测试不代表所有 MuMu 版本、Android 镜像或业务 App 都已完成兼容性验证。
+- 当前包版本为 `0.1.1`，保留已发布的 `v0.1.0` 标签，不改写旧版本。
+- 新增两条真实 MuMu 案例：Markor 笔记冷启动持久化 **47/47 步通过**，Android Settings 导航与滚动 **23/23 步通过**。
+- 案例覆盖固定 APK 安装与版本核验、首次引导、文本输入、保存、关闭/冷启动、文件搜索、持久化断言、返回栈、长列表滚动、截图、UI 树、logcat、HTML 和 JUnit。
+- 修复失败 `run --json` 的契约：退出码仍为 1，同时输出符合 `cli-v1.schema.json` 的 `error` 对象和完整 `data`。
+- 自动化测试继续使用确定性的假 `adb` / `MuMuManager`；真实案例结果只覆盖文末列出的 MuMu、Android、分辨率和系统语言。
 - 工具没有遥测、云端上传或账号体系。
+
+## 真实案例
+
+### Markor：创建、保存、冷启动后重新打开
+
+![Markor 保存后的笔记](docs/assets/cases/markor/note-saved.png)
+
+验证链路：安装固定版本 APK → 完成首次引导 → 创建笔记 → 输入正文 → 保存 → 强制停止 App → 冷启动 → 搜索文件 → 重新打开 → 断言正文仍在。真实运行 **47/47 步通过**，报告内嵌 5 张 1280×720 截图。
+
+[复现说明](examples/markor-note-persistence/README.md) · [完整案例与截图](docs/cases.md)
+
+### Android Settings：恢复滚动位置、返回栈与长列表
+
+![Android Settings 网络和互联网页面](docs/assets/cases/settings/network.png)
+
+第二次运行没有假设系统 App 会从首页顶部打开，而是先复位继承的滚动位置，再验证嵌套页面、返回和滚动。真实运行 **23/23 步通过**。
+
+[复现说明](examples/settings-network-scroll/README.md) · [查看成功与失败报告截图](docs/cases.md)
 
 ## 为什么默认用 MuMu
 
@@ -93,8 +111,8 @@ App TestBench 适合验证**你有权测试的 App、账号、设备和环境**�
 MuMuManager 常见位置：
 
 ```text
-C:\Program Files\Netease\MuMuPlayer-12.0\shell\MuMuManager.exe
-C:\Program Files\Netease\MuMuPlayer-12.0\nx_main\MuMuManager.exe
+<MuMu root>\shell\MuMuManager.exe
+<MuMu root>\nx_main\MuMuManager.exe
 ```
 
 不同 MuMu 版本的目录结构不同；`doctor` 会按常见布局和注册表安装位置搜索。找不到时可显式传入路径或设置环境变量。
@@ -129,17 +147,19 @@ app-testbench instance list
 自动发现失败时：
 
 ```powershell
+$env:MUMU_HOME = "<your MuMu Player installation directory>"
 app-testbench doctor `
-  --mumumanager "C:\Program Files\Netease\MuMuPlayer-12.0\shell\MuMuManager.exe" `
-  --adb "C:\Program Files\Netease\MuMuPlayer-12.0\shell\adb.exe" `
+  --mumumanager (Join-Path $env:MUMU_HOME "shell\MuMuManager.exe") `
+  --adb (Join-Path $env:MUMU_HOME "shell\adb.exe") `
   --instance 0
 ```
 
 环境变量覆盖：
 
 ```powershell
-$env:APP_TESTBENCH_MUMU_MANAGER = "C:\path\to\MuMuManager.exe"
-$env:APP_TESTBENCH_ADB = "C:\path\to\adb.exe"
+# Set MUMU_HOME and ADB_HOME to your own installation directories.
+$env:APP_TESTBENCH_MUMU_MANAGER = (Join-Path $env:MUMU_HOME "shell\MuMuManager.exe")
+$env:APP_TESTBENCH_ADB = (Join-Path $env:ADB_HOME "adb.exe")
 $env:APP_TESTBENCH_INSTANCE = "0"
 $env:APP_TESTBENCH_JSON = "1"
 ```
@@ -179,7 +199,7 @@ app-testbench instance list --json
 生成模板：
 
 ```powershell
-app-testbench init --output .\mumu-flow.yaml
+app-testbench init --output .\app-testbench-flow.yaml
 ```
 
 示例：
@@ -249,9 +269,9 @@ setup:
 验证并执行：
 
 ```powershell
-app-testbench validate .\mumu-flow.yaml
-app-testbench run .\mumu-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml
-app-testbench run .\mumu-flow.yaml --output .\runs --wait-for-boot --boot-timeout 60
+app-testbench validate .\app-testbench-flow.yaml
+app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml
+app-testbench run .\app-testbench-flow.yaml --output .\runs --wait-for-boot --boot-timeout 60
 ```
 
 默认输出：
@@ -392,7 +412,8 @@ python -m twine check dist/*
 - [`docs/publishing.md`](docs/publishing.md)
 - [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
 - [`docs/agent-deployment.md`](docs/agent-deployment.md)：English-only Agent runbook for installation, testing, deployment, and publishing
-- [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
+- [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md)
+- [`docs/cases.md`](docs/cases.md)：真实案例、截图、运行结果和选型依据
 - [docs/promotion.md](docs/promotion.md)
 - [docs/launch-copy.md](docs/launch-copy.md)
 - [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)

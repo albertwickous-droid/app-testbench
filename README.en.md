@@ -12,19 +12,37 @@ It addresses three practical needs: running the same test repeatedly, identifyin
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
-![Status](https://img.shields.io/badge/status-v0.1.0-0B7A75.svg)
+![Status](https://img.shields.io/badge/status-v0.1.1-0B7A75.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 > Independent open-source project, not affiliated with NetEase or MuMu. Use it only with devices, applications, and accounts you are authorized to test.
 
-## v0.1.0 status
+## v0.1.1 status
 
-- The first release supports Windows 10/11, MuMu Player, and ADB.
-- Automated tests use deterministic fake `adb` and `MuMuManager` backends and cover command construction, flows, reports, and failure semantics.
-- GitHub CI passes on Windows and Ubuntu with Python 3.10, 3.11, and 3.12.
-- A live smoke test passed 7/7 steps on MuMu Player 6.8.8.0 and Android 12 using the Android Settings app; see [`docs/validation.md`](docs/validation.md) for the exact scope.
-- CI and one live smoke test do not claim compatibility with every MuMu release, Android image, or business app.
+- The package version is `0.1.1`. The published `v0.1.0` tag remains unchanged.
+- Two live MuMu cases are included: Markor note persistence passed **47/47 steps**, and Android Settings navigation/scroll passed **23/23 steps**.
+- The cases cover pinned APK installation and identity checks, onboarding, text input, save, force-stop, cold launch, exact-file search, persistence assertions, back-stack behavior, long scrolling, screenshots, UI trees, logcat, HTML, and JUnit.
+- Failed `run --json` output now satisfies `cli-v1.schema.json`: exit code stays `1`, and the envelope contains both a structured `error` object and the complete `data`.
+- Automated tests still use deterministic fake `adb` and `MuMuManager` backends. The live results apply only to the MuMu, Android, display, and system-language configuration documented in the case pages.
 - The tool has no telemetry, cloud upload, or account system.
+
+## Real cases
+
+### Markor: create, save, cold-launch, and reopen
+
+![Saved Markor note](docs/assets/cases/markor/note-saved.png)
+
+Executed path: install a pinned APK → finish onboarding → create a note → enter body text → save → force-stop the app → cold launch → search for the exact file → reopen it → assert the body still exists. The live run passed **47/47 steps** and embedded five real 1280×720 screenshots in the report.
+
+[Reproduction](examples/markor-note-persistence/README.md) · [Full case and screenshots](docs/cases.md)
+
+### Android Settings: restored state, back stack, and long scrolling
+
+![Android Settings network page](docs/assets/cases/settings/network.png)
+
+The second flow does not assume the system app opens at the top. It normalizes the restored scroll position first, then verifies a nested page, back navigation, and a long scroll. The live run passed **23/23 steps**.
+
+[Reproduction](examples/settings-network-scroll/README.md) · [Passed and failed report evidence](docs/cases.md)
 
 ## Why MuMu is the default runtime
 
@@ -93,8 +111,8 @@ See [`docs/use-cases.md`](docs/use-cases.md) for detailed boundaries.
 Common MuMuManager locations:
 
 ```text
-C:\Program Files\Netease\MuMuPlayer-12.0\shell\MuMuManager.exe
-C:\Program Files\Netease\MuMuPlayer-12.0\nx_main\MuMuManager.exe
+<MuMu root>\shell\MuMuManager.exe
+<MuMu root>\nx_main\MuMuManager.exe
 ```
 
 Directory layouts vary between MuMu releases. `doctor` searches common locations and registry installation entries. If that fails, provide explicit paths or environment variables.
@@ -129,17 +147,19 @@ app-testbench instance list
 Explicit paths when auto-discovery fails:
 
 ```powershell
+$env:MUMU_HOME = "<your MuMu Player installation directory>"
 app-testbench doctor `
-  --mumumanager "C:\Program Files\Netease\MuMuPlayer-12.0\shell\MuMuManager.exe" `
-  --adb "C:\Program Files\Netease\MuMuPlayer-12.0\shell\adb.exe" `
+  --mumumanager (Join-Path $env:MUMU_HOME "shell\MuMuManager.exe") `
+  --adb (Join-Path $env:MUMU_HOME "shell\adb.exe") `
   --instance 0
 ```
 
 Environment overrides:
 
 ```powershell
-$env:APP_TESTBENCH_MUMU_MANAGER = "C:\path\to\MuMuManager.exe"
-$env:APP_TESTBENCH_ADB = "C:\path\to\adb.exe"
+# Set MUMU_HOME and ADB_HOME to your own installation directories.
+$env:APP_TESTBENCH_MUMU_MANAGER = (Join-Path $env:MUMU_HOME "shell\MuMuManager.exe")
+$env:APP_TESTBENCH_ADB = (Join-Path $env:ADB_HOME "adb.exe")
 $env:APP_TESTBENCH_INSTANCE = "0"
 $env:APP_TESTBENCH_JSON = "1"
 ```
@@ -179,7 +199,7 @@ app-testbench instance list --json
 Generate a template:
 
 ```powershell
-app-testbench init --output .\mumu-flow.yaml
+app-testbench init --output .\app-testbench-flow.yaml
 ```
 
 Example:
@@ -249,9 +269,9 @@ setup:
 Validate and run:
 
 ```powershell
-app-testbench validate .\mumu-flow.yaml
-app-testbench run .\mumu-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml
-app-testbench run .\mumu-flow.yaml --output .\runs --wait-for-boot --boot-timeout 60
+app-testbench validate .\app-testbench-flow.yaml
+app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml
+app-testbench run .\app-testbench-flow.yaml --output .\runs --wait-for-boot --boot-timeout 60
 ```
 
 A run directory contains:
@@ -392,7 +412,8 @@ See:
 - [`docs/publishing.md`](docs/publishing.md)
 - [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
 - [`docs/agent-deployment.md`](docs/agent-deployment.md): English-only Agent runbook for installation, testing, deployment, and publishing
-- [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
+- [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md)
+- [`docs/cases.md`](docs/cases.md): real cases, screenshots, live results, and selection notes
 - [docs/promotion.md](docs/promotion.md)
 - [docs/launch-copy.md](docs/launch-copy.md)
 - [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)

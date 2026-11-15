@@ -24,7 +24,7 @@ Unknown fields are rejected. This is intentional: a typo such as `duratoin_ms` s
 ```yaml
 device:
   instance: 0
-  serial: 127.0.0.1:16384
+  serial: ${APP_TESTBENCH_SERIAL}  # optional; omit to let MuMuManager resolve it
   package: com.example.app
 ```
 

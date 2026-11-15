@@ -4,10 +4,10 @@
 
 - `[REPO_URL]`：GitHub 仓库链接
 - `[RELEASE_URL]`：Release 链接
-- `[TESTED_MUMU_VERSION]`：实际测试过的 MuMu 版本；未完成真机验证时写“待补充”，不要编造
+- `[TESTED_MUMU_VERSION]`：实际测试过的 MuMu 版本；本项目 v0.1.1 记录为 `6.8.8.0`
 - `[DATE]`：发布日期
 
-所有文案都必须和 `README.md`、Release notes 一致。截图、视频和日志只能使用合成或脱敏数据。
+所有文案都必须和 `README.md`、Release notes 一致。公开截图优先使用 `docs/assets/cases/` 下的真实案例；其他客户 App 必须使用合成界面或完成脱敏，不得出现账号、cookie、token、设备序列号或本机路径。
 
 ---
 
@@ -35,7 +35,7 @@
 ## 2. GitHub Release 开头 / GitHub Release lead
 
 ```markdown
-# app-testbench v0.1.0 — Mature Runtime, Evidence-First App Testing / 成熟运行时，证据优先的 App 测试
+# app-testbench v0.1.1 — Live Cases, Evidence-First App Testing / 真实案例，证据优先的 App 测试
 
 > AI 可以写测试，但测试环境不能靠猜。成熟 MuMu 运行时，可重复 App 测试，失败保留原始证据。
 >
@@ -48,7 +48,12 @@
 - Repository: [REPO_URL]
 - Quick start: [REPO_URL]#快速开始
 - English README: [REPO_URL]/blob/main/README.en.md
+- Live cases: [REPO_URL]/blob/main/docs/cases.md
 - Security policy: [REPO_URL]/blob/main/SECURITY.md
+
+本版包含两条真实 MuMu 案例：Markor 笔记冷启动持久化 **47/47** 步通过，Android Settings 导航与滚动 **23/23** 步通过；同时保留一份真实失败报告，并修复失败 `run --json` 的公开 Schema 契约。
+
+This release includes two live MuMu cases: Markor note persistence passed **47/47** steps and Android Settings navigation/scroll passed **23/23** steps. It also includes a real failed report and fixes the published Schema contract for failed `run --json` output.
 ```
 
 ---
@@ -72,7 +77,7 @@ Welcome to app-testbench — start here / 从这里开始
 
 1. 按 README 完成安装
 2. 运行 `app-testbench doctor --json`
-3. 跑 `examples/smoke.yaml`
+3. 跑 `examples/settings-network-scroll/flow.yaml`，或按 `examples/markor-note-persistence/README.md` 复现 Markor 案例
 4. 告诉我你的 MuMu 版本、Windows/Python 版本和卡住的位置
 
 请不要在公开讨论中粘贴 token、cookie、真实账号截图、未脱敏 logcat 或私有业务包名。
@@ -93,13 +98,13 @@ AI 可以写测试，但测试环境不能靠猜：我把 App 自动化跑在成
 **正文**
 
 ```markdown
-最近把项目整理到了 v0.1.0，想分享一个自己实际会用的 Android 自动化小工具：app-testbench。
+最近把项目更新到了 v0.1.1，想分享一个自己实际会用的 Android 自动化小工具：app-testbench。
 
 它的目标很简单：**别让 AI 临时拼一个“看起来能跑”的安卓环境，也别让失败只剩终端里的一行报错。** 一条 YAML 可以串起安装、启动、点击、等待和断言；跑完以后，截图、UI 树、logcat 和耗时都会被收进一份离线 HTML 报告。
 
 AI 可以帮助写流程、解释失败和整理报告，但我更在意测试能不能重复：环境要成熟、步骤要显式、失败要证据。因此默认运行时选择成熟的 MuMu Player，而不是把运行环境、执行器和最终裁判都交给模型。
 
-它也不是单纯把几条 ADB 命令包一层，而是解决一个很具体的问题：脚本点完以后，怎么知道哪一步失败、当时界面是什么、logcat 里发生了什么。
+它也不是单纯把几条 ADB 命令包一层，而是解决一个很具体的问题：脚本点完以后，怎么知道哪一步失败、当时界面是什么、logcat 里发生了什么。v0.1.1 用 Markor 的 47 步冷启动持久化链路和 Settings 的 23 步导航/滚动链路做了实测，还保留了一份由系统恢复滚动位置触发的真实失败报告。
 
 典型合规场景：
 
@@ -154,7 +159,9 @@ AI 可以写测试，但测试环境不能靠猜：为什么我把 App 自动化
 6. 失败时如何自动抓截图和 logcat
 7. HTML 报告为什么必须自包含
 8. 如何用 fake backend 测命令边界
-9. 首次公开版本的限制和下一步
+9. Markor 47 步链路：如何验证冷启动后数据仍然存在
+10. Settings 真实失败复盘：如何恢复起始状态而不是放宽断言
+11. v0.1.1 的限制和下一步
 10. CTA：[REPO_URL]
 
 **结尾 CTA**
@@ -176,12 +183,12 @@ AI 可以写测试，但环境不能靠猜：在成熟 MuMu 上跑可重复 App 
 **简介**
 
 ```text
-不用把测试环境交给模型临时发挥：app-testbench v0.1.0 在成熟 MuMu 运行时上演示 doctor 检查环境 → YAML 描述流程 → 执行安装/启动/点击/断言 → 生成带截图、耗时和 logcat 的 HTML 报告。
+不用把测试环境交给模型临时发挥：app-testbench v0.1.1 在成熟 MuMu 运行时上演示 doctor 检查环境 → YAML 描述流程 → 安装 Markor 并执行 47 步冷启动持久化验证 → 生成带截图、UI 树、logcat、耗时和 JUnit 的 HTML 报告。
 
 项目：[REPO_URL]
 文档：[REPO_URL]/tree/main/docs
 
-演示使用合成或脱敏数据。项目本地运行，无遥测。
+演示使用仓库中真实运行、已检查的开源 App 案例截图。项目本地运行，无遥测。
 ```
 
 **字幕重点**
@@ -258,9 +265,9 @@ You need to know:
 **Post 4**
 
 ```text
-v0.1.0 is Windows + MuMu focused.
+v0.1.1 ships two live MuMu cases: Markor persistence (47/47) and Settings navigation/scroll (23/23).
 
-No telemetry. No upload. MIT.
+Windows + MuMu focused. No telemetry. No upload. MIT.
 Reports can contain sensitive data, so they stay local.
 
 Docs and limits: [REPO_URL]
@@ -285,7 +292,7 @@ The runtime choice is deliberate. Instead of asking a model to instantiate an ad
 
 The design goal is evidence, not just input replay. A JSON/YAML flow can install/launch an app, wait for UI text, tap/swipe, assert UI state, take screenshots, dump the UI hierarchy, and collect logcat. The result is a structured JSON file plus a self-contained HTML report with embedded screenshots.
 
-The first release is intentionally narrow: Windows + MuMu + ADB. No OCR, no universal RPA, no bypassing app security. Automated tests use deterministic fake ADB/MuMuManager backends; live compatibility with each MuMu release still needs real-device feedback.
+The scope is intentionally narrow: Windows + MuMu + ADB. No OCR, no universal RPA, no bypassing app security. Automated tests use deterministic fake ADB/MuMuManager backends; v0.1.1 separately records live Markor (47/47) and Settings (23/23) runs. Compatibility with each MuMu release still needs real-device feedback.
 
 Repo: [REPO_URL]
 Docs: [REPO_URL]/tree/main/docs
@@ -312,7 +319,7 @@ I kept running into the same problem with emulator scripts: they could send taps
 
 So I built app-testbench on the mature MuMu Player runtime, with a Python CLI around MuMuManager and ADB. It supports JSON/YAML flows, UI assertions, screenshots, `dump-ui`, logcat, and a self-contained HTML report. AI can help write the flow, but deterministic assertions and raw evidence decide whether it passed.
 
-It is deliberately scoped: Windows + MuMu + ADB for v0.1.0. No OCR, no universal RPA, no security bypassing. The automated suite uses fake backends, and I’m explicitly documenting that live MuMu compatibility needs real-device testing.
+It is deliberately scoped: Windows + MuMu + ADB for v0.1.1. No OCR, no universal RPA, no security bypassing. The automated suite uses fake backends, while Markor persistence (47/47) and Settings navigation/scroll (23/23) were run live on MuMu; broader compatibility still needs external testing.
 
 Repo: [REPO_URL]
 
@@ -333,9 +340,9 @@ I’m the maintainer. Happy to answer implementation questions.
 ```text
 AI can generate a quick Android demo, but a demo is not a regression suite. Small teams need a mature runtime, a reproducible way to exercise an Android app, and evidence when it fails.
 
-I published app-testbench v0.1.0: a Python CLI for MuMu Player that combines MuMuManager and ADB with JSON/YAML flows, UI assertions, screenshots, UI dumps, logcat, and self-contained HTML reports.
+I published app-testbench v0.1.1: a Python CLI for MuMu Player that combines MuMuManager and ADB with JSON/YAML flows, UI assertions, screenshots, UI dumps, logcat, and self-contained HTML reports. This version includes live Markor persistence (47/47) and Settings navigation/scroll (23/23) cases plus a retained failure report.
 
-It is local-first, MIT licensed, and deliberately scoped to Windows + MuMu + ADB. Automated checks use deterministic fake backends; live compatibility is documented separately.
+It is local-first, MIT licensed, and deliberately scoped to Windows + MuMu + ADB. Automated checks use deterministic fake backends; live results and limits are documented separately.
 
 Repo: [REPO_URL]
 
@@ -387,11 +394,11 @@ v0.1 刻意保持小而完整，使用坐标、UI 文本和显式断言。OCR/�
 ## 13. 图片 alt 文案 / Image alt text
 
 ```text
-Synthetic app-testbench HTML report preview showing a passed login flow, step timings, evidence artifacts, and a fake mobile login screen.
+Real app-testbench HTML report screenshot from a passed 47-step Markor note-persistence run, showing step timings, evidence artifacts, and embedded device screenshots.
 ```
 
 ```text
-app-testbench social preview showing a mature MuMu runtime feeding deterministic JSON/YAML app test steps and a self-contained HTML evidence report.
+app-testbench social preview showing a mature MuMu runtime feeding deterministic JSON/YAML Android app test steps and a self-contained HTML evidence report.
 ```
 
 ---
