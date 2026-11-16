@@ -47,7 +47,11 @@ doctor
 instance list|start|stop|restart
 install <apk> [--expected-package ...] [--expected-version-code ...] [--expected-version-name ...]
 launch <package> [--activity ...]
+open <uri> [--package ...] [--mime-type ...]
 close <package>
+clear-data <package>
+orientation portrait|landscape|auto
+reverse-port <port> [--local-port ...] [--remove]
 tap <x> <y>
 swipe <x1> <y1> <x2> <y2> [--duration-ms ...]
 text <ascii-text>
@@ -67,12 +71,29 @@ Examples:
 app-testbench --instance 0 install .\app.apk `
   --expected-package com.example.app --expected-version-code 42 --expected-version-name 1.2.3
 app-testbench --instance 0 launch com.example.app
+app-testbench --instance 0 open "https://example.test/" --package com.example.app --mime-type text/html
+app-testbench --instance 0 reverse-port 18765 --local-port 18765
+app-testbench --instance 0 orientation landscape
 app-testbench --instance 0 tap 540 1200
 app-testbench --instance 0 screenshot --output .\artifacts\home.png
 app-testbench --instance 0 dump-ui --output .\artifacts\home.xml
 app-testbench --instance 0 logcat --output .\artifacts\logcat.txt --lines 2000
-app-testbench run .\mumu-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml --wait-for-boot
+app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml --wait-for-boot
 ```
+
+## Public live cases
+
+Before inventing a new smoke test, reproduce one of the committed cases when the environment matches:
+
+```powershell
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
+```
+
+- AnkiDroid: 49-step case with first-run onboarding, deck/card creation, external-storage state reset, cold start, card-count validation, and saved-field verification.
+- Markor: 46-step case with multi-page onboarding, Markdown note creation, editor input, save, exact filename search, cold start, and reopened-note verification.
+
+The scripts download and verify APKs under `runs/case-assets/`. Require the documented step counts, JUnit, screenshots, and self-contained HTML before reporting success. `clear-data` is destructive to the selected app's state; use it only when the test contract requires a clean start.
 
 ## Agent workflow for a requested App journey
 

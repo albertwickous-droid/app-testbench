@@ -77,6 +77,17 @@ The project does not distribute:
 
 Users must obtain lawful licenses for these components and comply with the terms of their vendors, platforms, and app stores. Users are responsible for the rights and obligations associated with APKs, screenshots, icons, fonts, music, video, and other assets they install or process.
 
+
+### Live-case applications
+
+- **AnkiDroid** is a separate open-source Android study application. The repository links to an official F-Droid APK and pins the version and SHA256, but does not redistribute the APK or claim endorsement by AnkiDroid or its maintainers. App names, icons, and UI remain subject to the upstream project's licenses and notices.
+- **Markor** is a separate open-source Markdown/plain-text Android editor. The repository links to an official F-Droid APK and pins the version and SHA256, but does not redistribute the APK or claim endorsement by Markor or its maintainers. App names, icons, and UI remain subject to the upstream project's licenses and notices.
+- Public case screenshots are selected from real test runs. Third-party app names, icons, and UI text remain the property of their respective rights holders and are shown only to document interoperability and test evidence.
+
+- **AnkiDroid** 是独立的开源 Android 学习应用。本仓库只链接官方 F-Droid APK 并记录版本和 SHA256，不重新分发 APK，也不表示获得 AnkiDroid 或其维护者背书。应用名称、图标和 UI 的权利与许可以其上游项目为准。
+- **Markor** 是独立的开源 Markdown/纯文本 Android 编辑器。本仓库只链接官方 F-Droid APK 并记录版本和 SHA256，不重新分发 APK，也不表示获得 Markor 或其维护者背书。应用名称、图标和 UI 的权利与许可以其上游项目为准。
+- 公开案例截图来自真实测试运行的筛选结果。第三方应用名称、图标和 UI 文本归各自权利人所有，仅用于说明互操作和测试证据。
+
 ## 6. 开发与 CI 工具 / Development and CI tools
 
 开发和 CI 可能使用 Python、pytest、Ruff、build、twine、GitHub Actions、actions/checkout、actions/setup-python、upload/download-artifact、softprops/action-gh-release 和 pypa/gh-action-pypi-publish 等工具。

@@ -9,15 +9,16 @@ If you are an agent, use this runbook as the operating contract for App TestBenc
 | Request | Follow |
 | --- | --- |
 | Install the tool, control MuMu, write a flow, or run a test | Sections 1-7 |
-| Change source code or packaging | Sections 1-4 and 8 |
-| Push the repository or configure GitHub | Sections 1-4 and 9-10 |
-| Create a tag, GitHub Release, or PyPI package | Sections 1-4 and 11-12 |
+| Reproduce the public live cases | Sections 1-8 |
+| Change source code or packaging | Sections 1-4 and 9 |
+| Push the repository or configure GitHub | Sections 1-4 and 10-11 |
+| Create a tag, GitHub Release, or PyPI package | Sections 1-4 and 12-13 |
 
 State the intended task and external side effects before making changes. A request to test an app does not authorize publishing the repository. A request to push code does not authorize a tag, Release, visibility change, or PyPI upload.
 
 ## 1. Establish the operating boundary
 
-App TestBench is a Windows-first CLI for repeatable Android app testing through MuMu Player, `MuMuManager.exe`, and ADB. The supported first-release path is Windows 10/11 with a MuMu instance that has ADB enabled.
+App TestBench is a Windows-first CLI for repeatable Android app testing through MuMu Player, `MuMuManager.exe`, and ADB. The supported v0.1.1 path is Windows 10/11 with a MuMu instance that has ADB enabled.
 
 Use the tool only for applications, accounts, devices, and test environments that the owner is authorized to test. Normal test-account login is allowed. Do not use the tool to bypass login, CAPTCHA, anti-automation controls, risk controls, rate limits, paywalls, or access controls.
 
@@ -38,10 +39,11 @@ Read these files before acting:
 1. `AGENTS.md`
 2. `README.en.md`
 3. `docs/flow-reference.md` when editing a flow
-4. `docs/publishing.md` when publishing
-5. `docs/github-repository-setup.md` when changing GitHub settings
-6. `RELEASE_CHECKLIST.md` when creating a Release
-7. `SECURITY.md`, `PRIVACY.md`, and `RESPONSIBLE_USE.md` before handling evidence or publishing data
+4. `docs/cases.md` when reproducing the public live cases
+5. `docs/publishing.md` when publishing
+6. `docs/github-repository-setup.md` when changing GitHub settings
+7. `RELEASE_CHECKLIST.md` when creating a Release
+8. `SECURITY.md`, `PRIVACY.md`, and `RESPONSIBLE_USE.md` before handling evidence or publishing data
 
 When two sources appear to conflict, prefer the action that exposes less data, mutates less external state, and preserves the documented product scope.
 
@@ -105,8 +107,9 @@ app-testbench instance list --json
 If auto-discovery fails, pass explicit paths or set environment variables:
 
 ```powershell
-$env:APP_TESTBENCH_MUMU_MANAGER = "C:\path\to\MuMuManager.exe"
-$env:APP_TESTBENCH_ADB = "C:\path\to\adb.exe"
+# Set MUMU_HOME and ADB_HOME to your own installation directories.
+$env:APP_TESTBENCH_MUMU_MANAGER = (Join-Path $env:MUMU_HOME "shell\MuMuManager.exe")
+$env:APP_TESTBENCH_ADB = (Join-Path $env:ADB_HOME "adb.exe")
 $env:APP_TESTBENCH_INSTANCE = "0"
 $env:APP_TESTBENCH_JSON = "1"
 
@@ -133,6 +136,17 @@ Before choosing coordinates, collect evidence from the actual screen:
 app-testbench --instance 0 screenshot --output .\artifacts\screen.png
 app-testbench --instance 0 dump-ui --output .\artifacts\screen.xml
 ```
+
+Additional deterministic setup actions are available when the authorized test requires them:
+
+```powershell
+app-testbench open "https://example.test/" --package com.example.app --mime-type text/html
+app-testbench reverse-port 18765 --local-port 18765
+app-testbench clear-data com.example.app
+app-testbench orientation landscape
+```
+
+`clear-data` is destructive to that app's local state. `reverse-port`, `orientation`, and `open` may change device/runtime state; declare them in the flow, not as unexplained side effects.
 
 Use coordinates supported by the screenshot and UI hierarchy. Prefer text waits and assertions where the UI exposes readable text. Keep test credentials in environment variables or an approved secret store; do not write production credentials, cookies, tokens, or personal data into the flow or report.
 
@@ -179,7 +193,69 @@ If MuMu was started only for this task, stop it after the evidence is written. F
 
 Completion criterion: the reported pass/fail can be reproduced from the flow, exit code, and saved evidence.
 
-## 8. Change source code safely
+## 8. Reproduce the public live cases
+
+The v0.1.1 release includes two real Android cases. Treat them as executable examples, not synthetic documentation.
+
+### AnkiDroid deck and card persistence
+
+```powershell
+.\examples\ankidroid-deck-persistence\run.ps1
+```
+
+The script downloads AnkiDroid `2.25.3` (`versionCode 225033004`) from the official F-Droid repository into ignored `runs/case-assets/` and verifies:
+
+```text
+SHA256: c7056f611c66fc91a8e290e18268a0d708e813704f51c66e4af1534d468f6790
+```
+
+It pre-installs the APK, denies the all-files app-op, removes only the case-owned `/storage/emulated/0/AnkiDroid` directory, then runs the 49-action flow. The flow completes onboarding, creates `TestBench`, enters `Capital of France / Paris`, checks the pending-card count, force-stops and cold-launches the app, and reopens the card to verify both fields.
+
+Require all of the following before calling the case passed:
+
+- process exit code `0`;
+- CLI JSON has `ok: true` and `data.summary.passed == 49`;
+- JUnit contains 49 testcases with zero failures and zero errors;
+- 8 real screenshots exist at 720x1280;
+- the run contains UI XML, logcat, `report.html`, `result.json`, and JUnit;
+- `report.html` embeds its images and has no external script, stylesheet, or CDN dependency;
+- the public assets in `docs/assets/cases/ankidroid/` match the recorded SHA256 manifest.
+
+### Markor note persistence
+
+```powershell
+.\examples\markor-note-persistence\run.ps1
+```
+
+The script downloads Markor `2026.10.0` (`versionCode 164`) from a trusted F-Droid source into ignored `runs/case-assets/` and verifies size `11,849,016` bytes plus:
+
+```text
+SHA256: c29412e02d03e4f0511746a1bcef48c6b73fc1f70c1024fbf04903b0b3f4c485
+```
+
+It clears Markor app data, grants `MANAGE_EXTERNAL_STORAGE` only inside the isolated test instance, removes only `/sdcard/Documents/markor/app-testbench-*.md`, runs the 46-action flow, and uninstalls Markor by default. The flow completes onboarding, creates and saves `app-testbench-markor.md`, force-stops and cold-launches the app, searches by exact filename, reopens the note, and asserts the body survived.
+
+Require exit code `0`, `data.summary.passed == 46`, 46 JUnit testcases, five real 720x1280 screenshots, the saved/persisted/search/reopened images, UI tree and logcat evidence, a self-contained report, and matching public SHA256 values.
+
+### Failure envelope contract
+
+Create a temporary failing flow under `runs/` that launches an installed app and waits for a marker guaranteed not to exist. Run it with `--json`, capture stdout as UTF-8, and require:
+
+- process exit code `1`;
+- `ok: false`;
+- `error.type == "step_failure"`;
+- a complete `data` object with `status == "failed"`;
+- the JSON envelope validates against `src/app_testbench/schemas/cli-v1.schema.json` using Draft 2020-12;
+- a failure screenshot, UI XML, final logcat, HTML report, and JUnit file exist;
+- later main steps are recorded as skipped while teardown still runs.
+
+Do not relax the schema to make this pass. The regression test is `tests/test_cli.py::test_failed_run_json_matches_cli_schema`.
+
+Cleanup rule: stop the tested apps, remove any test `adb reverse` mappings, uninstall test APKs, stop any MuMu instance started for the case, and close the MuMu main window when the owner's timing rule requires it. Do not commit APKs, raw run directories, full logs, UI XML, or unselected screenshots.
+
+Completion criterion: the committed flow and scripts reproduce the documented step counts and real evidence on the stated MuMu/Android/display/language baseline, or the agent reports the exact environment difference.
+
+## 9. Change source code safely
 
 For code changes:
 
@@ -203,7 +279,7 @@ Do not describe fake-backend coverage as live MuMu coverage. Record the MuMu ver
 
 Completion criterion: tests and checks pass, and the final report distinguishes fake-backend tests from live-device evidence.
 
-## 9. Publish the repository
+## 10. Publish the repository
 
 Require explicit owner approval before changing visibility, creating a tag or Release, or publishing to a package index. A normal `git push` still requires approval to commit and push the owner's changes.
 
@@ -234,7 +310,7 @@ Never use `git push --force` or rewrite published history. If the repository use
 
 Completion criterion: the remote branch matches local `HEAD`, the working tree is understood, and no sensitive file is staged or tracked.
 
-## 10. Configure GitHub
+## 11. Configure GitHub
 
 Follow `docs/github-repository-setup.md` for the current owner/repository. Verify:
 
@@ -251,7 +327,7 @@ Changing a repository from private to public is an owner decision. Do not infer 
 
 Completion criterion: the repository settings match the documented setup, or the agent reports the exact setting it could not verify.
 
-## 11. Create a release
+## 12. Create a release
 
 Before creating a tag, confirm:
 
@@ -273,7 +349,7 @@ Download the resulting wheel, sdist, and checksum file. Verify the checksums and
 
 Completion criterion: the tag points at the intended commit, CI passes for that tag, artifacts match their checksums, and the Release visibility matches the owner's approval.
 
-## 12. Publish to PyPI
+## 13. Publish to PyPI
 
 PyPI is a separate release channel. A GitHub tag, GitHub Release, and PyPI upload do not publish one another automatically.
 

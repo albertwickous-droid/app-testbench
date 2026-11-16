@@ -7,9 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-16
+
+### Added
+
+- Two live MuMu cases with reproducible flows, pinned open-source APKs, public
+  screenshots, and recorded validation results: AnkiDroid deck/card persistence
+  (49/49 steps) and Markor note persistence (46/46 steps).
+- AnkiDroid case covering first-run onboarding, deck and card creation through
+  real dialogs, external-storage state reset, cold launch, card-count validation,
+  and reopening the saved question and answer after restart.
+- Markor case covering five-page onboarding, Markdown file creation, editor input,
+  save, cold launch, exact filename search, and reopening a persisted note.
+- `tap_text` with `text` / `content-desc`, exact / contains matching, index,
+  timeout, case-insensitive matching, and optional no-op behavior.
+- `clear_text` for explicitly clearing a focused input and
+  `wait_for_text.recover_anr` for handling a visible Android not-responding
+  dialog in a controlled test environment.
+- `open`, `reverse-port`, `clear-data`, and `orientation` device commands and
+  flow actions, including URI/MIME, TCP port, package, and orientation validation.
+- Reproducible PowerShell preparation scripts that download APKs from trusted
+  F-Droid sources, verify package/version/hash identity, clean only case-owned
+  data, and keep binaries under ignored local storage.
+- Public-image provenance and SHA256 records for the committed case screenshots.
+
+### Changed
+
+- `app-testbench init` defaults to `app-testbench-flow.yaml` / `.json`; explicit
+  `--output` remains supported.
+- README, English README, Agent runbook, Codex skill, case index, validation
+  record, and release notes now center the AnkiDroid and Markor live evidence.
+- Package version is `0.1.1`.
+
 ### Fixed
 
-- GitHub Release drafts now bind explicitly to the pushed tag instead of receiving
+- Failed `run --json` output now conforms to `cli-v1.schema.json`: it returns a
+  structured `error` object while preserving the complete failed run in `data`.
+  The process exit code remains `1`, and failure screenshots, UI trees, logcat,
+  HTML, and JUnit evidence are unchanged.
+- `wait_for_text` retries transient `uiautomator dump` errors, including
+  `null root node`, instead of failing the first poll during Android activity
+  startup.
+- `dump-ui --json` on a Windows GBK console falls back to ASCII JSON escapes
+  instead of crashing after the UI XML has already been written.
+- GitHub Release drafts bind explicitly to the pushed tag instead of receiving
   an `untagged-*` placeholder tag.
 
 ## [0.1.0] - 2026-11-15

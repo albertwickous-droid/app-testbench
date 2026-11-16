@@ -56,7 +56,7 @@ codex-skill
 
 ## 4. Features
 
-首版建议 / Recommended for v0.1.0:
+当前建议 / Recommended for v0.1.1:
 
 | Feature | Setting |
 | --- | --- |
@@ -69,14 +69,15 @@ codex-skill
 
 ## 5. Social preview
 
-使用仓库中的合成预览图：
+使用仓库中的项目视觉预览图（不是案例证据）：
 
-Use the synthetic preview from the repository:
+Use the project-owned visual preview from the repository (not case evidence):
 
 - File: `assets/social-preview.png`
 - Size: 1280 × 640
-- Content: product name, command surface, flow/report abstraction
-- No real app screenshots, account names, device identifiers, or local paths
+- Content: product name, command surface, and flow/report abstraction
+- It is illustrative artwork, not a live-run screenshot
+- No account names, device identifiers, or local paths
 
 在 **Settings → General → Social preview** 上传。若需要更新，优先修改 `assets/social-preview.svg` 后重新导出 PNG，避免只有一个不可维护的位图。
 
