@@ -578,3 +578,96 @@ steps:
 
     assert result.status == "passed"
     assert result.steps[0].output["found"] is False
+
+
+def test_runner_waits_for_activity_and_asserts_logcat(
+    fake_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "FAKE_ADB_ACTIVITY_SEQUENCE",
+        "org.example/.SplashActivity,org.example/.PlayerActivity",
+    )
+    monkeypatch.setenv(
+        "FAKE_ADB_LOGCAT_EXTRA",
+        "11-05 12:00:00.500 I/VLC( 1000): Creating an input for 'demo.mp4'",
+    )
+    flow_path = tmp_path / "activity-logcat.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: activity-logcat
+steps:
+  - action: wait_for_activity
+    activity: org.example/.PlayerActivity
+    timeout: 5
+    interval: 0.1
+  - action: assert_logcat_contains
+    text: "creating an input"
+    lines: 100
+    ignore_case: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+
+    assert result.status == "passed"
+    activity = result.steps[0]
+    assert activity.output["observed_activity"] == "org.example/.PlayerActivity"
+    assert activity.output["attempts"] == 2
+    log_assertion = result.steps[1]
+    assert log_assertion.output["match_count"] == 1
+    assert "Creating an input" in log_assertion.output["matched_line"]
+
+
+def test_wait_for_activity_failure_reports_last_observed_component(
+    fake_settings: Settings,
+    tmp_path: Path,
+) -> None:
+    flow_path = tmp_path / "activity-failure.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: activity-failure
+steps:
+  - action: wait_for_activity
+    activity: org.example/.ExpectedActivity
+    timeout: 1
+    interval: 0.1
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+
+    assert result.status == "failed"
+    failed = result.steps[0]
+    assert "did not match" in (failed.error or "")
+    assert "com.example.app/.MainActivity" in (failed.hint or "")
+
+
+def test_assert_logcat_contains_failure_includes_recent_tail(
+    fake_settings: Settings,
+    tmp_path: Path,
+) -> None:
+    flow_path = tmp_path / "logcat-failure.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: logcat-failure
+steps:
+  - action: assert_logcat_contains
+    text: definitely-not-in-logcat
+    lines: 100
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+
+    assert result.status == "failed"
+    failed = result.steps[0]
+    assert "did not contain" in (failed.error or "")
+    assert "sample error" in (failed.hint or "")

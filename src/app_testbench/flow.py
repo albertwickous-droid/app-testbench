@@ -33,6 +33,8 @@ _ACTION_ALIASES = {
     "clear-app-data": "clear_app_data",
     "tap-text": "tap_text",
     "clear-text": "clear_text",
+    "wait-for-activity": "wait_for_activity",
+    "assert-logcat-contains": "assert_logcat_contains",
 }
 _ACTION_SPECS: dict[str, frozenset[str]] = {
     "install": frozenset(
@@ -68,6 +70,8 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
     "assert_ui_contains": frozenset({"text", "ignore_case"}),
     "assert_ui_not_contains": frozenset({"text", "ignore_case"}),
     "wait_for_text": frozenset({"text", "timeout", "interval", "ignore_case", "recover_anr"}),
+    "wait_for_activity": frozenset({"activity", "timeout", "interval"}),
+    "assert_logcat_contains": frozenset({"text", "lines", "ignore_case"}),
 }
 _STEP_KEYS = frozenset({"action", "id", "name", "description", "continue_on_error", "screenshot"})
 _DEFAULT_NAMES = {
@@ -93,6 +97,8 @@ _DEFAULT_NAMES = {
     "assert_ui_contains": "Assert UI contains text",
     "assert_ui_not_contains": "Assert UI does not contain text",
     "wait_for_text": "Wait for UI text",
+    "wait_for_activity": "Wait for top Activity",
+    "assert_logcat_contains": "Assert logcat contains text",
 }
 _REPORT_DEFAULTS: dict[str, Any] = {
     "title": None,
@@ -387,6 +393,8 @@ def _normalize_step(
         "assert_ui_contains": {"text"},
         "assert_ui_not_contains": {"text"},
         "wait_for_text": {"text"},
+        "wait_for_activity": {"activity"},
+        "assert_logcat_contains": {"text"},
     }.get(action, set())
     missing = required - set(params)
     if missing:
@@ -603,6 +611,43 @@ def _normalize_step(
         params["recover_anr"] = _bool(
             params.get("recover_anr", False),
             field_name=f"{location}.recover_anr",
+        )
+    elif action == "wait_for_activity":
+        try:
+            activity = validate_activity(
+                _string(params["activity"], field_name=f"{location}.activity")
+            )
+        except RunnerError as exc:
+            raise FlowError(str(exc), hint=exc.hint) from exc
+        if "/" not in activity:
+            raise FlowError(
+                f"{location}.activity must be a full component",
+                hint="Use a component such as com.example.app/.MainActivity.",
+            )
+        params["activity"] = activity
+        params["timeout"] = _number(
+            params.get("timeout", 30),
+            field_name=f"{location}.timeout",
+            minimum=1,
+            maximum=600,
+        )
+        params["interval"] = _number(
+            params.get("interval", 0.5),
+            field_name=f"{location}.interval",
+            minimum=0.1,
+            maximum=30,
+        )
+    elif action == "assert_logcat_contains":
+        params["text"] = _string(params["text"], field_name=f"{location}.text")
+        params["lines"] = _integer(
+            params.get("lines", 5000),
+            field_name=f"{location}.lines",
+            minimum=1,
+            maximum=100_000,
+        )
+        params["ignore_case"] = _bool(
+            params.get("ignore_case", False),
+            field_name=f"{location}.ignore_case",
         )
 
     return FlowStep(

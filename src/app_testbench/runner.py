@@ -405,6 +405,10 @@ class FlowRunner:
             relative = self._relative(path)
             self.logcat_paths.append(relative)
             return {"message": "Logcat captured", "path": relative}
+        elif action == "wait_for_activity":
+            return self._perform_activity_wait(step)
+        elif action == "assert_logcat_contains":
+            return self._perform_logcat_assertion(step)
         elif action in {"assert_ui_contains", "assert_ui_not_contains", "wait_for_text"}:
             return self._perform_ui_assertion(action, step, result)
         else:
@@ -413,6 +417,76 @@ class FlowRunner:
         if action == "install" and self.device.last_package_identity is not None:
             output["package_identity"] = self.device.last_package_identity
         return output
+
+    def _perform_activity_wait(self, step: FlowStep) -> dict[str, Any]:
+        assert self.device is not None
+        params = step.params
+        expected = str(params["activity"])
+        deadline = time.monotonic() + float(params.get("timeout", 30))
+        interval = float(params.get("interval", 0.5))
+        attempts = 0
+        last_identity: dict[str, str] | None = None
+        last_error: str | None = None
+
+        while True:
+            attempts += 1
+            try:
+                observed = self.device.top_activity()
+            except RunnerError as exc:
+                last_identity = None
+                last_error = str(exc)
+            else:
+                last_identity = observed
+                last_error = None
+                if observed["component"] == expected:
+                    return {
+                        "message": f"Top Activity matched: {expected}",
+                        "attempts": attempts,
+                        "expected_activity": expected,
+                        "observed_activity": observed["component"],
+                    }
+
+            if time.monotonic() >= deadline:
+                if last_identity is not None:
+                    hint = (
+                        f"Expected {expected}; last observed {last_identity['component']}. "
+                        f"Source: {last_identity.get('source_line', '')}"
+                    )
+                elif last_error is not None:
+                    hint = f"Last Activity probe error: {last_error}"
+                else:
+                    hint = "No Activity probe result was available."
+                raise StepFailure(
+                    f"Top Activity did not match within {float(params.get('timeout', 30)):g}s: "
+                    f"{expected}",
+                    hint=hint[:2000],
+                )
+            time.sleep(min(interval, max(0.0, deadline - time.monotonic())))
+
+    def _perform_logcat_assertion(self, step: FlowStep) -> dict[str, Any]:
+        assert self.device is not None
+        params = step.params
+        target = str(params["text"])
+        ignore_case = bool(params.get("ignore_case", False))
+        text = self.device.logcat_text(lines=int(params.get("lines", 5000)))
+        needle = target.casefold() if ignore_case else target
+        matched = [
+            line.strip()
+            for line in text.splitlines()
+            if needle in (line.casefold() if ignore_case else line)
+        ]
+        if not matched:
+            recent = text.splitlines()[-10:]
+            detail = "\n".join(recent) if recent else "<no logcat output>"
+            raise StepFailure(
+                f"Logcat did not contain: {target}",
+                hint=f"Last {len(recent)} logcat line(s):\n{detail[:2000]}",
+            )
+        return {
+            "message": f"Found logcat text: {target}",
+            "match_count": len(matched),
+            "matched_line": matched[-1][:1000],
+        }
 
     def _perform_tap_text(self, step: FlowStep, result: StepResult) -> dict[str, Any]:
         assert self.device is not None
