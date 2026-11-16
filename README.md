@@ -20,32 +20,33 @@ App TestBench 是一个面向 Windows 的 Android App 自动化测试命令行�
 ## v0.1.1
 
 - 包版本和 CLI 版本为 `0.1.1`，已发布的 `v0.1.0` 标签保持不变。
-- 两条真实 MuMu 案例已跑通：Fennec 本地 Web 会话 **71/71 步通过**，VLC HTTP 播放 **30/30 步通过**。
-- 覆盖首次引导、系统提示、ADB reverse、异步等待、文本输入、搜索、详情、冷启动持久化、横竖屏、HTTP Range、音视频解码和日志证据。
+- 两条真实 MuMu 案例已跑通：AnkiDroid 牌组与卡片持久化 **49/49 步通过**，Markor 笔记持久化 **46/46 步通过**。
+- 覆盖首次引导、动态等待、UI 文本选择器、对话框和表单输入、外部存储权限、牌组/卡片创建、笔记保存、强制停止后的冷启动、搜索与内容持久化断言。
+- `tap_text` 可按 `text` / `content-desc` 定位并点击，`clear_text` 处理已聚焦输入框；`wait_for_text.recover_anr` 可在受控测试环境中处理 Android 无响应对话框。
 - 失败 `run --json` 同时返回 `error` 与完整 `data`，退出码仍为 `1`，并通过公开的 `cli-v1.schema.json`。
 - 工具无遥测、无云端上传、无账号体系。
 
 ## 真实案例
 
-### Fennec：登录、异步搜索、详情与冷启动后会话恢复
+### AnkiDroid：创建牌组、添加卡片与冷启动持久化
 
-![Fennec 搜索并打开真实浏览器页面](docs/assets/cases/fennec/search-result.png)
+![AnkiDroid 冷启动后仍保留 TestBench 牌组与 1 张待复习卡片](docs/assets/cases/ankidroid/persistence.png)
 
-真实流程使用固定版本 Fennec F-Droid 打开本机 FieldDesk QA 页面，经 `adb reverse` 暴露测试站点。测试完成首次引导、翻译提示处理、登录、异步搜索结果、详情页、强制停止后的冷启动、`localStorage` 登录态/查询恢复和登出。
+流程使用固定版本 AnkiDroid，从空集合开始完成首次引导，创建 `TestBench` 牌组，填写 `Capital of France / Paris` 问答卡片，保存后检查待复习计数，再强制停止并冷启动，最后打开已保存卡片验证正反面内容。
 
-**结果：71/71 步通过，99.141 秒。** 覆盖真实浏览器 WebView、系统密码保存提示、动态等待、冷启动持久化和 UI 断言。
+**结果：49/49 步通过，75.203 秒。** 覆盖真实 Android 对话框、表单输入、动态等待、外部存储状态清理、冷启动和应用内数据持久化。
 
-[复现说明](examples/fennec-local-web-session/README.md) · [案例详情与截图](docs/cases.md)
+[复现说明](examples/ankidroid-deck-persistence/README.md) · [案例详情与截图](docs/cases.md)
 
-### VLC：HTTP 字节范围播放与 Android 解码证据
+### Markor：创建 Markdown 笔记、保存与冷启动后检索
 
-![VLC 播放 Sintel Trailer 并显示控制条](docs/assets/cases/vlc/playback-controls.png)
+![Markor 冷启动后文件列表仍包含 app-testbench-markor.md](docs/assets/cases/markor/note-persisted.png)
 
-真实流程通过 `adb reverse` 访问固定 SHA256 的 MP4，使用独立的 Range 服务器返回 `206 Partial Content`，在 VLC 首次引导和播放教程后播放真实视频，并从 logcat 中确认 HTTP、demux、H.264/AAC 与 Android MediaCodec 路径。
+流程使用固定版本 Markor，完成首次引导后创建 Markdown 文件，输入正文并保存；随后强制停止、冷启动、按文件名搜索，并重新打开笔记断言正文仍然存在。
 
-**结果：30/30 步通过，40.547 秒。** 截图显示真实视频帧、标题和 `0:05 / 0:52` 时间轴，不是空页面或桌面截图。
+**结果：46/46 步通过，80.203 秒。** 覆盖文本编辑器、文件系统权限、文件列表、搜索对话框、冷启动后的文件持久化和 UI 断言。
 
-[复现说明](examples/vlc-http-playback/README.md) · [案例详情与截图](docs/cases.md)
+[复现说明](examples/markor-note-persistence/README.md) · [案例详情与截图](docs/cases.md)
 
 ### 失败报告保留诊断现场
 
@@ -147,11 +148,11 @@ app-testbench doctor `
 ### 运行真实案例
 
 ```powershell
-.\examples\fennec-local-web-session\run.ps1
-.\examples\vlc-http-playback\run.ps1
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
 ```
 
-两个脚本都会下载并校验固定 APK，启动本地测试服务，执行 doctor 和 flow，保存 JUnit，并在结束时停止脚本自己启动的服务。APK、视频、原始截图、logcat 和运行目录都写入被 Git 忽略的 `runs/`。
+两个脚本都会从受信任的 F-Droid 来源下载并校验固定 APK，验证包名、版本和 SHA256，执行 `doctor` 与 flow，保存 JUnit，并清理本案例创建的 App 数据或文件。APK、原始截图、logcat 和运行目录都写入被 Git 忽略的 `runs/`。
 
 ## 基础命令
 
@@ -299,11 +300,11 @@ Schema 文件位于 `src/app_testbench/schemas/`。v0.1.1 未放宽 Schema；失
 逐项记录见 [`docs/validation.md`](docs/validation.md)。
 
 - MuMu Player 6.8.8.0 / Android 12 / ADB 1.0.41。
-- 1280×720，简体中文系统语言。
-- Fennec 160.0.0：71 passed，0 failed，0 skipped，99.141 秒。
-- VLC 3.7.2：30 passed，0 failed，0 skipped，40.547 秒。
+- 720×1280，简体中文系统语言。
+- AnkiDroid 2.25.3：49 passed，0 failed，0 skipped，75.203 秒。
+- Markor 2026.10.0：46 passed，0 failed，0 skipped，80.203 秒。
 - 失败契约：exit 1，Schema 通过，失败截图、UI 树、logcat、HTML、JUnit 均保留。
-- 原始 APK、视频、完整运行目录、未筛选 logcat/UI XML 与虚拟环境不进入 Git。
+- 原始 APK、完整运行目录、未筛选 logcat/UI XML 与虚拟环境不进入 Git。
 
 ## 安全与隐私
 
@@ -375,4 +376,4 @@ MIT © 2026 App TestBench contributors
 
 ## Disclaimer
 
-MuMu Player、Android、ADB、Python、GitHub、Mozilla、VLC、Sintel/Blender Foundation 及相关商标归各自权利人所有。App TestBench 是独立开源项目，不分发 MuMu 安装器、APK 或视频，不绕过应用安全控制，也不提供未经授权的账号或设备访问。
+MuMu Player、Android、ADB、Python、GitHub、AnkiDroid、Markor、F-Droid 及相关商标归各自权利人所有。App TestBench 是独立开源项目，不分发 MuMu 安装器或 APK，不绕过应用安全控制，也不提供未经授权的账号或设备访问。

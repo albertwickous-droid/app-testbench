@@ -31,9 +31,9 @@ When a web surface places stricter limits on automation, use an organization-app
 
 Sign in to a dedicated test account through the normal UI on an isolated MuMu instance, then run later flows that verify authenticated pages, permissions, query state, and business behavior. The session belongs to the test instance and must not be copied from a real user's browser.
 
-真实案例 Fennec 通过本机 FieldDesk 站点完成登录、异步搜索、详情、强制停止、冷启动和 `localStorage` 恢复，证明了浏览器登录态与查询状态的完整回归链路。
+当前公开案例不使用真实账号，因此不会要求提交或保存任何登录凭据。组织需要做认证回归时，应在隔离实例中通过正常 UI 登录专用测试账号，再由后续 flow 验证登录后的页面和权限；不要把真实用户会话复制到测试环境。
 
-The Fennec live case signs into a local FieldDesk site, exercises asynchronous search and detail navigation, then force-stops and cold-launches the browser to verify `localStorage` session and query restoration.
+The public cases do not use real accounts and require no committed or saved login credentials. For authenticated regression, sign in to a dedicated test account through the normal UI on an isolated instance, then verify the authenticated pages and permissions in later flows; do not copy a real user session into the test environment.
 
 **边界 / Boundary**
 
@@ -44,9 +44,9 @@ The Fennec live case signs into a local FieldDesk site, exercises asynchronous s
 
 ## 3. 浏览器 / WebView 状态与冷启动 / Browser and WebView state across cold starts
 
-适合验证移动 WebView、浏览器、输入法、翻译面板、密码保存提示、页面异步加载、登录态持久化和查询条件恢复。
+适合验证移动 WebView、浏览器、输入法、翻译面板、密码保存提示、页面异步加载、登录态持久化和查询条件恢复。v0.1.1 的公开案例重点验证原生 App 内的状态持久化；WebView/浏览器流程可按同一套 setup、wait、assert、evidence 结构扩展。
 
-Use this for mobile WebViews, browsers, IME/translation panels, password-save prompts, asynchronous page loading, login persistence, and restored query state.
+Use this for mobile WebViews, browsers, IME/translation panels, password-save prompts, asynchronous page loading, login persistence, and restored query state. The v0.1.1 public cases focus on native app state persistence; browser/WebView journeys can extend the same setup, wait, assert, and evidence structure.
 
 **边界 / Boundary**
 
@@ -55,15 +55,15 @@ Use this for mobile WebViews, browsers, IME/translation panels, password-save pr
 
 ## 4. 媒体、权限、横竖屏和系统 UI / Media, permissions, orientation, and system UI
 
-VLC 案例覆盖运行时权限、首次使用教程、方向切换、HTTP byte-range、真实视频解码和控制条截图。适合验证媒体 App、播放器、下载器以及依赖系统权限的流程。
+AnkiDroid 和 Markor 案例覆盖外部存储 app-op、系统对话框、首次引导、横竖屏控制入口和真实 App 页面。媒体播放、HTTP byte-range、DRM 和编码器验证可以继续用 `open`、`reverse-port`、`orientation`、截图与 logcat 组合实现；这些不在 v0.1.1 的两条公开案例断言范围内。
 
-The VLC case covers runtime permissions, first-use tutorials, orientation, HTTP byte ranges, real video decode, and playback-control screenshots. It fits media apps, players, downloaders, and flows that depend on system permissions.
+The AnkiDroid and Markor cases cover external-storage app-ops, system dialogs, onboarding, orientation controls, and real app pages. Media playback, HTTP byte ranges, DRM, and codec validation can be assembled from `open`, `reverse-port`, `orientation`, screenshots, and logcat; they are not asserted by the two v0.1.1 public cases.
 
 **边界 / Boundary**
 
-- 当前案例只覆盖非 DRM H.264/AAC；DRM、自适应码率、字幕和音轨切换需单独验证。
+- 媒体、DRM、自适应码率、字幕和音轨切换需要单独编写并验证案例。
 - 解码器和布局会随 MuMu/Android 镜像变化，必须记录实际环境。
-- The current case covers non-DRM H.264/AAC only; DRM, adaptive streaming, subtitles, and audio-track switching require separate validation.
+- Media, DRM, adaptive streaming, subtitles, and audio-track switching require separate validated cases.
 - Decoder names and layout vary by MuMu/Android image; record the actual environment.
 
 ## 5. 不同实例、版本和启动状态下的兼容性验证 / Compatibility checks across instances, versions, and boot states

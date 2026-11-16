@@ -20,32 +20,33 @@ It does not ask a vision model to improvise every tap. Each step is explicitly d
 ## v0.1.1
 
 - Package and CLI version: `0.1.1`. The published `v0.1.0` tag is unchanged.
-- Two live MuMu cases passed: Fennec local web session **71/71 steps**, VLC HTTP playback **30/30 steps**.
-- Coverage includes first-run UI, system prompts, ADB reverse, asynchronous waits, text input, search, detail navigation, cold-start persistence, orientation, HTTP Range, audio/video decoding, and log evidence.
-- Failed `run --json` now returns both `error` and the complete `data` payload, keeps exit code `1`, and validates against the published `cli-v1.schema.json`.
+- Two live MuMu cases passed: AnkiDroid deck/card persistence **49/49 steps**, Markor note persistence **46/46 steps**.
+- Coverage includes first-run UI, dynamic waits, text/content-desc selectors, dialogs and form input, external-storage permissions, deck/card creation, note save, force-stop, cold launch, search, and persistence assertions.
+- `tap_text` locates and taps by `text` or `content-desc`; `clear_text` clears a focused input; `wait_for_text.recover_anr` can handle an Android not-responding dialog in a controlled test environment.
+- Failed `run --json` returns both `error` and the complete `data` payload, keeps exit code `1`, and validates against the published `cli-v1.schema.json`.
 - No telemetry, cloud upload, or account system.
 
 ## Live cases
 
-### Fennec: login, asynchronous search, detail, and session restoration
+### AnkiDroid: deck creation, card entry, and cold-start persistence
 
-![Fennec searching a real browser page](docs/assets/cases/fennec/search-result.png)
+![AnkiDroid still shows the TestBench deck and one pending card after a cold start](docs/assets/cases/ankidroid/persistence.png)
 
-Fennec F-Droid opens a local FieldDesk QA site exposed through `adb reverse`. The flow completes first-run onboarding, handles a translation prompt, signs in, waits for asynchronous JavaScript state, opens a search result and detail record, force-stops the browser, cold-launches it, verifies that the `localStorage` session and query were restored, then logs out.
+The flow starts from an empty AnkiDroid collection, completes first-run onboarding, creates a `TestBench` deck, enters a `Capital of France / Paris` question-and-answer card, checks the pending-card count, force-stops and cold-launches the app, then opens the saved card and verifies both fields.
 
-**Result: 71/71 steps passed in 99.141 seconds.** This covers a real browser/WebView, Android password-save UI, dynamic waits, cold-start persistence, and UI assertions.
+**Result: 49/49 steps passed in 75.203 seconds.** It covers real Android dialogs, form input, dynamic waits, external-storage reset, cold start, and in-app data persistence.
 
-[Reproduction](examples/fennec-local-web-session/README.md) · [Case details](docs/cases.md)
+[Reproduction](examples/ankidroid-deck-persistence/README.md) · [Case details](docs/cases.md)
 
-### VLC: HTTP byte-range playback with Android codec evidence
+### Markor: create a Markdown note, save it, and find it after a cold start
 
-![VLC playing the Sintel trailer with controls visible](docs/assets/cases/vlc/playback-controls.png)
+![Markor still lists app-testbench-markor.md after a cold start](docs/assets/cases/markor/note-persisted.png)
 
-VLC opens a SHA256-pinned MP4 through `adb reverse`. A dedicated range server returns `206 Partial Content`; the flow completes VLC onboarding and the first-play tutorial, plays real video, and records HTTP, demux, H.264/AAC, and Android MediaCodec evidence in logcat.
+The flow completes Markor onboarding, creates a Markdown file, enters and saves a body, force-stops and cold-launches the app, searches by filename, reopens the note, and asserts that the body survived.
 
-**Result: 30/30 steps passed in 40.547 seconds.** The screenshot contains a real video frame, title, and the `0:05 / 0:52` timeline, not a blank page or desktop-only capture.
+**Result: 46/46 steps passed in 80.203 seconds.** It covers a text editor, file-system permission, file browser, search dialog, cold-start file persistence, and UI assertions.
 
-[Reproduction](examples/vlc-http-playback/README.md) · [Case details](docs/cases.md)
+[Reproduction](examples/markor-note-persistence/README.md) · [Case details](docs/cases.md)
 
 ### Failure reports retain diagnostics
 
@@ -147,11 +148,11 @@ app-testbench doctor `
 ### Run the live cases
 
 ```powershell
-.\examples\fennec-local-web-session\run.ps1
-.\examples\vlc-http-playback\run.ps1
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
 ```
 
-Each script downloads and verifies a pinned APK, starts its local test service, runs doctor and the flow, writes JUnit, and stops only the service it started. APKs, video, original screenshots, logcat, and run directories stay under the Git-ignored `runs/` directory.
+Both scripts download and verify a pinned APK from a trusted F-Droid source, validate package/version/SHA256 identity, run `doctor` and the flow, write JUnit, and clean app data or files created by the case. APKs, original screenshots, logcat, and run directories stay under the Git-ignored `runs/` directory.
 
 ## Commands
 
@@ -299,11 +300,11 @@ Schemas live in `src/app_testbench/schemas/`. v0.1.1 did not relax the schema: t
 See [`docs/validation.md`](docs/validation.md) for the complete record.
 
 - MuMu Player 6.8.8.0 / Android 12 / ADB 1.0.41.
-- 1280×720 with a Simplified Chinese system language.
-- Fennec 160.0.0: 71 passed, 0 failed, 0 skipped, 99.141 seconds.
-- VLC 3.7.2: 30 passed, 0 failed, 0 skipped, 40.547 seconds.
+- 720×1280 with a Simplified Chinese system language.
+- AnkiDroid 2.25.3: 49 passed, 0 failed, 0 skipped, 75.203 seconds.
+- Markor 2026.10.0: 46 passed, 0 failed, 0 skipped, 80.203 seconds.
 - Failure contract: exit 1, schema valid, failure screenshot, UI tree, logcat, HTML, and JUnit all retained.
-- APKs, video, complete run directories, unfiltered logcat/UI XML, and virtual environments are excluded from Git.
+- APKs, complete run directories, unfiltered logcat/UI XML, and virtual environments are excluded from Git.
 
 ## Security and privacy
 
@@ -375,4 +376,4 @@ MIT © 2026 App TestBench contributors
 
 ## Disclaimer
 
-MuMu Player, Android, ADB, Python, GitHub, Mozilla, VLC, Sintel/Blender Foundation, and related trademarks belong to their respective owners. App TestBench is an independent open-source project. It does not distribute MuMu installers, APKs, or video files, bypass application security controls, or provide unauthorized access to third-party accounts or devices.
+MuMu Player, Android, ADB, Python, GitHub, AnkiDroid, Markor, F-Droid, and related trademarks belong to their respective owners. App TestBench is an independent open-source project. It does not distribute MuMu installers or APKs, bypass application security controls, or provide unauthorized access to third-party accounts or devices.

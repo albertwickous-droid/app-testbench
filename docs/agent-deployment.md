@@ -197,39 +197,45 @@ Completion criterion: the reported pass/fail can be reproduced from the flow, ex
 
 The v0.1.1 release includes two real Android cases. Treat them as executable examples, not synthetic documentation.
 
-### Fennec local web session
+### AnkiDroid deck and card persistence
 
 ```powershell
-.\examples\fennec-local-web-session\run.ps1
+.\examples\ankidroid-deck-persistence\run.ps1
 ```
 
-The script downloads Fennec F-Droid `160.0.0` (`versionCode 1600020`) from the official F-Droid repository into ignored `runs/case-assets/` and verifies:
+The script downloads AnkiDroid `2.25.3` (`versionCode 225033004`) from the official F-Droid repository into ignored `runs/case-assets/` and verifies:
 
 ```text
-SHA256: 43cf491bbc677244d7b56ba2e8ae20ccd802c9d8f6b44d6b6aff7eb1753eab1b
+SHA256: c7056f611c66fc91a8e290e18268a0d708e813704f51c66e4af1534d468f6790
 ```
 
-It starts a hidden repository-owned FieldDesk HTTP server, verifies the homepage marker, exposes it through `adb reverse`, installs and verifies the APK, completes onboarding and login, exercises asynchronous search and detail navigation, force-stops and cold-launches Fennec, verifies `localStorage` session/query restoration, logs out, and stops only the server it started.
+It pre-installs the APK, denies the all-files app-op, removes only the case-owned `/storage/emulated/0/AnkiDroid` directory, then runs the 49-action flow. The flow completes onboarding, creates `TestBench`, enters `Capital of France / Paris`, checks the pending-card count, force-stops and cold-launches the app, and reopens the card to verify both fields.
 
 Require all of the following before calling the case passed:
 
 - process exit code `0`;
-- CLI JSON has `ok: true` and `data.summary.passed == 71`;
-- JUnit contains 71 testcases with zero failures and zero errors;
-- 11 real screenshots exist at 720x1280;
-- the local run contains UI XML, Fennec/Gecko logcat, `report.html`, `result.json`, and JUnit;
+- CLI JSON has `ok: true` and `data.summary.passed == 49`;
+- JUnit contains 49 testcases with zero failures and zero errors;
+- 8 real screenshots exist at 720x1280;
+- the run contains UI XML, logcat, `report.html`, `result.json`, and JUnit;
 - `report.html` embeds its images and has no external script, stylesheet, or CDN dependency;
-- the public assets in `docs/assets/cases/fennec/` match the recorded SHA256 manifest.
+- the public assets in `docs/assets/cases/ankidroid/` match the recorded SHA256 manifest.
 
-### VLC HTTP playback
+### Markor note persistence
 
 ```powershell
-.\examples\vlc-http-playback\run.ps1
+.\examples\markor-note-persistence\run.ps1
 ```
 
-The script downloads VLC `3.7.2` (`versionCode 13070208`) and the Sintel trailer from their published sources into ignored `runs/case-assets/` and verifies the pinned SHA256 values. It starts the repository Range server and first requires a `206 Partial Content` response with the exact `Content-Range` before running the flow.
+The script downloads Markor `2026.10.0` (`versionCode 164`) from a trusted F-Droid source into ignored `runs/case-assets/` and verifies size `11,849,016` bytes plus:
 
-Require exit code `0`, `data.summary.passed == 30`, 30 JUnit testcases, five 1280x720 screenshots, the welcome/tutorial/playback images, and logcat evidence for HTTP, demux, MediaCodec, H.264/AVC, and AAC.
+```text
+SHA256: c29412e02d03e4f0511746a1bcef48c6b73fc1f70c1024fbf04903b0b3f4c485
+```
+
+It clears Markor app data, grants `MANAGE_EXTERNAL_STORAGE` only inside the isolated test instance, removes only `/sdcard/Documents/markor/app-testbench-*.md`, runs the 46-action flow, and uninstalls Markor by default. The flow completes onboarding, creates and saves `app-testbench-markor.md`, force-stops and cold-launches the app, searches by exact filename, reopens the note, and asserts the body survived.
+
+Require exit code `0`, `data.summary.passed == 46`, 46 JUnit testcases, five real 720x1280 screenshots, the saved/persisted/search/reopened images, UI tree and logcat evidence, a self-contained report, and matching public SHA256 values.
 
 ### Failure envelope contract
 

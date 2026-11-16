@@ -86,12 +86,12 @@ app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifa
 Before inventing a new smoke test, reproduce one of the committed cases when the environment matches:
 
 ```powershell
-.\examples\fennec-local-web-session\run.ps1
-.\examples\vlc-http-playback\run.ps1
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
 ```
 
-- Fennec: 71-step browser/WebView case with onboarding, login, asynchronous search, detail, cold start, and localStorage restoration.
-- VLC: 30-step media case with ADB reverse, HTTP byte ranges, orientation, real playback, and MediaCodec logcat evidence.
+- AnkiDroid: 49-step case with first-run onboarding, deck/card creation, external-storage state reset, cold start, card-count validation, and saved-field verification.
+- Markor: 46-step case with multi-page onboarding, Markdown note creation, editor input, save, exact filename search, cold start, and reopened-note verification.
 
 The scripts download and verify APKs under `runs/case-assets/`. Require the documented step counts, JUnit, screenshots, and self-contained HTML before reporting success. `clear-data` is destructive to the selected app's state; use it only when the test contract requires a clean start.
 
