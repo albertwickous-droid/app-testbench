@@ -22,6 +22,11 @@ out/
 *.apk
 *.aab
 *.xapk
+*.mp4
+*.m4v
+*.mkv
+*.webm
+*.mov
 
 # Editors and OS files
 .vscode/
