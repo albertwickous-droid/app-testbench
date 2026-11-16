@@ -1,0 +1,225 @@
+version: 1
+name: vlc-media-playback
+description: >
+  VLC for Android opens a real MP4 from a local byte-range HTTP server, enters
+  the video player Activity, completes first-play guidance, proves libVLC and
+  AudioTrack activity through logcat, pauses for a stable UI dump, and checks
+  portrait and landscape rendering.
+device:
+  instance: 0
+  package: org.videolan.vlc
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: VLC media playback, Activity, codec, and orientation verification
+  capture_screenshots: failures
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+  max_log_chars: 300000
+setup:
+  - id: expose-media-port
+    name: Expose the local byte-range media server
+    action: reverse_port
+    port: 18766
+  - id: install-vlc
+    name: Install the pinned VLC build with runtime permissions
+    action: install
+    apk: "${VLC_APK}"
+    expected_package: org.videolan.vlc
+    expected_version_code: 13070208
+    expected_version_name: 3.7.2
+    grant_permissions: true
+  - id: reset-vlc
+    name: Clear VLC state for deterministic first play
+    action: clear_app_data
+  - id: regrant-vlc-permissions
+    name: Reinstall after clearing app data
+    action: install
+    apk: "${VLC_APK}"
+    expected_package: org.videolan.vlc
+    expected_version_code: 13070208
+    expected_version_name: 3.7.2
+    grant_permissions: true
+  - id: landscape-before-launch
+    name: Lock landscape before playback
+    action: orientation
+    mode: landscape
+  - id: close-chromium
+    name: Stop the unrelated system browser to keep logcat representative
+    action: close
+    package: com.android.chromium
+    continue_on_error: true
+  - id: close-firefox
+    name: Stop the previous Firefox case if it is still running
+    action: close
+    package: org.mozilla.fennec_fdroid
+    continue_on_error: true
+  - id: close-wikipedia
+    name: Stop the previous Wikipedia case if it is still running
+    action: close
+    package: org.wikipedia
+    continue_on_error: true
+  - id: launch-vlc
+    name: Launch VLC
+    action: launch
+steps:
+  - id: welcome-wait
+    name: Wait for the VLC welcome page
+    action: wait_for_text
+    text: "欢迎使用 VLC!"
+    timeout: 30
+  - id: welcome-shot
+    name: Capture the VLC onboarding page
+    action: screenshot
+    label: welcome
+  - id: skip-welcome
+    name: Skip optional VLC onboarding
+    action: tap_text
+    text: "跳过"
+    match: exact
+    timeout: 10
+  - id: home-wait
+    name: Wait for the VLC home screen
+    action: wait_for_text
+    text: "播放列表"
+    timeout: 25
+  - id: home-shot
+    name: Capture the VLC home screen
+    action: screenshot
+    label: home
+  - id: open-media
+    name: Open the real MP4 through VLC
+    action: open
+    uri: "${VLC_MEDIA_URL}"
+    mime_type: video/mp4
+  - id: player-activity-wait
+    name: Verify the video player Activity is foreground
+    action: wait_for_activity
+    activity: org.videolan.vlc/.gui.video.VideoPlayerActivity
+    timeout: 30
+    interval: 0.5
+  - id: tutorial-wait
+    name: Wait for the first-play tutorial
+    action: wait_for_text
+    text: "视频播放器入门"
+    timeout: 30
+  - id: tutorial-shot
+    name: Capture the real video player tutorial
+    action: screenshot
+    label: tutorial
+  - id: dismiss-tutorial
+    name: Close the first-play tutorial
+    action: tap
+    x: 52
+    y: 54
+  - id: playback-settle
+    name: Allow the first frames to render and the tutorial to close
+    action: wait
+    seconds: 5
+  - id: playing-shot
+    name: Capture real decoded video frames
+    action: screenshot
+    label: playing
+  - id: pause-playback
+    name: Pause so the player UI tree is stable
+    action: keyevent
+    key: MEDIA_PAUSE
+  - id: pause-settle
+    name: Allow playback controls and timeline to settle
+    action: wait
+    seconds: 1
+  - id: paused-title-wait
+    name: Verify the actual media title in the player
+    action: wait_for_text
+    text: "Sintel Trailer"
+    timeout: 20
+  - id: codec-log-assertion
+    name: Verify libVLC created an input for the real file
+    action: assert_logcat_contains
+    text: "Creating an input for 'sintel-trailer.mp4'"
+    lines: 30000
+    ignore_case: true
+  - id: audio-log-assertion
+    name: Verify the Android AudioTrack output module initialized
+    action: assert_logcat_contains
+    text: "android_audiotrack"
+    lines: 30000
+    ignore_case: true
+  - id: paused-shot
+    name: Capture paused playback with controls and timeline
+    action: screenshot
+    label: paused-controls
+  - id: player-ui
+    name: Capture stable video-player UI evidence
+    action: dump_ui
+    label: paused-player
+  - id: playback-logcat
+    name: Capture media and codec logcat evidence
+    action: logcat
+    label: playback
+    lines: 6000
+  - id: portrait-rotation
+    name: Rotate the player to portrait
+    action: orientation
+    mode: portrait
+  - id: portrait-settle
+    name: Allow the player to relayout in portrait
+    action: wait
+    seconds: 1
+  - id: portrait-activity-wait
+    name: Verify the player remains foreground after rotation
+    action: wait_for_activity
+    activity: org.videolan.vlc/.gui.video.VideoPlayerActivity
+    timeout: 10
+    interval: 0.5
+  - id: portrait-shot
+    name: Capture portrait playback rendering
+    action: screenshot
+    label: portrait
+  - id: landscape-rotation
+    name: Rotate the player back to landscape
+    action: orientation
+    mode: landscape
+  - id: landscape-settle
+    name: Allow the player to relayout in landscape
+    action: wait
+    seconds: 1
+  - id: landscape-shot
+    name: Capture landscape playback controls
+    action: screenshot
+    label: landscape-controls
+  - id: resume-playback
+    name: Resume video playback
+    action: keyevent
+    key: MEDIA_PLAY
+  - id: resume-settle
+    name: Allow decoded frames to advance after resume
+    action: wait
+    seconds: 3
+  - id: resumed-shot
+    name: Capture resumed real video playback
+    action: screenshot
+    label: resumed
+teardown:
+  - id: close-vlc
+    name: Close VLC
+    action: close
+    continue_on_error: true
+  - id: final-logcat
+    name: Capture final VLC logcat
+    action: logcat
+    label: final
+    lines: 6000
+    continue_on_error: true
+  - id: remove-media-reverse
+    name: Remove the media reverse mapping
+    action: reverse_port
+    port: 18766
+    remove: true
+    continue_on_error: true
+  - id: reset-orientation
+    name: Reset orientation
+    action: orientation
+    mode: portrait
+    continue_on_error: true

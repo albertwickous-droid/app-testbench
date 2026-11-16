@@ -1,0 +1,342 @@
+version: 1
+name: firefox-webapp-session
+description: >
+  Fennec F-Droid completes first-run setup, signs into a deterministic local QA
+  portal without production credentials, verifies Cookie and localStorage,
+  downloads an evidence file, restores two tabs, and checks session persistence.
+device:
+  instance: 0
+  package: org.mozilla.fennec_fdroid
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: Firefox browser session, download, tabs, and cold-start persistence
+  capture_screenshots: failures
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+  max_log_chars: 240000
+setup:
+  - id: expose-site
+    name: Expose the local QA fixture through ADB reverse
+    action: reverse_port
+    port: 18765
+  - id: install-fennec
+    name: Install the pinned Fennec build
+    action: install
+    apk: "${FENNEC_APK}"
+    expected_package: org.mozilla.fennec_fdroid
+    expected_version_code: 1600020
+    expected_version_name: 160.0.0
+  - id: reset-fennec
+    name: Clear browser state for deterministic onboarding
+    action: clear_app_data
+  - id: portrait-before-launch
+    name: Lock portrait before onboarding
+    action: orientation
+    mode: portrait
+  - id: launch-fennec
+    name: Launch Fennec
+    action: launch
+steps:
+  - id: welcome-wait
+    name: Wait for Fennec first-run onboarding
+    action: wait_for_text
+    text: "欢迎使用 Fennec"
+    timeout: 30
+  - id: welcome-shot
+    name: Capture Fennec onboarding
+    action: screenshot
+    label: welcome
+  - id: accept-welcome
+    name: Continue from the welcome screen
+    action: tap_text
+    text: "继续"
+    match: exact
+    timeout: 10
+  - id: default-browser-wait
+    name: Wait for the Android default-browser prompt
+    action: wait_for_text
+    text: "要将Fennec设为您的默认浏览器应用吗？"
+    timeout: 20
+  - id: decline-default-browser
+    name: Keep the current default browser
+    action: tap_text
+    text: "取消"
+    match: exact
+    timeout: 10
+  - id: privacy-wait
+    name: Wait for the privacy onboarding page
+    action: wait_for_text
+    text: "通过内置隐私保护的浏览器打开所有链接"
+    timeout: 20
+  - id: privacy-shot
+    name: Capture the browser privacy page
+    action: screenshot
+    label: privacy-onboarding
+  - id: decline-default-browser-page
+    name: Continue without changing the default browser
+    action: tap_text
+    text: "暂时不要"
+    match: exact
+    timeout: 10
+  - id: browser-home-wait
+    name: Wait for the Fennec home screen
+    action: wait_for_text
+    text: "您已受保护"
+    timeout: 25
+  - id: open-portal
+    name: Open the local QA portal
+    action: open
+    uri: "${FENNEC_SITE_URL}"
+    mime_type: text/html
+  - id: dismiss-translation-first
+    name: Decline page translation if prompted
+    action: tap_text
+    text: "暂时不要"
+    match: exact
+    timeout: 10
+    optional: true
+  - id: portal-wait
+    name: Wait for the local QA portal
+    action: wait_for_text
+    text: "APP TESTBENCH QA PORTAL"
+    timeout: 25
+  - id: portal-shot
+    name: Capture the loaded login fixture
+    action: screenshot
+    label: login-portal
+  - id: focus-username
+    name: Focus the demo username field
+    action: tap
+    x: 360
+    y: 620
+  - id: focus-username-settle
+    name: Let the browser keyboard and form focus settle
+    action: wait
+    seconds: 1
+  - id: enter-username
+    name: Enter the deterministic local username
+    action: text
+    text: "qa-runner"
+  - id: submit-login
+    name: Create the browser session
+    action: tap_text
+    text: "Sign in"
+    match: exact
+    timeout: 10
+  - id: signed-in-wait
+    name: Wait for the authenticated local dashboard
+    action: wait_for_text
+    text: "Signed in as qa-runner"
+    timeout: 20
+  - id: cookie-localstorage-assertion
+    name: Verify Cookie and localStorage are both active
+    action: assert_ui_contains
+    text: "Session source: Cookie + Local Storage"
+  - id: signed-in-shot
+    name: Capture the authenticated browser session
+    action: screenshot
+    label: signed-in
+  - id: signed-in-ui
+    name: Capture authenticated session UI evidence
+    action: dump_ui
+    label: signed-in
+  - id: open-orders
+    name: Open the orders page
+    action: tap_text
+    text: "Open orders"
+    match: exact
+    timeout: 10
+  - id: orders-wait
+    name: Wait for the authenticated order dashboard
+    action: wait_for_text
+    text: "READY"
+    timeout: 20
+  - id: orders-session-assertion
+    name: Verify both browser storage mechanisms authorize the order page
+    action: assert_ui_contains
+    text: "Session source: Cookie + Local Storage"
+  - id: orders-shot
+    name: Capture the order dashboard
+    action: screenshot
+    label: orders-ready
+  - id: orders-ui
+    name: Capture order-dashboard UI evidence
+    action: dump_ui
+    label: orders-ready
+  - id: back-to-portal
+    name: Return to the authenticated portal
+    action: tap_text
+    text: "Back to portal"
+    match: exact
+    timeout: 10
+  - id: portal-return-wait
+    name: Wait for the restored authenticated portal
+    action: wait_for_text
+    text: "Signed in as qa-runner"
+    timeout: 20
+  - id: request-download
+    name: Request the generated evidence download
+    action: tap_text
+    text: "Download evidence"
+    match: exact
+    timeout: 10
+  - id: download-prompt-wait
+    name: Wait for the Android download confirmation
+    action: wait_for_text
+    text: "下载文件？"
+    timeout: 20
+  - id: download-prompt-shot
+    name: Capture the browser download prompt
+    action: screenshot
+    label: download-prompt
+  - id: confirm-download
+    name: Confirm the evidence download
+    action: tap_text
+    text: "下载"
+    match: exact
+    timeout: 10
+  - id: download-settle
+    name: Let the browser finish writing the downloaded file
+    action: wait
+    seconds: 3
+  - id: download-logcat
+    name: Capture browser logcat around the download
+    action: logcat
+    label: download
+    lines: 2500
+  - id: open-new-tab
+    name: Open a second browser tab
+    action: tap_text
+    text: "新建标签页"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: new-tab-settle
+    name: Wait for the new-tab page
+    action: wait
+    seconds: 2
+  - id: open-about
+    name: Open the second local tab target
+    action: open
+    uri: "${FENNEC_ABOUT_URL}"
+    mime_type: text/html
+  - id: dismiss-about-translation
+    name: Decline translation on the second tab if prompted
+    action: tap_text
+    text: "暂时不要"
+    match: exact
+    timeout: 10
+    optional: true
+  - id: about-wait
+    name: Wait for the second tab content
+    action: wait_for_text
+    text: "ATB About"
+    timeout: 20
+  - id: two-tabs-wait
+    name: Verify two non-private tabs are open
+    action: wait_for_text
+    text: "已打开 2 个非隐私标签页"
+    timeout: 20
+  - id: open-tab-manager
+    name: Open the tab manager
+    action: tap_text
+    text: "已打开 2 个非隐私标签页"
+    field: content-desc
+    match: contains
+    timeout: 10
+  - id: tab-titles-wait
+    name: Wait for both deterministic tab titles
+    action: wait_for_text
+    text: "ATB About"
+    timeout: 15
+  - id: tab-manager-shot
+    name: Capture the restored two-tab browser state
+    action: screenshot
+    label: tab-manager
+  - id: tab-manager-ui
+    name: Capture tab-manager UI evidence
+    action: dump_ui
+    label: tab-manager
+  - id: switch-to-portal
+    name: Switch back to the authenticated portal tab
+    action: tap_text
+    text: "ATB QA Portal"
+    match: exact
+    timeout: 10
+  - id: switched-session-wait
+    name: Verify the portal session is still active
+    action: wait_for_text
+    text: "Signed in as qa-runner"
+    timeout: 20
+  - id: close-before-cold-start
+    name: Force-stop Fennec before persistence verification
+    action: close
+  - id: wait-before-relaunch
+    name: Wait for the browser process to stop
+    action: wait
+    seconds: 1
+  - id: relaunch-fennec
+    name: Cold-launch Fennec
+    action: launch
+  - id: relaunch-settle
+    name: Allow restored browser state to initialize
+    action: wait
+    seconds: 4
+  - id: restored-tabs-wait
+    name: Verify two tabs survived the cold start
+    action: wait_for_text
+    text: "已打开 2 个非隐私标签页"
+    timeout: 25
+  - id: reopen-orders
+    name: Reopen the protected orders page after cold start
+    action: open
+    uri: "${FENNEC_ORDERS_URL}"
+    mime_type: text/html
+  - id: dismiss-restart-translation
+    name: Decline translation after restart if prompted
+    action: tap_text
+    text: "暂时不要"
+    match: exact
+    timeout: 10
+    optional: true
+  - id: restored-orders-wait
+    name: Verify the authenticated session survived the cold start
+    action: wait_for_text
+    text: "READY"
+    timeout: 25
+  - id: restored-session-assertion
+    name: Verify Cookie and localStorage still authorize the order page
+    action: assert_ui_contains
+    text: "Session source: Cookie + Local Storage"
+  - id: restored-shot
+    name: Capture the restored authenticated session
+    action: screenshot
+    label: session-restored
+  - id: restored-ui
+    name: Capture cold-start browser UI evidence
+    action: dump_ui
+    label: session-restored
+teardown:
+  - id: close-fennec
+    name: Close Fennec
+    action: close
+    continue_on_error: true
+  - id: final-logcat
+    name: Capture final Fennec logcat
+    action: logcat
+    label: final
+    lines: 3000
+    continue_on_error: true
+  - id: remove-site-reverse
+    name: Remove the local QA reverse mapping
+    action: reverse_port
+    port: 18765
+    remove: true
+    continue_on_error: true
+  - id: reset-orientation
+    name: Reset orientation
+    action: orientation
+    mode: portrait
+    continue_on_error: true
