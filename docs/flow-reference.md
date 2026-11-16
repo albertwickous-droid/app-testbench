@@ -24,7 +24,7 @@ Unknown fields are rejected. This is intentional: a typo such as `duratoin_ms` s
 ```yaml
 device:
   instance: 0
-  serial: 127.0.0.1:16384
+  serial: ${APP_TESTBENCH_SERIAL}  # optional; omit to let MuMuManager resolve it
   package: com.example.app
 ```
 
@@ -107,6 +107,17 @@ old install behavior is preserved and `dumpsys` is not called.
 
 `package` falls back to `device.package`. Without `activity`, the runner uses the Launcher Intent through `monkey`. With `activity`, it calls `am start -W -n`. A plain class name such as `MainActivity` expands to `package.MainActivity`; `.Activity` becomes the package-relative class, and a fully qualified class name is passed through.
 
+### `open`
+
+```yaml
+- action: open
+  uri: https://example.test/
+  package: com.example.app
+  mime_type: text/html
+```
+
+Opens an `http`, `https`, `file`, or `content` URI through an Android `ACTION_VIEW` intent. `package` is optional and restricts the intent to one app. `mime_type` is optional and normalized to lowercase. Unsafe schemes such as `javascript:` are rejected.
+
 ### `close`
 
 ```yaml
@@ -115,6 +126,35 @@ old install behavior is preserved and `dumpsys` is not called.
 ```
 
 Uses `am force-stop`. `package` falls back to `device.package`.
+
+### `clear-data`
+
+```yaml
+- action: clear-data
+  package: com.example.app
+```
+
+Runs `pm clear`, which stops the app process and clears its data. `package` falls back to `device.package`. This is destructive to the app under test and should be explicit in `setup`.
+
+### `orientation`
+
+```yaml
+- action: orientation
+  mode: landscape
+```
+
+Accepted modes are `portrait`, `landscape`, and `auto`. Fixed modes call `wm fixed-to-user-rotation enabled`, lock the requested rotation, then poll `dumpsys input` until `SurfaceOrientation` matches. `auto` restores free rotation. MuMu may take a moment to settle after the orientation call, so an explicit `wait` can still be useful after relaunching an activity.
+
+### `reverse-port`
+
+```yaml
+- action: reverse-port
+  port: 18765
+  local_port: 18765
+```
+
+Adds an `adb reverse tcp:<device-port> tcp:<host-port>` mapping. `local_port` defaults to the device port. Set `remove: true` in teardown, without `local_port`, to remove the mapping.
+
 
 ### `tap`
 
@@ -125,6 +165,38 @@ Uses `am force-stop`. `package` falls back to `device.package`.
 ```
 
 Coordinates must be integers from `0` to `100000`.
+
+### `tap_text`
+
+```yaml
+- action: tap_text
+  text: Search
+  field: content-desc
+  match: exact
+  timeout: 10
+  interval: 0.5
+```
+
+Polls the live UI hierarchy, finds a visible node whose `text` or
+`content-desc` matches the requested value, and taps the center of that node.
+This is less resolution-sensitive than raw coordinates and works well for
+toolbar buttons, tabs, and list rows when accessibility text is present.
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `text` | non-empty string | required |
+| `field` | `any`, `text`, `content-desc` | `any` |
+| `match` | `exact`, `contains` | `contains` |
+| `index` | zero-based match index | `0` |
+| `timeout` | seconds | `10` |
+| `interval` | seconds | `0.5` |
+| `ignore_case` | boolean | `false` |
+| `optional` | boolean; missing text returns `found: false` instead of failing | `false` |
+
+UI nodes with empty or zero-size bounds are ignored. If the target remains
+absent, the step fails with the last visible text and UI dump error. Set
+`optional: true` for an idempotent dismissal or a dialog that may already be
+closed; the output then contains `found: false` without failing the run.
 
 ### `swipe`
 
@@ -147,6 +219,18 @@ Coordinates must be integers from `0` to `100000`.
 ```
 
 Printable ASCII only. Spaces are encoded as `%s` for Android `input text`. Quoted leading and trailing spaces are preserved. Non-ASCII text fails loudly; use ADBKeyboard or clipboard automation separately.
+
+### `clear_text`
+
+```yaml
+- action: clear_text
+  count: 40
+```
+
+Sends repeated `KEYCODE_DEL` events to the currently focused input. Call a
+`tap_text` or `tap` step first to focus the field. `count` defaults to `40` and
+must be between `1` and `500`. This is intentionally explicit: the runner does
+not guess whether an app uses a search box, a form field, or a custom editor.
 
 ### `keyevent`
 
@@ -228,9 +312,10 @@ Fails if the text is present. `ignore_case` defaults to `false`.
   timeout: 20
   interval: 0.5
   ignore_case: false
+  recover_anr: true
 ```
 
-Polls `uiautomator dump` until the text appears. `timeout` is seconds (default `10`), `interval` is seconds (default `0.5`). The last UI XML is kept with the failing step.
+Polls `uiautomator dump` until the text appears. `timeout` is seconds (default `10`), `interval` is seconds (default `0.5`). Transient dump failures such as `null root node` are retried until the timeout; the last real dump error and UI XML are kept if the wait still fails. With `recover_anr: true`, a visible Android "app is not responding" dialog is handled by tapping its **Wait** action and continuing to poll; the step output records `anr_recoveries`.
 
 ## Report settings
 
@@ -289,6 +374,10 @@ These aliases are accepted and normalized:
 - `assert-ui-contains` → `assert_ui_contains`
 - `assert-ui-not-contains` → `assert_ui_not_contains`
 - `wait-for-text` → `wait_for_text`
+- `clear-data` → `clear_app_data`
+- `reverse-port` → `reverse_port`
+- `tap-text` → `tap_text`
+- `clear-text` → `clear_text`
 
 Prefer underscore names in committed examples.
 

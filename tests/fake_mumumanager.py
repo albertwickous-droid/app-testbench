@@ -12,7 +12,7 @@ INSTANCE = {
     "name": "Fake Phone",
     "player_state": "running",
     "is_android_started": True,
-    "adb_port": 16384,
+    "adb_port": 5555,
     "adb_host_ip": "127.0.0.1",
     "android_version": "12.0",
 }

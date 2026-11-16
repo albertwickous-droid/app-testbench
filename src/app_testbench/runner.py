@@ -340,10 +340,30 @@ class FlowRunner:
             )
         elif action == "launch":
             message = self.device.launch(params["package"], params.get("activity"))
+        elif action == "open":
+            message = self.device.open_uri(
+                params["uri"],
+                package=params.get("package"),
+                mime_type=params.get("mime_type"),
+            )
         elif action == "close":
             message = self.device.close(params["package"])
+        elif action == "clear_app_data":
+            message = self.device.clear_app_data(params["package"])
+        elif action == "orientation":
+            message = self.device.set_orientation(params["mode"])
+        elif action == "reverse_port":
+            message = self.device.reverse_port(
+                params["port"],
+                local_port=params.get("local_port"),
+                remove=bool(params.get("remove", False)),
+            )
         elif action == "tap":
             message = self.device.tap(params["x"], params["y"])
+        elif action == "tap_text":
+            return self._perform_tap_text(step, result)
+        elif action == "clear_text":
+            message = self.device.clear_text(int(params["count"]))
         elif action == "swipe":
             message = self.device.swipe(
                 params["x1"],
@@ -394,6 +414,104 @@ class FlowRunner:
             output["package_identity"] = self.device.last_package_identity
         return output
 
+    def _perform_tap_text(self, step: FlowStep, result: StepResult) -> dict[str, Any]:
+        assert self.device is not None
+        params = step.params
+        target = str(params["text"])
+        field = str(params.get("field", "any"))
+        match = str(params.get("match", "contains"))
+        ignore_case = bool(params.get("ignore_case", False))
+        needle = target.casefold() if ignore_case else target
+        wanted_index = int(params.get("index", 0))
+        deadline = time.monotonic() + float(params.get("timeout", 10))
+        interval = float(params.get("interval", 0.5))
+        attempts = 0
+        last_dump_error: str | None = None
+        last_texts: list[str] = []
+
+        while True:
+            attempts += 1
+            try:
+                texts, xml_path = self._dump_ui_for_result(step, result)
+                nodes = self.device.ui_nodes(xml_path)
+                last_texts = texts
+                last_dump_error = None
+            except RunnerError as exc:
+                last_dump_error = str(exc)
+                nodes = []
+
+            matches: list[tuple[dict[str, Any], str, str]] = []
+            for node in nodes:
+                if not bool(node.get("enabled", True)):
+                    continue
+                candidates: list[tuple[str, str]] = []
+                if field in {"any", "text"}:
+                    candidates.append(("text", str(node.get("text", ""))))
+                if field in {"any", "content-desc"}:
+                    candidates.append(("content-desc", str(node.get("content_desc", ""))))
+                for candidate_field, value in candidates:
+                    if not value:
+                        continue
+                    haystack = value.casefold() if ignore_case else value
+                    matched = haystack == needle if match == "exact" else needle in haystack
+                    if matched:
+                        matches.append((node, candidate_field, value))
+                        break
+
+            if wanted_index < len(matches):
+                node, matched_field, matched_value = matches[wanted_index]
+                x, y = node["center"]
+                self.device.tap(int(x), int(y))
+                return {
+                    "message": f"Tapped UI {matched_field}: {matched_value}",
+                    "attempts": attempts,
+                    "found": True,
+                    "matched_field": matched_field,
+                    "matched_value": matched_value,
+                    "bounds": node["bounds"],
+                    "tap": {"x": int(x), "y": int(y)},
+                }
+
+            if time.monotonic() >= deadline:
+                detail = ", ".join(repr(value) for value in last_texts[:20])
+                hint = f"Visible text: {detail or '<none>'}"
+                if last_dump_error is not None:
+                    hint = f"Last UI dump error: {last_dump_error}"
+                if bool(params.get("optional", False)):
+                    return {
+                        "message": f"Optional UI text was not found: {target}",
+                        "attempts": attempts,
+                        "found": False,
+                    }
+                raise StepFailure(
+                    f"UI text was not found within {float(params.get('timeout', 10)):g}s: {target}",
+                    hint=hint,
+                )
+            time.sleep(min(interval, max(0.0, deadline - time.monotonic())))
+
+    def _recover_anr_dialog(self, texts: list[str], xml_path: Path) -> bool:
+        """Tap the Android "Wait" action when an ANR dialog is visible."""
+
+        assert self.device is not None
+        haystack = "\n".join(texts).casefold()
+        markers = (
+            "没有响应",
+            "isn't responding",
+            "is not responding",
+            "keeps stopping",
+        )
+        if not any(marker in haystack for marker in markers):
+            return False
+        wait_labels = {"等待", "wait"}
+        for node in self.device.ui_nodes(xml_path):
+            for value in (node.get("text"), node.get("content_desc")):
+                if str(value or "").strip().casefold() not in wait_labels:
+                    continue
+                x, y = node["center"]
+                self.device.tap(int(x), int(y))
+                return True
+        return False
+
     def _dump_ui_for_result(self, step: FlowStep, result: StepResult) -> tuple[list[str], Path]:
         assert self.device is not None
         assert self.output_dir is not None
@@ -435,18 +553,39 @@ class FlowRunner:
         deadline = time.monotonic() + float(params.get("timeout", 10))
         interval = float(params.get("interval", 0.5))
         attempts = 0
+        anr_recoveries = 0
         texts: list[str] = []
+        last_dump_error: str | None = None
         while True:
             attempts += 1
-            texts, _ = self._dump_ui_for_result(step, result)
+            try:
+                texts, xml_path = self._dump_ui_for_result(step, result)
+            except RunnerError as exc:
+                last_dump_error = str(exc)
+                texts = []
+            else:
+                last_dump_error = None
+                if bool(params.get("recover_anr", False)) and self._recover_anr_dialog(
+                    texts, xml_path
+                ):
+                    anr_recoveries += 1
+                    time.sleep(1)
+                    continue
             haystack = "\n".join(texts)
             haystack = haystack.casefold() if ignore_case else haystack
             if needle in haystack:
-                return {"message": f"Found UI text: {target}", "attempts": attempts}
+                return {
+                    "message": f"Found UI text: {target}",
+                    "attempts": attempts,
+                    "anr_recoveries": anr_recoveries,
+                }
             if time.monotonic() >= deadline:
                 detail = ", ".join(repr(value) for value in texts[:20])
+                hint = f"Visible text: {detail or '<none>'}"
+                if last_dump_error is not None:
+                    hint = f"Last UI dump error: {last_dump_error}"
                 raise StepFailure(
                     f"UI text was not found within {float(params.get('timeout', 10)):g}s: {target}",
-                    hint=f"Visible text: {detail or '<none>'}",
+                    hint=hint,
                 )
             time.sleep(min(interval, max(0.0, deadline - time.monotonic())))

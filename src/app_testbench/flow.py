@@ -10,7 +10,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app_testbench.device import normalize_keyevent, validate_activity, validate_package
+from app_testbench.device import (
+    normalize_keyevent,
+    validate_activity,
+    validate_mime_type,
+    validate_open_uri,
+    validate_package,
+    validate_port,
+)
 from app_testbench.errors import FlowError, RunnerError
 
 _ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
@@ -20,6 +27,12 @@ _ACTION_ALIASES = {
     "assert-ui-contains": "assert_ui_contains",
     "assert-ui-not-contains": "assert_ui_not_contains",
     "wait-for-text": "wait_for_text",
+    "open-url": "open",
+    "reverse-port": "reverse_port",
+    "clear-data": "clear_app_data",
+    "clear-app-data": "clear_app_data",
+    "tap-text": "tap_text",
+    "clear-text": "clear_text",
 }
 _ACTION_SPECS: dict[str, frozenset[str]] = {
     "install": frozenset(
@@ -33,8 +46,16 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
         }
     ),
     "launch": frozenset({"package", "activity"}),
+    "open": frozenset({"uri", "package", "mime_type"}),
     "close": frozenset({"package"}),
+    "clear_app_data": frozenset({"package"}),
+    "orientation": frozenset({"mode"}),
+    "reverse_port": frozenset({"port", "local_port", "remove"}),
     "tap": frozenset({"x", "y"}),
+    "tap_text": frozenset(
+        {"text", "field", "match", "index", "timeout", "interval", "ignore_case", "optional"}
+    ),
+    "clear_text": frozenset({"count"}),
     "swipe": frozenset({"x1", "y1", "x2", "y2", "duration_ms"}),
     "text": frozenset({"text"}),
     "keyevent": frozenset({"key"}),
@@ -46,14 +67,20 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
     "logcat": frozenset({"label", "lines"}),
     "assert_ui_contains": frozenset({"text", "ignore_case"}),
     "assert_ui_not_contains": frozenset({"text", "ignore_case"}),
-    "wait_for_text": frozenset({"text", "timeout", "interval", "ignore_case"}),
+    "wait_for_text": frozenset({"text", "timeout", "interval", "ignore_case", "recover_anr"}),
 }
 _STEP_KEYS = frozenset({"action", "id", "name", "description", "continue_on_error", "screenshot"})
 _DEFAULT_NAMES = {
     "install": "Install APK",
     "launch": "Launch app",
+    "open": "Open URI",
     "close": "Close app",
+    "clear_app_data": "Clear app data",
+    "orientation": "Set screen orientation",
+    "reverse_port": "Configure ADB reverse port",
     "tap": "Tap",
+    "tap_text": "Tap visible UI text",
+    "clear_text": "Clear text input",
     "swipe": "Swipe",
     "text": "Enter text",
     "keyevent": "Press key",
@@ -346,8 +373,13 @@ def _normalize_step(
     required = {
         "install": {"apk"},
         "launch": set() if default_package else {"package"},
+        "open": {"uri"},
         "close": set() if default_package else {"package"},
+        "clear_app_data": set() if default_package else {"package"},
+        "orientation": {"mode"},
+        "reverse_port": {"port"},
         "tap": {"x", "y"},
+        "tap_text": {"text"},
         "swipe": {"x1", "y1", "x2", "y2"},
         "text": {"text"},
         "keyevent": {"key"},
@@ -404,12 +436,17 @@ def _normalize_step(
                     hint="Add expected_package or a device.package default.",
                 )
             params["expected_package"] = default_package
-    elif action in {"launch", "close"}:
+    elif action in {"launch", "open", "close", "clear_app_data"}:
         package = params.get("package", default_package)
-        try:
-            params["package"] = validate_package(_string(package, field_name=f"{location}.package"))
-        except RunnerError as exc:
-            raise FlowError(str(exc)) from exc
+        if action == "open" and package is None:
+            params.pop("package", None)
+        else:
+            try:
+                params["package"] = validate_package(
+                    _string(package, field_name=f"{location}.package")
+                )
+            except RunnerError as exc:
+                raise FlowError(str(exc)) from exc
         if action == "launch" and params.get("activity") is not None:
             try:
                 params["activity"] = validate_activity(
@@ -417,9 +454,91 @@ def _normalize_step(
                 )
             except RunnerError as exc:
                 raise FlowError(str(exc), hint=exc.hint) from exc
+        if action == "open":
+            try:
+                params["uri"] = validate_open_uri(
+                    _string(params["uri"], field_name=f"{location}.uri")
+                )
+                if params.get("mime_type") is not None:
+                    params["mime_type"] = validate_mime_type(
+                        _string(params["mime_type"], field_name=f"{location}.mime_type")
+                    )
+            except RunnerError as exc:
+                raise FlowError(str(exc), hint=exc.hint) from exc
+    elif action == "orientation":
+        mode = _string(params["mode"], field_name=f"{location}.mode").lower()
+        if mode not in {"portrait", "landscape", "auto"}:
+            raise FlowError(f"{location}.mode must be portrait, landscape, or auto")
+        params["mode"] = mode
+    elif action == "reverse_port":
+        try:
+            params["port"] = validate_port(
+                _integer(
+                    params["port"],
+                    field_name=f"{location}.port",
+                    minimum=1,
+                    maximum=65_535,
+                ),
+                name=f"{location}.port",
+            )
+            if params.get("local_port") is not None:
+                params["local_port"] = validate_port(
+                    _integer(
+                        params["local_port"],
+                        field_name=f"{location}.local_port",
+                        minimum=1,
+                        maximum=65_535,
+                    ),
+                    name=f"{location}.local_port",
+                )
+        except RunnerError as exc:
+            raise FlowError(str(exc)) from exc
+        params["remove"] = _bool(params.get("remove", False), field_name=f"{location}.remove")
+        if params["remove"] and "local_port" in params:
+            raise FlowError(f"{location}.local_port cannot be used when remove is true")
     elif action == "tap":
         params["x"] = _integer(params["x"], field_name=f"{location}.x", minimum=0, maximum=100_000)
         params["y"] = _integer(params["y"], field_name=f"{location}.y", minimum=0, maximum=100_000)
+    elif action == "tap_text":
+        params["text"] = _string(params["text"], field_name=f"{location}.text")
+        field = _string(params.get("field", "any"), field_name=f"{location}.field").lower()
+        if field not in {"any", "text", "content-desc"}:
+            raise FlowError(f"{location}.field must be any, text, or content-desc")
+        params["field"] = field
+        match = _string(params.get("match", "contains"), field_name=f"{location}.match").lower()
+        if match not in {"exact", "contains"}:
+            raise FlowError(f"{location}.match must be exact or contains")
+        params["match"] = match
+        params["index"] = _integer(
+            params.get("index", 0), field_name=f"{location}.index", minimum=0, maximum=100
+        )
+        params["timeout"] = _number(
+            params.get("timeout", 10),
+            field_name=f"{location}.timeout",
+            minimum=1,
+            maximum=600,
+        )
+        params["interval"] = _number(
+            params.get("interval", 0.5),
+            field_name=f"{location}.interval",
+            minimum=0.1,
+            maximum=30,
+        )
+        params["ignore_case"] = _bool(
+            params.get("ignore_case", False),
+            field_name=f"{location}.ignore_case",
+        )
+        params["optional"] = _bool(
+            params.get("optional", False),
+            field_name=f"{location}.optional",
+        )
+    elif action == "clear_text":
+        params["count"] = _integer(
+            params.get("count", 40),
+            field_name=f"{location}.count",
+            minimum=1,
+            maximum=500,
+        )
     elif action == "swipe":
         for key in ("x1", "y1", "x2", "y2"):
             params[key] = _integer(
@@ -480,6 +599,10 @@ def _normalize_step(
         params["ignore_case"] = _bool(
             params.get("ignore_case", False),
             field_name=f"{location}.ignore_case",
+        )
+        params["recover_anr"] = _bool(
+            params.get("recover_anr", False),
+            field_name=f"{location}.recover_anr",
         )
 
     return FlowStep(

@@ -14,8 +14,14 @@ PNG = base64.b64decode(
 )
 UI_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy rotation="0">
-  <node index="0" text="Login" resource-id="com.example:id/login" class="android.widget.TextView" content-desc="" />
-  <node index="1" text="" resource-id="com.example:id/search" class="android.widget.Button" content-desc="Search" />
+  <node index="0" text="Login" resource-id="com.example:id/login" class="android.widget.TextView" content-desc="" clickable="false" enabled="true" bounds="[0,0][100,100]" />
+  <node index="1" text="" resource-id="com.example:id/search" class="android.widget.Button" content-desc="Search" clickable="true" enabled="true" bounds="[300,200][500,300]" />
+</hierarchy>
+"""
+ANR_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node index="0" text="Fake app isn't responding" resource-id="android:id/alertTitle" class="android.widget.TextView" content-desc="" clickable="false" enabled="true" bounds="[100,200][600,300]" />
+  <node index="1" text="Wait" resource-id="android:id/aerr_wait" class="android.widget.Button" content-desc="" clickable="true" enabled="true" bounds="[200,500][400,600]" />
 </hierarchy>
 """
 
@@ -51,10 +57,10 @@ def main() -> int:
         return 0
     if command == "devices":
         print("List of devices attached")
-        print("127.0.0.1:16384\tdevice product:fake model:FakeMuMu device:fake")
+        print("127.0.0.1:5555\tdevice product:fake model:FakeMuMu device:fake")
         return 0
     if command == "connect":
-        print("connected to 127.0.0.1:16384")
+        print("connected to 127.0.0.1:5555")
         return 0
     if command == "get-state":
         if os.environ.get("FAKE_ADB_GET_STATE_STDERR") == "1":
@@ -63,6 +69,15 @@ def main() -> int:
         return 0
     if command == "install":
         print("Success")
+        return 0
+    if command == "reverse":
+        if os.environ.get("FAKE_ADB_FAIL_REVERSE") == "1":
+            print("adb reverse failed", file=sys.stderr)
+            return 1
+        if "--remove" in argv:
+            print(f"{argv[-1]}")
+        else:
+            print(f"{argv[1]} {argv[2]}")
         return 0
     if command == "logcat":
         if "-c" in argv:
@@ -78,10 +93,36 @@ def main() -> int:
             if os.environ.get("FAKE_ADB_INVALID_UI") == "1":
                 sys.stdout.buffer.write(b"not a UI hierarchy")
             else:
-                text = os.environ.get("FAKE_ADB_UI_TEXT", "Login")
-                sys.stdout.buffer.write(UI_XML.replace(b"Login", text.encode("utf-8")))
+                sequence = os.environ.get("FAKE_ADB_UI_SEQUENCE")
+                if sequence:
+                    values = [value.strip() for value in sequence.split(",") if value.strip()]
+                    state = Path(os.environ.get("FAKE_ADB_STATE", "."))
+                    state.mkdir(parents=True, exist_ok=True)
+                    counter = state / "ui-count.txt"
+                    index = int(counter.read_text(encoding="utf-8")) if counter.exists() else 0
+                    variant = values[min(index, len(values) - 1)]
+                    counter.write_text(str(index + 1), encoding="utf-8")
+                    sys.stdout.buffer.write(ANR_XML if variant == "anr" else UI_XML)
+                else:
+                    text = os.environ.get("FAKE_ADB_UI_TEXT", "Login")
+                    sys.stdout.buffer.write(UI_XML.replace(b"Login", text.encode("utf-8")))
             return 0
     if command == "shell":
+        if len(argv) >= 3 and argv[1] == "dumpsys" and argv[2] == "input":
+            sequence = os.environ.get("FAKE_ADB_SURFACE_ORIENTATION_SEQUENCE")
+            if sequence:
+                values = [value.strip() for value in sequence.split(",") if value.strip()]
+                state = Path(os.environ.get("FAKE_ADB_STATE", "."))
+                state.mkdir(parents=True, exist_ok=True)
+                counter = state / "orientation-count.txt"
+                index = int(counter.read_text(encoding="utf-8")) if counter.exists() else 0
+                print(f"  SurfaceOrientation: {values[min(index, len(values) - 1)]}")
+                counter.write_text(str(index + 1), encoding="utf-8")
+            else:
+                print(
+                    f"  SurfaceOrientation: {os.environ.get('FAKE_ADB_SURFACE_ORIENTATION', '0')}"
+                )
+            return 0
         if len(argv) >= 3 and argv[1] == "getprop" and argv[2] == "sys.boot_completed":
             sequence = os.environ.get("FAKE_ADB_BOOT_SEQUENCE")
             if sequence:
@@ -113,6 +154,14 @@ def main() -> int:
             return 0
         if len(argv) >= 2 and argv[1] == "monkey":
             print("Events injected: 1")
+            return 0
+        if len(argv) >= 4 and argv[1] == "pm" and argv[2] == "clear":
+            if os.environ.get("FAKE_ADB_FAIL_CLEAR_DATA") == "1":
+                print("Failed", file=sys.stderr)
+                return 1
+            print("Success")
+            return 0
+        if len(argv) >= 3 and argv[1] == "wm":
             return 0
         if len(argv) >= 3 and argv[1] == "am" and argv[2] == "force-stop":
             if os.environ.get("FAKE_ADB_FAIL_FORCE_STOP") == "1":

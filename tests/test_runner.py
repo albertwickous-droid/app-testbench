@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from app_testbench.config import Settings, build_settings
+from app_testbench.errors import RunnerError
 from app_testbench.flow import load_flow
 from app_testbench.runner import FlowRunner
 
@@ -177,6 +178,42 @@ steps:
     assert "UI text was not found" in report
     assert "data:image/png;base64," in report
     assert "sample error" in report
+
+
+def test_wait_for_text_retries_transient_ui_dump_errors(
+    fake_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    flow_path = tmp_path / "retry-wait.yaml"
+    flow_path.write_text(
+        """
+version: 1
+device:
+  package: com.example.app
+steps:
+  - action: wait_for_text
+    text: Login
+    timeout: 1
+    interval: 0.1
+""".strip(),
+        encoding="utf-8",
+    )
+    runner = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs")
+    calls: list[int] = []
+
+    def flaky_dump(step, result) -> tuple[list[str], Path]:
+        calls.append(1)
+        if len(calls) < 3:
+            raise RunnerError("uiautomator dump failed.", hint="null root node")
+        return ["Login"], Path("unused")
+
+    monkeypatch.setattr(runner, "_dump_ui_for_result", flaky_dump)
+    result = runner.run()
+
+    assert result.status == "passed"
+    assert len(calls) == 3
+    assert result.steps[0].output["attempts"] == 3
 
 
 def test_teardown_continues_after_a_teardown_failure(
@@ -440,3 +477,104 @@ steps:
     root = ET.parse(junit_path).getroot()
     assert root.attrib["failures"] == "1"
     assert root.find(".//failure") is not None
+
+
+def test_runner_taps_selector_and_clears_focused_input(
+    fake_settings: Settings,
+    fake_tools: dict[str, Path],
+    tmp_path: Path,
+) -> None:
+    flow_path = tmp_path / "selector.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: selector-actions
+steps:
+  - action: tap_text
+    text: Search
+    field: content-desc
+    match: exact
+  - action: clear_text
+    count: 3
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+
+    assert result.status == "passed"
+    selector = result.steps[0]
+    assert selector.output["matched_value"] == "Search"
+    assert selector.output["tap"] == {"x": 400, "y": 250}
+    commands = [
+        json.loads(line)
+        for line in (fake_tools["adb_state"] / "adb-commands.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(command[-4:] == ["input", "tap", "400", "250"] for command in commands)
+    delete_events = [
+        command for command in commands if command[-3:] == ["input", "keyevent", "KEYCODE_DEL"]
+    ]
+    assert len(delete_events) == 3
+
+
+def test_wait_for_text_recovers_from_visible_anr_dialog(
+    fake_settings: Settings,
+    fake_tools: dict[str, Path],
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("FAKE_ADB_UI_SEQUENCE", "anr,normal")
+    flow_path = tmp_path / "anr-recovery.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: anr-recovery
+steps:
+  - action: wait_for_text
+    text: Login
+    timeout: 5
+    interval: 0.1
+    recover_anr: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+
+    assert result.status == "passed"
+    assert result.steps[0].output["anr_recoveries"] == 1
+    commands = [
+        json.loads(line)
+        for line in (fake_tools["adb_state"] / "adb-commands.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(command[-4:] == ["input", "tap", "300", "550"] for command in commands)
+
+
+def test_optional_tap_text_returns_not_found_without_failing(
+    fake_settings: Settings,
+    fake_tools: dict[str, Path],
+    tmp_path: Path,
+) -> None:
+    flow_path = tmp_path / "optional-tap.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: optional-tap
+steps:
+  - action: tap_text
+    text: Already dismissed
+    timeout: 1
+    interval: 0.1
+    optional: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+
+    assert result.status == "passed"
+    assert result.steps[0].output["found"] is False

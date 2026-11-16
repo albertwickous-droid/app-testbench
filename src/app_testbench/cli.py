@@ -19,12 +19,15 @@ from app_testbench.device import (
     normalize_keyevent,
     validate_activity,
     validate_coordinate,
+    validate_mime_type,
+    validate_open_uri,
     validate_package,
+    validate_port,
 )
 from app_testbench.doctor import collect_doctor_checks
-from app_testbench.errors import ConfigError, DeviceError, RunnerError
+from app_testbench.errors import ConfigError, DeviceError, RunnerError, StepFailure
 from app_testbench.flow import load_flow, starter_document
-from app_testbench.models import Instance
+from app_testbench.models import Instance, RunResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.runner import FlowRunner
 from app_testbench.utils import ProcessRunner, atomic_write_text, now_iso, unique_path
@@ -78,7 +81,11 @@ def _guess_command(argv: list[str]) -> str:
         "instance",
         "install",
         "launch",
+        "open",
         "close",
+        "clear-data",
+        "orientation",
+        "reverse-port",
         "tap",
         "swipe",
         "text",
@@ -103,7 +110,7 @@ def _common_parser() -> argparse.ArgumentParser:
         "--instance", type=int, default=argparse.SUPPRESS, help="MuMu instance index"
     )
     parser.add_argument(
-        "--serial", default=argparse.SUPPRESS, help="ADB serial, for example 127.0.0.1:16384"
+        "--serial", default=argparse.SUPPRESS, help="ADB serial, for example 127.0.0.1:5555"
     )
     parser.add_argument(
         "--timeout",
@@ -176,9 +183,37 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--activity", help="Activity component, class name, or relative .Activity")
     launch.set_defaults(handler="launch")
 
+    open_uri = subparsers.add_parser(
+        "open", parents=[common], help="Open an HTTP(S), file, or content URI"
+    )
+    open_uri.add_argument("uri")
+    open_uri.add_argument("--package", help="Restrict the VIEW intent to one Android package")
+    open_uri.add_argument("--mime-type", help="Optional MIME type such as video/mp4")
+    open_uri.set_defaults(handler="open")
+
     close = subparsers.add_parser("close", parents=[common], help="Force-stop an app")
     close.add_argument("package")
     close.set_defaults(handler="close")
+
+    clear_data = subparsers.add_parser(
+        "clear-data", parents=[common], help="Clear an app's data and stop its process"
+    )
+    clear_data.add_argument("package")
+    clear_data.set_defaults(handler="clear_app_data")
+
+    orientation = subparsers.add_parser(
+        "orientation", parents=[common], help="Lock or reset the device screen orientation"
+    )
+    orientation.add_argument("mode", choices=["portrait", "landscape", "auto"])
+    orientation.set_defaults(handler="orientation")
+
+    reverse_port = subparsers.add_parser(
+        "reverse-port", parents=[common], help="Map a device TCP port to a host TCP port"
+    )
+    reverse_port.add_argument("port", type=int, help="Device-side port")
+    reverse_port.add_argument("--local-port", type=int, help="Host-side port (default: same port)")
+    reverse_port.add_argument("--remove", action="store_true", help="Remove the mapping")
+    reverse_port.set_defaults(handler="reverse_port")
 
     tap = subparsers.add_parser("tap", parents=[common], help="Tap screen coordinates")
     tap.add_argument("x", type=int)
@@ -243,7 +278,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument(
         "--output",
         type=Path,
-        help="Output file (default: mumu-flow.yaml for YAML, mumu-flow.json for JSON)",
+        help="Output file (default: app-testbench-flow.yaml for YAML, app-testbench-flow.json for JSON)",
     )
     init.add_argument("--format", choices=["yaml", "json"], default="yaml")
     init.add_argument("--force", action="store_true")
@@ -295,11 +330,22 @@ def _payload(command: str, data: Any) -> dict[str, Any]:
 
 
 def _emit_json(value: dict[str, Any]) -> None:
-    print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+    text = json.dumps(value, ensure_ascii=False, indent=2, default=str)
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        text.encode(encoding)
+    except (LookupError, UnicodeEncodeError):
+        # A Windows console can be cp936/GBK while device UI text is arbitrary
+        # Unicode. JSON escapes keep the command machine-readable in that case.
+        text = json.dumps(value, ensure_ascii=True, indent=2, default=str)
+    print(text)
 
 
-def _error_payload(command: str, error: RunnerError) -> dict[str, Any]:
-    return {
+_MISSING = object()
+
+
+def _error_payload(command: str, error: RunnerError, data: Any = _MISSING) -> dict[str, Any]:
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "ok": False,
         "command": command,
@@ -310,6 +356,9 @@ def _error_payload(command: str, error: RunnerError) -> dict[str, Any]:
             "hint": error.hint,
         },
     }
+    if data is not _MISSING:
+        payload["data"] = data
+    return payload
 
 
 def _settings_from_args(args: argparse.Namespace) -> Settings:
@@ -360,10 +409,24 @@ def _preflight_device_command(args: argparse.Namespace) -> Path | None:
                 raise ConfigError(
                     "--expected-package is required when verifying an installed version."
                 )
-        elif action in {"launch", "close"}:
+        elif action == "launch":
             validate_package(args.package)
-            if action == "launch" and args.activity is not None:
+            if args.activity is not None:
                 validate_activity(args.activity)
+        elif action == "open":
+            validate_open_uri(args.uri)
+            if args.package is not None:
+                validate_package(args.package)
+            if args.mime_type is not None:
+                validate_mime_type(args.mime_type)
+        elif action in {"close", "clear_app_data"}:
+            validate_package(args.package)
+        elif action == "reverse_port":
+            validate_port(args.port, name="port")
+            if args.local_port is not None:
+                validate_port(args.local_port, name="local-port")
+            if args.remove and args.local_port is not None:
+                raise ConfigError("--local-port cannot be used with --remove")
         elif action == "tap":
             validate_coordinate(args.x, name="x")
             validate_coordinate(args.y, name="y")
@@ -413,6 +476,18 @@ def _print_checks(checks: list[Any]) -> None:
                 print(f"       {hint}")
 
 
+def _failure_from_result(result: RunResult) -> RunnerError:
+    failed_step = next((step for step in result.steps if step.status == "failed"), None)
+    if failed_step is not None:
+        message = f"Flow step '{failed_step.name}' failed: {failed_step.error or 'unknown error'}"
+        hint = failed_step.hint or f"Inspect the run artifacts: {result.report_path}"
+        return StepFailure(message, hint=hint)
+    return RunnerError(
+        f"Flow finished with status '{result.status}'.",
+        hint=f"Inspect the run artifacts: {result.report_path}",
+    )
+
+
 def _finish(
     args: argparse.Namespace,
     command: str,
@@ -420,10 +495,17 @@ def _finish(
     human: Any = None,
     *,
     ok: bool = True,
+    error: RunnerError | None = None,
 ) -> int:
     if getattr(args, "json_output", False):
-        payload = _payload(command, data)
-        payload["ok"] = ok
+        if ok:
+            payload = _payload(command, data)
+        else:
+            failure = error or RunnerError(
+                f"{command} finished with a failed status.",
+                hint="Inspect data for the structured failure details.",
+            )
+            payload = _error_payload(command, failure, data)
         _emit_json(payload)
     elif human:
         human(data)
@@ -449,7 +531,15 @@ def _command_doctor(args: argparse.Namespace, settings: Settings) -> int:
         _print_checks(checks)
         print(f"\nOverall: {status.upper()}")
 
-    return _finish(args, "doctor", data, human, ok=not failed)
+    failure = (
+        RunnerError(
+            "One or more doctor checks failed.",
+            hint="Inspect data.checks for the failing environment checks.",
+        )
+        if failed
+        else None
+    )
+    return _finish(args, "doctor", data, human, ok=not failed, error=failure)
 
 
 def _instance_index(args: argparse.Namespace, settings: Settings) -> int:
@@ -525,12 +615,48 @@ def _command_device(args: argparse.Namespace, settings: Settings) -> int:
             "package": args.package,
             "message": message,
         }
+    elif action == "open":
+        message = device.open_uri(args.uri, package=args.package, mime_type=args.mime_type)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "uri": args.uri,
+            "package": args.package,
+            "mime_type": args.mime_type,
+            "message": message,
+        }
     elif action == "close":
         message = device.close(args.package)
         data = {
             "instance": instance,
             "serial": serial,
             "package": args.package,
+            "message": message,
+        }
+    elif action == "clear_app_data":
+        message = device.clear_app_data(args.package)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "package": args.package,
+            "message": message,
+        }
+    elif action == "orientation":
+        message = device.set_orientation(args.mode)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "mode": args.mode,
+            "message": message,
+        }
+    elif action == "reverse_port":
+        message = device.reverse_port(args.port, local_port=args.local_port, remove=args.remove)
+        data = {
+            "instance": instance,
+            "serial": serial,
+            "port": args.port,
+            "local_port": args.local_port,
+            "remove": args.remove,
             "message": message,
         }
     elif action == "tap":
@@ -639,11 +765,18 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
         if payload.get("junit_path"):
             print(f"JUnit:  {payload['junit_path']}")
 
-    return _finish(args, "run", data, human, ok=result.status == "passed")
+    return _finish(
+        args,
+        "run",
+        data,
+        human,
+        ok=result.status == "passed",
+        error=None if result.status == "passed" else _failure_from_result(result),
+    )
 
 
 def _command_init(args: argparse.Namespace, _: Settings) -> int:
-    default_name = "mumu-flow.json" if args.format == "json" else "mumu-flow.yaml"
+    default_name = "app-testbench-flow.json" if args.format == "json" else "app-testbench-flow.yaml"
     output = _resolve_file_output(args.output or Path(default_name))
     if output.exists() and not args.force:
         raise ConfigError(
@@ -677,7 +810,11 @@ def _dispatch(args: argparse.Namespace, settings: Settings) -> int:
     if handler in {
         "install",
         "launch",
+        "open",
         "close",
+        "clear_app_data",
+        "orientation",
+        "reverse_port",
         "tap",
         "swipe",
         "text",
