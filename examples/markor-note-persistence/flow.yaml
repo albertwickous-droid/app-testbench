@@ -1,0 +1,207 @@
+version: 1
+name: markor-note-persistence
+description: Create a Markor note, save it, cold-start the app, search for the file, and verify the note body survives.
+device:
+  instance: 0
+  package: net.gsantner.markor
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: Markor note persistence / 冷启动持久化
+  capture_screenshots: failures
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+  max_log_chars: 120000
+setup:
+  - name: Install pinned Markor build
+    action: install
+    apk: ${MARKOR_APK}
+    reinstall: true
+    grant_permissions: true
+    expected_package: net.gsantner.markor
+    expected_version_code: 164
+    expected_version_name: 2026.10.0
+steps:
+  - name: Launch Markor after a clean app-data reset
+    action: launch
+  - name: Wait for Markor onboarding
+    action: wait_for_text
+    text: 主界面
+    timeout: 20
+  - name: Advance onboarding page 1
+    action: tap_text
+    text: 下一页
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Advance onboarding page 2
+    action: tap_text
+    text: 下一页
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Advance onboarding page 3
+    action: tap_text
+    text: 下一页
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Advance onboarding page 4
+    action: tap_text
+    text: 下一页
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Finish onboarding
+    action: tap_text
+    text: 完成
+    match: exact
+    timeout: 10
+  - name: Wait for the release-notes dialog
+    action: wait_for_text
+    text: 确定
+    timeout: 30
+  - name: Close release notes
+    action: tap_text
+    text: 确定
+    match: exact
+    timeout: 10
+  - name: Wait for Markor file browser
+    action: wait_for_text
+    text: Markor
+    timeout: 20
+  - name: Capture file browser
+    action: screenshot
+    label: markor-browser
+  - name: Open create-file dialog
+    action: tap_text
+    text: 创建一个新的文件或文件夹
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Wait for create-file dialog
+    action: wait_for_text
+    text: 名称
+    timeout: 10
+  - name: Focus the file title
+    action: tap_text
+    text: 标题
+    field: text
+    match: exact
+    timeout: 10
+  - name: Clear the seeded title
+    action: clear_text
+    count: 40
+  - name: Enter note title
+    action: text
+    text: ${NOTE_TITLE}
+  - name: Confirm note creation
+    action: tap_text
+    text: 确定
+    match: exact
+    timeout: 10
+  - name: Wait for editor
+    action: wait_for_text
+    text: ${NOTE_TITLE}
+    timeout: 15
+  - name: Focus note body
+    action: tap
+    x: 360
+    y: 180
+  - name: Wait for editor input readiness
+    action: wait
+    seconds: 1
+  - name: Enter note body
+    action: text
+    text: App TestBench persistence check
+  - name: Wait for text commit
+    action: wait
+    seconds: 1
+  - name: Assert note body is visible before save
+    action: assert_ui_contains
+    text: App TestBench persistence check
+  - name: Save note
+    action: tap_text
+    text: 保存
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Wait for save
+    action: wait
+    seconds: 1
+  - name: Capture saved note
+    action: screenshot
+    label: markor-note-saved
+  - name: Close Markor
+    action: close
+  - name: Relaunch Markor
+    action: launch
+  - name: Wait for persisted note in browser
+    action: wait_for_text
+    text: ${NOTE_TITLE}
+    timeout: 20
+  - name: Capture persisted file list
+    action: screenshot
+    label: markor-note-persisted
+  - name: Open file search
+    action: tap_text
+    text: 搜索
+    field: content-desc
+    match: exact
+    timeout: 10
+  - name: Wait for file search dialog
+    action: wait_for_text
+    text: 正则表达式搜索
+    timeout: 10
+  - name: Focus file search query
+    action: tap_text
+    text: 搜索
+    field: text
+    match: exact
+    timeout: 10
+  - name: Clear the search query
+    action: clear_text
+    count: 40
+  - name: Enter exact file title
+    action: text
+    text: ${NOTE_TITLE}
+  - name: Submit file search
+    action: tap_text
+    text: 确定
+    match: exact
+    timeout: 10
+  - name: Wait for matching file result
+    action: wait_for_text
+    text: ${NOTE_TITLE}.md
+    timeout: 20
+  - name: Capture file search result
+    action: screenshot
+    label: markor-search-result
+  - name: Select matching file result
+    action: tap_text
+    text: ${NOTE_TITLE}.md
+    match: exact
+    timeout: 10
+  - name: Wait for saved note body
+    action: wait_for_text
+    text: App TestBench persistence check
+    timeout: 15
+  - name: Assert note body survived relaunch
+    action: assert_ui_contains
+    text: App TestBench persistence check
+  - name: Capture reopened note
+    action: screenshot
+    label: markor-note-reopened
+  - name: Save reopened UI tree
+    action: dump_ui
+    label: markor-note-reopened
+teardown:
+  - name: Close Markor
+    action: close
+    continue_on_error: true
+  - name: Capture final logcat
+    action: logcat
+    label: final
+    lines: 1500
+

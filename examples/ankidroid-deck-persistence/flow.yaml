@@ -1,0 +1,274 @@
+version: 1
+name: ankidroid-deck-persistence
+description: >
+  AnkiDroid completes its first-run permissions flow, creates a deck and a
+  basic question card, then verifies the card and deck count after a cold start.
+device:
+  instance: 0
+  package: com.ichi2.anki
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: AnkiDroid deck creation and cold-start persistence
+  capture_screenshots: failures
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+  max_log_chars: 300000
+setup:
+  - id: install-ankidroid
+    name: Install the pinned AnkiDroid build
+    action: install
+    apk: "${ANKIDROID_APK}"
+    expected_package: com.ichi2.anki
+    expected_version_code: 225033004
+    expected_version_name: 2.25.3
+    grant_permissions: true
+  - id: reset-ankidroid
+    name: Clear AnkiDroid state for a deterministic first run
+    action: clear_app_data
+  - id: portrait-before-launch
+    name: Lock portrait before launch
+    action: orientation
+    mode: portrait
+  - id: launch-ankidroid
+    name: Launch AnkiDroid
+    action: launch
+steps:
+  - id: welcome-ready
+    name: Wait for the first-run welcome screen
+    action: wait_for_text
+    text: "开始"
+    timeout: 30
+    recover_anr: true
+  - id: welcome-shot
+    name: Capture the first-run welcome screen
+    action: screenshot
+    label: welcome
+  - id: start-onboarding
+    name: Start first-run setup
+    action: tap_text
+    text: "开始"
+    match: exact
+    timeout: 15
+  - id: empty-collection-ready
+    name: Wait for the empty collection
+    action: wait_for_text
+    text: "集合为空"
+    timeout: 30
+    recover_anr: true
+  - id: empty-collection-shot
+    name: Capture the empty collection
+    action: screenshot
+    label: empty-collection
+  - id: open-add-menu
+    name: Open the add menu
+    action: tap_text
+    text: "添加"
+    field: content-desc
+    match: exact
+    timeout: 15
+  - id: deck-menu-ready
+    name: Wait for the create-deck action
+    action: wait_for_text
+    text: "创建牌组"
+    timeout: 15
+  - id: choose-create-deck
+    name: Choose Create deck
+    action: tap_text
+    text: "创建牌组"
+    match: exact
+    timeout: 10
+  - id: deck-dialog-ready
+    name: Wait for the deck-name input
+    action: wait_for_text
+    text: "名称："
+    timeout: 10
+  - id: focus-deck-name
+    name: Focus the deck-name field
+    action: tap_text
+    text: "名称："
+    field: text
+    match: exact
+    timeout: 10
+  - id: enter-deck-name
+    name: Enter the test deck name
+    action: text
+    text: TestBench
+  - id: deck-dialog-shot
+    name: Capture the completed deck dialog
+    action: screenshot
+    label: deck-dialog
+  - id: create-deck
+    name: Create the deck
+    action: tap_text
+    text: "创建"
+    match: exact
+    timeout: 10
+  - id: deck-created
+    name: Wait for the new deck
+    action: wait_for_text
+    text: TestBench
+    timeout: 20
+  - id: deck-created-shot
+    name: Capture the created deck
+    action: screenshot
+    label: deck-created
+  - id: open-deck-actions
+    name: Open the deck context actions
+    action: swipe
+    x1: 180
+    y1: 168
+    x2: 180
+    y2: 168
+    duration_ms: 1200
+  - id: deck-actions-ready
+    name: Wait for the deck context menu
+    action: wait_for_text
+    text: "浏览卡片"
+    timeout: 10
+  - id: choose-add-card
+    name: Choose Add from the deck menu
+    action: tap
+    x: 360
+    y: 378
+  - id: card-editor-ready
+    name: Wait for the card editor
+    action: wait_for_text
+    text: "正面"
+    timeout: 20
+    recover_anr: true
+  - id: focus-front
+    name: Focus the front field
+    action: tap_text
+    text: "正面"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: enter-front
+    name: Enter the front of the card
+    action: text
+    text: Capital of France
+  - id: focus-back
+    name: Focus the back field
+    action: tap_text
+    text: "背面"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: enter-back
+    name: Enter the back of the card
+    action: text
+    text: Paris
+  - id: card-filled-shot
+    name: Capture the completed card form
+    action: screenshot
+    label: card-filled
+  - id: save-card
+    name: Save the card
+    action: tap_text
+    text: "保存"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: return-to-deck-list
+    name: Return from the saved card editor
+    action: tap_text
+    text: "转到上一层级"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: save-settle
+    name: Allow the deck count to refresh
+    action: wait
+    seconds: 1
+  - id: card-count-ready
+    name: Wait for the deck to report one card
+    action: wait_for_text
+    text: "1 张卡片待复习"
+    timeout: 30
+  - id: card-count-shot
+    name: Capture the deck card count
+    action: screenshot
+    label: card-count
+  - id: card-count-ui
+    name: Capture deck-count UI evidence
+    action: dump_ui
+    label: card-count
+  - id: close-for-restart
+    name: Force-stop AnkiDroid
+    action: close
+  - id: relaunch
+    name: Cold-launch AnkiDroid
+    action: launch
+  - id: persisted-deck-ready
+    name: Wait for the persisted deck after cold start
+    action: wait_for_text
+    text: TestBench
+    timeout: 40
+    recover_anr: true
+  - id: assert-persisted-card-count
+    name: Verify the persisted card count
+    action: assert_ui_contains
+    text: "1 张卡片待复习"
+  - id: persistence-shot
+    name: Capture the persisted deck and card count
+    action: screenshot
+    label: persistence
+  - id: open-persisted-deck-actions
+    name: Open actions for the persisted deck
+    action: swipe
+    x1: 180
+    y1: 168
+    x2: 180
+    y2: 168
+    duration_ms: 1200
+  - id: persisted-deck-menu-ready
+    name: Wait for the persisted deck menu
+    action: wait_for_text
+    text: "浏览卡片"
+    timeout: 10
+  - id: browse-persisted-cards
+    name: Open the card browser
+    action: tap
+    x: 360
+    y: 450
+  - id: card-browser-ready
+    name: Wait for the saved card content
+    action: wait_for_text
+    text: Capital of France
+    timeout: 20
+    recover_anr: true
+  - id: open-saved-card
+    name: Open the persisted card
+    action: tap_text
+    text: Capital of France
+    field: text
+    match: exact
+    timeout: 15
+  - id: card-fields-ready
+    name: Verify the saved card back
+    action: wait_for_text
+    text: Paris
+    timeout: 20
+    recover_anr: true
+  - id: saved-card-shot
+    name: Capture the persisted card fields
+    action: screenshot
+    label: saved-card-fields
+  - id: card-log
+    name: Capture card-creation and review logcat
+    action: logcat
+    label: card
+    lines: 5000
+teardown:
+  - id: close-ankidroid
+    name: Close AnkiDroid
+    action: close
+    continue_on_error: true
+  - id: final-log
+    name: Capture final AnkiDroid logcat
+    action: logcat
+    label: final
+    lines: 5000
+    continue_on_error: true

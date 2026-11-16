@@ -6,10 +6,10 @@ Set-StrictMode -Version Latest
 $ProgressPreference = "SilentlyContinue"
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$AssetDir = Join-Path $RepoRoot "runs\case-assets\fennec-local-web-session"
-$ApkPath = Join-Path $AssetDir "org.mozilla.fennec_fdroid_1600020.apk"
-$DownloadUrl = "https://f-droid.org/repo/org.mozilla.fennec_fdroid_1600020.apk"
-$ExpectedHash = "43cf491bbc677244d7b56ba2e8ae20ccd802c9d8f6b44d6b6aff7eb1753eab1b"
+$AssetDir = Join-Path $RepoRoot "runs\case-assets\ankidroid"
+$ApkPath = Join-Path $AssetDir "com.ichi2.anki_225033004.apk"
+$DownloadUrl = "https://f-droid.org/repo/com.ichi2.anki_225033004.apk"
+$ExpectedHash = "c7056f611c66fc91a8e290e18268a0d708e813704f51c66e4af1534d468f6790"
 
 New-Item -ItemType Directory -Force -Path $AssetDir | Out-Null
 
