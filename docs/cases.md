@@ -1,8 +1,8 @@
 # 真实案例 / Live Cases
 
-这些案例不是演示视频，也不是用生成式图片拼出来的界面。每一张公开截图都来自一次真实的 MuMu + Android + ADB 运行；每一步是否通过由 flow 中的 UI 断言决定。
+这些案例不是演示视频，也不是用生成式图片拼出来的界面。每张公开截图都来自真实的 MuMu + Android + ADB 运行；通过与否由 flow 中的 Activity、UI 或 logcat 断言决定。
 
-These are not demo mockups or generated screenshots. Every published image comes from a real MuMu + Android + ADB run, and every pass/fail result is decided by explicit UI assertions in the flow.
+These are not demo videos or generated interface mockups. Every public image comes from a real MuMu + Android + ADB run, and each verdict is decided by an explicit Activity, UI, or logcat assertion in the flow.
 
 ## 测试环境 / Tested environment
 
@@ -11,196 +11,257 @@ These are not demo mockups or generated screenshots. Every published image comes
 | Date | 2026-11-16, Asia/Shanghai |
 | Runtime | MuMu Player `6.8.8.0`, Android 12 |
 | ADB | `1.0.41` |
-| Display | `720x1280`, portrait, Simplified Chinese |
+| Display | `720x1280` portrait; VLC also checks `1280x720` landscape |
 | Python | `3.11.8` |
-| Result format | self-contained HTML, `result.json`, JUnit XML, screenshots, UI XML, logcat |
+| System language | Simplified Chinese |
+| Result formats | self-contained HTML, `result.json`, JUnit XML, screenshots, UI XML, logcat |
 
 ## 案例总览 / Case index
 
-| Case | App type | Evidence |
-| --- | --- | --- |
-| AnkiDroid deck and card persistence | Study/card database app | 49/49 passed in 75.203 seconds |
-| Markor note persistence | Markdown editor and file browser | 46/46 passed in 80.203 seconds |
-| Failure contract | Deliberate UI assertion failure | Exit 1, schema valid, diagnostic artifacts retained |
+| Case | App type | Engineering coverage | Live result |
+| --- | --- | --- | --- |
+| [Wikipedia](#1-wikipedia-search-article-and-cold-start-persistence--搜索文章与冷启动持久化) | Network-backed encyclopedia app | Onboarding, English search, WebView article, saved list, force-stop, cold start | **63/63 passed**, `113.563 s` |
+| [Firefox / Fennec](#2-firefox-fennec-browser-state-download-and-tabs--浏览器状态下载与标签页) | Android browser | Cookie + LocalStorage, download, two tabs, cold-start restore | **66/66 passed**, `143.016 s` |
+| [VLC](#3-vlc-real-media-activity-and-logcat--真实媒体activity与logcat) | Native media player | Player Activity, byte-range MP4, decoded frames, codec/AudioTrack logs, orientation | **43/43 passed**, `50.579 s` |
+| Failure contract | Diagnostic path | Exit 1, schema-valid error envelope, screenshots/UI/logcat/HTML/JUnit retained | **1 intentional failure** |
 
-## 1. AnkiDroid 牌组、卡片与冷启动持久化 / Deck, card, and cold-start persistence
+## 1. Wikipedia: search, article, and cold-start persistence / 搜索、文章与冷启动持久化
 
 ### 为什么选它 / Why this case
 
-- AnkiDroid is a mature, actively maintained open-source Android application with immutable F-Droid builds.
-- The case needs no network account, paid service, or private user data.
-- It exercises dialogs, text fields, dynamic waits, a local collection database, external-storage state, force-stop, cold launch, and post-restart content verification.
+- Wikipedia is mature, widely used, and distributed through an immutable F-Droid build.
+- It exercises a real network-backed search and article render instead of a local fixture.
+- The journey combines first-run onboarding, language selection, a dynamically loaded result, a WebView body, local reading-list state, force-stop, and cold-start verification.
+- No user account, paid service, or private business credential is required.
 
-### 固定输入 / Pinned inputs
+### 固定输入 / Pinned input
 
-| Field | Value |
-| --- | --- |
-| Package | `com.ichi2.anki` |
-| Version | `2.25.3` (`versionCode 225033004`) |
-| APK source | <https://f-droid.org/repo/com.ichi2.anki_225033004.apk> |
-| APK SHA256 | `c7056f611c66fc91a8e290e18268a0d708e813704f51c66e4af1534d468f6790` |
-| Deck | `TestBench` |
-| Card | `Capital of France` / `Paris` |
+```text
+Package: org.wikipedia
+Version: r/50616-r-2026-11-03
+VersionCode: 50616
+Source: https://f-droid.org/repo/org.wikipedia_50616.apk
+Size: 104,747,428 bytes
+SHA256: d225e5d08fe461f12fa0af7b617e6e715f3112986165c34e0572a1a056129dd1
+Test search: Ada Lovelace
+Reading list: QA Reading List
+```
 
 ### 实际覆盖 / What the live flow does
 
-1. Installs the pinned APK, verifies package name, version code, and version name.
-2. Resets AnkiDroid app data, its all-files app-op, and the case-owned external collection directory.
-3. Completes first-run onboarding and waits for the empty collection.
-4. Creates the `TestBench` deck through the real Android dialog.
-5. Opens the deck action menu and enters a question/answer card.
-6. Verifies the card count and captures the card form.
-7. Force-stops the app and cold-launches it again.
-8. Verifies that `TestBench` and `1 张卡片待复习` remain.
-9. Reopens the saved card and asserts both `Capital of France` and `Paris`.
-10. Saves screenshots, UI trees, logcat, HTML, JSON, and JUnit.
+1. Installs the APK and verifies package, version code, and version name.
+2. Completes first-run onboarding, privacy, language, and optional-interest pages.
+3. Waits for the live Wikipedia home feed and opens search.
+4. Searches `Ada Lovelace`, switches to English results, and waits for the exact article description.
+5. Opens the article, allows the WebView to render, and saves it to `QA Reading List`.
+6. Force-stops and cold-launches Wikipedia.
+7. Reopens saved items and asserts the article and description survived the restart.
+8. Stores 8 real screenshots, selected UI XML, logcat, HTML, `result.json`, and JUnit.
 
 ### 真实结果 / Observed result
 
 ```text
 Status: passed
-Steps: 49 passed, 0 failed, 0 skipped
-Duration: 75.203 seconds
-Screenshots: 8 PNG at 720x1280
-HTML: 1,853,536 bytes, self-contained
-result.json: 37,973 bytes
-JUnit: 14,630 bytes
+Steps: 63 passed, 0 failed, 0 skipped
+Duration: 113.563 seconds
+Screenshots: 8 PNG
+HTML: 6,345,936 bytes, self-contained
+result.json: 52,701 bytes
 ```
 
-### 公开截图 / Public screenshots
-
-这些图按一条证据链排列：真实表单输入、冷启动后仍存在的牌组与待复习计数、以及重新打开后的卡片内容。其余本次运行截图保留在被 Git 忽略的原始运行目录中。
-
-The images form one evidence chain: real form input, the deck and due-card count after a cold start, and the saved card reopened with both fields intact. Additional screenshots from the same run remain in ignored local artifact storage.
+### 公开截图 / Public evidence
 
 | View | Image |
 | --- | --- |
-| Real card input | ![AnkiDroid card fields](assets/cases/ankidroid/card-filled.png) |
-| Deck and due count after cold start | ![AnkiDroid persistence](assets/cases/ankidroid/persistence.png) |
-| Saved card reopened | ![AnkiDroid saved card](assets/cases/ankidroid/saved-card.png) |
+| English search result | ![Wikipedia search result](assets/cases/wikipedia/search-results.png) |
+| Real WebView article | ![Wikipedia Ada Lovelace article](assets/cases/wikipedia/article.png) |
+| Saved article after cold start | ![Wikipedia persisted reading list](assets/cases/wikipedia/persisted.png) |
 
 ### 复现 / Reproduce
 
 ```powershell
-.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\wikipedia-research-session\run.ps1
 ```
-
-The script downloads the APK into ignored `runs/case-assets/`, verifies its SHA256, resets only the case-owned AnkiDroid state, and runs the 49-action flow with JUnit output.
 
 ### 已知限制 / Known limits
 
-- Selectors and copy are calibrated for AnkiDroid `2.25.3`, Simplified Chinese, and a `720x1280` MuMu instance.
-- A clean install may use an available collection path without showing the all-files permission screen on every device. The flow does not claim that branch always appears.
-- AnkiDroid's web-based card renderer and collection database can change between releases. Recalibrate selectors after changing the pinned APK.
-- Use a dedicated test instance. The script clears AnkiDroid state and removes only the case-owned external collection path.
+- Calibrated for the pinned app, Simplified Chinese system UI, and `720x1280`.
+- Search depends on the live MediaWiki service and network availability.
+- The public case does not use an account and does not claim Wikipedia cross-device sync.
+- WebView content is verified through visible text and screenshots, not DOM access.
 
-## 2. Markor 笔记、文件搜索与冷启动持久化 / Note, search, and cold-start persistence
+## 2. Firefox Fennec: browser state, download, and tabs / 浏览器状态、下载与标签页
 
 ### 为什么选它 / Why this case
 
-- Markor is a mature open-source Markdown/plain-text editor with an official F-Droid build.
-- It covers a different product surface from AnkiDroid: a text editor, file browser, storage access, save action, filename search, and file reopening.
-- The test uses visible text and accessibility descriptions for the main navigation instead of depending on a single screen resolution.
+- Fennec F-Droid is a mature Firefox build with a pinned public APK.
+- The case tests what a native-only test cannot: Cookie plus LocalStorage state, a download, two tabs, tab switching, force-stop, and restore.
+- The local fixture has no password field. It uses only the synthetic username `qa-runner` and a case-owned text file.
+- It is representative of authorized mobile-browser validation where the browser or App-only surface is the actual product path.
 
-### 固定输入 / Pinned inputs
+### 固定输入 / Pinned input
 
-| Field | Value |
-| --- | --- |
-| Package | `net.gsantner.markor` |
-| Version | `2026.10.0` (`versionCode 164`) |
-| APK source | <https://f-droid.org/repo/net.gsantner.markor_164.apk> |
-| APK size | `11,849,016` bytes |
-| APK SHA256 | `c29412e02d03e4f0511746a1bcef48c6b73fc1f70c1024fbf04903b0b3f4c485` |
-| Test file | `app-testbench-markor.md` |
-| Body | `App TestBench persistence check` |
+```text
+Package: org.mozilla.fennec_fdroid
+Version: 160.0.0
+VersionCode: 1600020
+Source: https://f-droid.org/repo/org.mozilla.fennec_fdroid_1600020.apk
+Size: 129,815,928 bytes
+SHA256: 43cf491bbc677244d7b56ba2e8ae20ccd802c9d8f6b44d6b6aff7eb1753eab1b
+Local fixture: 127.0.0.1:18765 through adb reverse
+Synthetic identity: qa-runner
+Downloaded file: app-testbench-browser-evidence.txt
+```
 
 ### 实际覆盖 / What the live flow does
 
-1. Installs the pinned APK and verifies package, version, and SHA256.
-2. Clears app data and removes only old `app-testbench-*.md` files under Markor's test directory.
-3. Completes all five onboarding pages using accessibility selectors and closes the release-notes dialog.
-4. Opens the create-file dialog, clears the seeded title, and enters `app-testbench-markor`.
-5. Focuses the editor, enters the body, and asserts it is visible before saving.
-6. Saves the note, force-stops Markor, and cold-launches it.
-7. Verifies the file remains in the browser, opens filename search, and finds the exact `.md` file.
-8. Reopens the note, waits for the body, and asserts it survived the restart.
-9. Saves screenshots, UI tree, logcat, HTML, JSON, and JUnit.
+1. Completes Fennec first-run onboarding and declines the default-browser change.
+2. Opens a deterministic local QA fixture with no password input.
+3. Establishes a signed-in state backed by Cookie and LocalStorage.
+4. Verifies that both browser storage mechanisms authorize the dashboard and orders page.
+5. Downloads `app-testbench-browser-evidence.txt`; the wrapper reads it through ADB and verifies exact contents.
+6. Opens a second tab, switches tabs, and captures the tab manager.
+7. Force-stops and cold-launches Fennec.
+8. Verifies the signed-in state and both restored tabs.
+9. Retains 8 real screenshots, UI XML, logcat, HTML, `result.json`, and JUnit.
 
 ### 真实结果 / Observed result
 
 ```text
 Status: passed
-Steps: 46 passed, 0 failed, 0 skipped
-Duration: 80.203 seconds
-Screenshots: 5 PNG at 720x1280
-HTML: 1,086,790 bytes, self-contained
-result.json: 37,658 bytes
-JUnit: 14,828 bytes
+Steps: 66 passed, 0 failed, 0 skipped
+Duration: 143.016 seconds
+Screenshots: 8 PNG
+HTML: 2,534,488 bytes, self-contained
+result.json: 53,933 bytes
+Download verification: exact content match
 ```
 
-### 公开截图 / Public screenshots
-
-这三张图覆盖冷启动后的文件列表、按精确文件名搜索结果，以及重新打开后的正文。它们证明文件写入、索引和应用重启后的读取都属于真实 App 状态，而不是报告生成器里的占位内容。
-
-The three images show the post-restart file list, the exact-filename search result, and the reopened note body. They demonstrate real app state across file write, discovery, and read-after-restart rather than placeholders in the report layer.
+### 公开截图 / Public evidence
 
 | View | Image |
 | --- | --- |
-| File present after cold start | ![Markor persisted file](assets/cases/markor/note-persisted.png) |
-| Exact filename search result | ![Markor search result](assets/cases/markor/note-search.png) |
-| Reopened note body | ![Markor reopened note](assets/cases/markor/note-reopened.png) |
+| Authenticated browser state | ![Firefox signed-in session](assets/cases/firefox/session.png) |
+| Authorized order page | ![Firefox orders page](assets/cases/firefox/orders.png) |
+| Two-tab manager | ![Firefox tab manager](assets/cases/firefox/tabs.png) |
+| Case-owned download prompt | ![Firefox download prompt](assets/cases/firefox/download.png) |
 
 ### 复现 / Reproduce
 
 ```powershell
-.\examples\markor-note-persistence\run.ps1
+.\examples\firefox-webapp-session\run.ps1
 ```
-
-The script downloads the pinned APK into ignored `runs/case-assets/`, verifies its size and SHA256, removes only case-owned test notes, runs the flow, and uninstalls Markor by default. Use `-KeepInstalled` if you want to inspect the app after the run.
 
 ### 已知限制 / Known limits
 
-- Markor prompts and file-layout coordinates are calibrated for `2026.10.0`, Simplified Chinese, and a `720x1280` Android 12 instance.
-- `MANAGE_EXTERNAL_STORAGE` is granted only inside the isolated MuMu test instance and only for this case. Do not grant it blindly on a production device.
-- The flow needs a writable `Documents/markor` directory and removes only files matching the `app-testbench-*.md` case-owned prefix.
-- The body is printable ASCII because the CLI's native `text` action intentionally rejects non-ASCII input.
+- Browser prompts, keyboard geometry, and tab UI are calibrated for the pinned build, Simplified Chinese, and `720x1280`.
+- The local fixture tests browser state mechanics, not a production identity provider.
+- The flow does not export or inspect cookies or tokens; it asserts visible state.
+- A future Fennec build may change onboarding, download, or tab-restore behavior.
+- Test only systems and accounts for which you have explicit authorization.
+
+## 3. VLC: real media, Activity, and logcat / 真实媒体、Activity 与 logcat
+
+### 为什么选它 / Why this case
+
+- VLC is a mature open-source media app with a pinned F-Droid build.
+- The decoded video surface exposes little useful text to accessibility services. A UI-only test cannot prove that the player Activity was reached, a real media input was opened, or an audio output module initialized.
+- The case combines `wait_for_activity`, `wait_for_text`, screenshots, UI dumps, and `assert_logcat_contains`.
+- It demonstrates that the execution layer can assert native transitions and subsystem logs beyond ordinary tap-and-text automation.
+
+### 固定输入 / Pinned input
+
+```text
+Package: org.videolan.vlc
+Version: 3.7.2
+VersionCode: 13070208
+APK source: https://f-droid.org/repo/org.videolan.vlc_13070208.apk
+APK SHA256: 727693d59c4d678c046386812a103209a25423460c9d22e38e12460f12402ab6
+Media source: https://media.w3.org/2010/05/sintel/trailer.mp4
+Media size: 4,372,373 bytes
+Media SHA256: b670602fa00934ca27c4351bb0efe7ea7a07fae57284e44226025eeed7c51254
+Player Activity: org.videolan.vlc/.gui.video.VideoPlayerActivity
+```
+
+### 实际覆盖 / What the live flow does
+
+1. Installs and verifies the pinned VLC build.
+2. Completes first-run onboarding and opens the MP4 through a local byte-range HTTP server exposed by `adb reverse`.
+3. Confirms `VideoPlayerActivity` is foreground.
+4. Dismisses the first-play tutorial and captures real decoded frames.
+5. Pauses playback and verifies the title `Sintel Trailer`.
+6. Asserts logcat contains `Creating an input for 'sintel-trailer.mp4'`.
+7. Asserts logcat contains the Android `android_audiotrack` module.
+8. Checks portrait and landscape relayout while the player Activity remains foreground.
+9. Retains 8 real screenshots, UI XML, logcat, HTML, `result.json`, and JUnit.
+
+### 真实结果 / Observed result
+
+```text
+Status: passed
+Steps: 43 passed, 0 failed, 0 skipped
+Duration: 50.579 seconds
+Screenshots: 8 PNG
+HTML: 2,116,816 bytes, self-contained
+result.json: 33,257 bytes
+Activity assertions: player and post-rotation match
+logcat assertions: media input = 1 match; android_audiotrack = 2 matches
+```
+
+### 公开截图 / Public evidence
+
+| View | Image |
+| --- | --- |
+| First-play tutorial | ![VLC player tutorial](assets/cases/vlc/tutorial.png) |
+| Paused real player and title | ![VLC paused player](assets/cases/vlc/player-controls.png) |
+| Landscape player controls | ![VLC landscape playback](assets/cases/vlc/landscape.png) |
+| Resumed decoded frame | ![VLC resumed video](assets/cases/vlc/resumed.png) |
+
+### 复现 / Reproduce
+
+```powershell
+.\examples\vlc-media-playback\run.ps1
+```
+
+### 已知限制 / Known limits
+
+- Calibrated for VLC `3.7.2`, Simplified Chinese, and the recorded MuMu Android 12 display.
+- The case covers a short MP4 over local byte-range HTTP; it does not claim DRM, adaptive streaming, subtitles, or audio-track switching.
+- Logcat is a bounded ring buffer. The case stops unrelated log-heavy browser processes first, but very noisy devices may require a larger buffer or a future tag filter.
+- This is not a codec certification or a substitute for physical-device acceptance testing.
 
 ## 失败 JSON 与诊断证据 / Failure JSON and diagnostics
 
-This failure is deliberate: the flow waits for text that does not exist. It verifies the failure path without weakening any passing assertion.
+The public failure case is intentional: a live flow waits for a marker that does not exist. It verifies the failure contract without weakening a passing assertion.
 
 ```text
-Flow: cli-failure-contract-live
 Exit code: 1
 Envelope: ok=false + error.type=step_failure + complete data
-Schema: packaged cli-v1.schema.json PASS
-Steps: 3 passed, 1 failed, 1 skipped
-Duration: 12.641 seconds
+Packaged cli-v1.schema.json: PASS
 Failure screenshot: present
 Failure UI tree: present
 Final logcat: present
-HTML report: present and self-contained
-JUnit: 1 failure, 0 errors, 1 skipped
+HTML: present and self-contained
+JUnit: failure represented
 ```
 
-v0.1.0 produced `ok=false` plus `data` but no `error`, so the failure envelope did not match the published schema. v0.1.1 adds a structured error while preserving the complete run payload. See [validation.md](validation.md).
+v0.1.0 emitted `ok=false` plus `data` but omitted the required `error` object. v0.1.1 fixes the producer rather than relaxing the published schema. See [validation.md](validation.md).
 
-![Failed HTML report with paths and serial redacted](assets/cases/evidence/report-failed.png)
+![Failed HTML report with local paths and serial redacted](assets/cases/evidence/report-failed.png)
 
-The public report image was rendered from a real failed HTML report. A temporary copy replaced local paths and the test ADB serial before rendering; it was not AI-generated or redrawn.
+The image is a capture of a real failed HTML report. A temporary pre-publication copy replaced local tool paths and the test ADB serial; the report layout, failed result, and trace were not redrawn or fabricated.
 
 ## 选型说明 / Selection rationale
 
-- Both apps are public, mature, actively maintained open-source Android applications with immutable F-Droid builds.
-- Neither case needs a paid account, a private production credential, or a network-dependent business workflow.
-- AnkiDroid stresses structured dialogs, a local database, external storage state, and card-level content verification.
-- Markor stresses editor input, file-system behavior, filename search, and reopening a saved file after a cold start.
-- Both cases finish with explicit assertions and produce the same evidence bundle: screenshots, UI trees, logcat, HTML, JSON, and JUnit.
+- The apps are mature open-source Android products with immutable F-Droid builds.
+- The cases stress different layers: network content and state, browser storage/download/tab restore, and native media/Activity/logcat behavior.
+- All three use public or case-owned test data only. None needs a production account, paid service, real cookie, token, or private endpoint.
+- Each case produces the same delivery bundle: screenshots, UI trees, logcat, HTML, `result.json`, and JUnit.
 
 ## 证据边界 / Evidence boundaries
 
 - Committed PNGs come from real MuMu runs. No generated screenshots or manually redrawn app pages are used.
-- Raw APKs, complete run directories, unfiltered UI XML/logcat, and virtual environments remain in ignored local storage.
-- The public screenshots show only the test apps and test-created content. They do not contain the user's accounts, cookies, tokens, or production data.
-- A pass proves only the pinned app version, MuMu/Android image, display size, language, and flow recorded here.
+- Raw APKs, MP4 files, complete run directories, unfiltered UI XML/logcat, and virtual environments remain in ignored local storage.
+- Public images show only test apps and test-created content. They contain no accounts, production cookies, tokens, API keys, private IPs, or ADB serials.
+- A pass applies only to the pinned app, MuMu/Android image, display, language, and flow recorded here.
 - Physical devices remain the final acceptance environment for hardware, OEM, and production-account behavior.

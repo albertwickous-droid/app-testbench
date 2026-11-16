@@ -44,9 +44,9 @@ The public cases do not use real accounts and require no committed or saved logi
 
 ## 3. 浏览器 / WebView 状态与冷启动 / Browser and WebView state across cold starts
 
-适合验证移动 WebView、浏览器、输入法、翻译面板、密码保存提示、页面异步加载、登录态持久化和查询条件恢复。v0.1.1 的公开案例重点验证原生 App 内的状态持久化；WebView/浏览器流程可按同一套 setup、wait、assert、evidence 结构扩展。
+适合验证移动 WebView、浏览器、输入法、翻译面板、页面异步加载、Cookie/LocalStorage、下载、标签页、登录态持久化和查询条件恢复。v0.1.1 的 Firefox 案例使用本地 QA fixture，覆盖 Cookie + LocalStorage、文件下载、双标签页和冷启动恢复；Wikipedia 案例覆盖真实网络搜索和 WebView 文章。
 
-Use this for mobile WebViews, browsers, IME/translation panels, password-save prompts, asynchronous page loading, login persistence, and restored query state. The v0.1.1 public cases focus on native app state persistence; browser/WebView journeys can extend the same setup, wait, assert, and evidence structure.
+Use this for mobile WebViews, browsers, IME/translation panels, asynchronous page loading, Cookie/LocalStorage, downloads, tabs, login persistence, and restored query state. The v0.1.1 Firefox case covers Cookie + LocalStorage, file download, two tabs, and cold-start restore against a local QA fixture; the Wikipedia case covers live search and a WebView article.
 
 **边界 / Boundary**
 
@@ -55,16 +55,16 @@ Use this for mobile WebViews, browsers, IME/translation panels, password-save pr
 
 ## 4. 媒体、权限、横竖屏和系统 UI / Media, permissions, orientation, and system UI
 
-AnkiDroid 和 Markor 案例覆盖外部存储 app-op、系统对话框、首次引导、横竖屏控制入口和真实 App 页面。媒体播放、HTTP byte-range、DRM 和编码器验证可以继续用 `open`、`reverse-port`、`orientation`、截图与 logcat 组合实现；这些不在 v0.1.1 的两条公开案例断言范围内。
+VLC 案例覆盖原生播放器 Activity、HTTP byte-range、真实解码帧、libVLC 媒体输入、Android AudioTrack 和横竖屏切换；Wikipedia 与 Firefox 案例覆盖首次引导、系统提示、WebView 和浏览器页面。媒体证据同时使用 `wait_for_activity`、截图、UI 树与 `assert_logcat_contains`。
 
-The AnkiDroid and Markor cases cover external-storage app-ops, system dialogs, onboarding, orientation controls, and real app pages. Media playback, HTTP byte ranges, DRM, and codec validation can be assembled from `open`, `reverse-port`, `orientation`, screenshots, and logcat; they are not asserted by the two v0.1.1 public cases.
+The VLC case covers the native player Activity, HTTP byte range, decoded frames, the libVLC media input, Android AudioTrack, and orientation changes. The Wikipedia and Firefox cases cover onboarding, system prompts, WebView content, and browser pages. Media evidence combines `wait_for_activity`, screenshots, UI trees, and `assert_logcat_contains`.
 
 **边界 / Boundary**
 
-- 媒体、DRM、自适应码率、字幕和音轨切换需要单独编写并验证案例。
+- v0.1.1 的 VLC 案例不覆盖 DRM、自适应码率、字幕或音轨切换。
 - 解码器和布局会随 MuMu/Android 镜像变化，必须记录实际环境。
-- Media, DRM, adaptive streaming, subtitles, and audio-track switching require separate validated cases.
-- Decoder names and layout vary by MuMu/Android image; record the actual environment.
+- The v0.1.1 VLC case does not cover DRM, adaptive streaming, subtitles, or audio-track switching.
+- Decoder names and layout vary by the MuMu/Android image; record the actual environment.
 
 ## 5. 不同实例、版本和启动状态下的兼容性验证 / Compatibility checks across instances, versions, and boot states
 

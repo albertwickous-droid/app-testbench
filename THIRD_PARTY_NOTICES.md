@@ -78,14 +78,19 @@ The project does not distribute:
 Users must obtain lawful licenses for these components and comply with the terms of their vendors, platforms, and app stores. Users are responsible for the rights and obligations associated with APKs, screenshots, icons, fonts, music, video, and other assets they install or process.
 
 
-### Live-case applications
+### Live-case applications and media
 
-- **AnkiDroid** is a separate open-source Android study application. The repository links to an official F-Droid APK and pins the version and SHA256, but does not redistribute the APK or claim endorsement by AnkiDroid or its maintainers. App names, icons, and UI remain subject to the upstream project's licenses and notices.
-- **Markor** is a separate open-source Markdown/plain-text Android editor. The repository links to an official F-Droid APK and pins the version and SHA256, but does not redistribute the APK or claim endorsement by Markor or its maintainers. App names, icons, and UI remain subject to the upstream project's licenses and notices.
-- Public case screenshots are selected from real test runs. Third-party app names, icons, and UI text remain the property of their respective rights holders and are shown only to document interoperability and test evidence.
+- **Wikipedia for Android** is a separate open-source application. The repository links to a pinned F-Droid build and records its SHA256, but does not redistribute the APK or claim endorsement by Wikimedia or the app maintainers. F-Droid lists the app as Apache License 2.0. App names, logos, article text, and UI remain subject to their respective upstream rights and notices.
+- **Fennec F-Droid** is a separate Firefox build. The repository links to a pinned F-Droid build and records its SHA256, but does not redistribute the APK or claim endorsement by Mozilla or the Fennec maintainers. F-Droid lists the app as Mozilla Public License 2.0. Names, logos, and UI remain subject to upstream trademark and license terms.
+- **VLC for Android** is a separate open-source media application. The repository links to a pinned F-Droid build and records its SHA256, but does not redistribute the APK or claim endorsement by VideoLAN or the VLC maintainers. F-Droid lists the app as GNU General Public License v3.0 only. Names, logos, and UI remain subject to upstream terms.
+- The VLC case downloads the **Sintel trailer** from W3C media storage at runtime. Sintel is a Blender Foundation production credited under Creative Commons Attribution 3.0. The repository does not redistribute the MP4; users remain responsible for following the upstream media license.
+- Public case screenshots are selected from real test runs. Third-party app names, icons, UI text, and media remain the property of their respective rights holders and are shown only to document interoperability and test evidence.
 
-- **AnkiDroid** 是独立的开源 Android 学习应用。本仓库只链接官方 F-Droid APK 并记录版本和 SHA256，不重新分发 APK，也不表示获得 AnkiDroid 或其维护者背书。应用名称、图标和 UI 的权利与许可以其上游项目为准。
-- **Markor** 是独立的开源 Markdown/纯文本 Android 编辑器。本仓库只链接官方 F-Droid APK 并记录版本和 SHA256，不重新分发 APK，也不表示获得 Markor 或其维护者背书。应用名称、图标和 UI 的权利与许可以其上游项目为准。
+- **Wikipedia for Android** 是独立的开源应用。本仓库只链接固定 F-Droid 构建并记录 SHA256，不重新分发 APK，也不表示获得 Wikimedia 或应用维护者背书。F-Droid 标注其许可为 Apache License 2.0。应用名称、标志、文章内容和 UI 的权利与许可以各自上游为准。
+- **Fennec F-Droid** 是独立的 Firefox 构建。本仓库只链接固定 F-Droid 构建并记录 SHA256，不重新分发 APK，也不表示获得 Mozilla 或 Fennec 维护者背书。F-Droid 标注其许可为 Mozilla Public License 2.0。名称、标志和 UI 仍受上游商标与许可约束。
+- **VLC for Android** 是独立的开源媒体应用。本仓库只链接固定 F-Droid 构建并记录 SHA256，不重新分发 APK，也不表示获得 VideoLAN 或 VLC 维护者背书。F-Droid 标注其许可为 GNU General Public License v3.0 only。名称、标志和 UI 仍受上游条款约束。
+- VLC 案例在运行时从 W3C media storage 下载 **Sintel trailer**。Sintel 是 Blender Foundation 作品，采用 Creative Commons Attribution 3.0 许可。本仓库不重新分发 MP4，使用者仍需遵守上游媒体许可。
+- 公开案例截图来自真实运行。第三方应用名称、图标、UI 文本和媒体的权利归各自权利人所有，仅用于说明互操作和测试证据。
 - 公开案例截图来自真实测试运行的筛选结果。第三方应用名称、图标和 UI 文本归各自权利人所有，仅用于说明互操作和测试证据。
 
 ## 6. 开发与 CI 工具 / Development and CI tools
