@@ -1,22 +1,23 @@
 # 示例 / Examples
 
-这些流程只使用虚构的包名、凭据和 APK 路径。请替换成你有权测试的应用、坐标和构建。
+这里只放可复现的真实 MuMu 案例。每个案例都会下载并校验固定开源 APK，所有运行产物写入被 Git 忽略的 `runs/`。
 
-These flows use fictional package names, credentials, and APK paths. Replace them with an application, coordinates, and build that you are authorized to test.
+This directory contains reproducible live MuMu cases only. Each case downloads and verifies a pinned open-source APK, and all run artifacts are written under ignored `runs/` storage.
+
+## 真实案例 / Live cases
+
+- `ankidroid-deck-persistence/`：AnkiDroid 首次引导、创建牌组、填写问答卡片、冷启动和持久化验证。真实运行 **49/49 passed**。
+- `markor-note-persistence/`：Markor 多页引导、创建 Markdown 笔记、保存、冷启动、文件搜索和正文恢复。真实运行 **46/46 passed**。
 
 ```powershell
-app-testbench validate .\examples\smoke.yaml
-app-testbench run .\examples\smoke.yaml --output .\runs
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
 ```
 
-- `smoke.yaml`：最短的启动、UI、截图和报告流程 / shortest launch, UI, screenshot, and report flow
-- `smoke.json`：等价的 JSON 结构 / equivalent JSON shape
-- `login-search.yaml`：包含文本输入、等待、截图和 teardown 的较大流程 / larger flow with text input, waits, screenshots, and teardown
+AnkiDroid 脚本只清理本案例拥有的数据；Markor 默认在结束后删除 `app-testbench-*.md` 并卸载 Markor。两个脚本都会核对 APK 的包名、版本和 SHA256，运行 flow，并生成 JUnit。
 
-`validate` 只检查 schema，不要求 `app.apk` 存在。`run` 需要真实 APK 路径、可用的 MuMu 实例和 ADB。
+The AnkiDroid script resets only case-owned state. Markor removes its `app-testbench-*.md` files and uninstalls the app by default. Both scripts verify APK identity and SHA256, run the flow, and produce JUnit output.
 
-`validate` checks the schema only and does not require `app.apk` to exist. `run` requires a real APK path, a working MuMu instance, and ADB.
+完整截图、结果和限制见 [`../docs/cases.md`](../docs/cases.md)。
 
-示例中的 `qa@example.com` 和 `example-password` 是明显占位值，不是可用账号。
-
-The values `qa@example.com` and `example-password` are obvious placeholders, not working credentials.
+See [`../docs/cases.md`](../docs/cases.md) for screenshots, observed results, and known limits.
