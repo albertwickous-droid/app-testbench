@@ -20,11 +20,11 @@ def test_mumu_manager_adapter(fake_tools: dict[str, Path]) -> None:
     instance = instances[0]
     assert instance.index == 0
     assert instance.running is True
-    assert instance.serial == "127.0.0.1:16384"
+    assert instance.serial == "127.0.0.1:5555"
     assert instance.android_version == "12.0"
 
     assert client.instance(0).name == "Fake Phone"
-    assert client.resolve_serial(0) == "127.0.0.1:16384"
+    assert client.resolve_serial(0) == "127.0.0.1:5555"
     assert "launch" in client.control(0, "launch")
 
     commands = [
@@ -81,7 +81,7 @@ def test_wait_until_running_waits_for_android_start(
         name="MuMu Android",
         player_state="running",
         android_started=False,
-        adb_port=16384,
+        adb_port=5555,
         adb_host="127.0.0.1",
         process_started=True,
     )
@@ -90,7 +90,7 @@ def test_wait_until_running_waits_for_android_start(
         name="MuMu Android",
         player_state="running",
         android_started=True,
-        adb_port=16384,
+        adb_port=5555,
         adb_host="127.0.0.1",
         process_started=True,
     )
@@ -122,18 +122,18 @@ def test_resolve_serial_does_not_probe_other_instance_ports_when_target_is_stopp
 ) -> None:
     client = MuMuManagerClient(fake_tools["manager"], ProcessRunner(10))
     stopped = Instance(
-        index=0,
+        index=1,
         name="target-stopped",
         player_state="stopped",
         android_started=False,
         adb_port=None,
-        adb_host="127.0.0.1",
+        adb_host="192.0.2.1",
         process_started=False,
     )
     monkeypatch.setattr(client, "instance", lambda _: stopped)
     monkeypatch.setattr("app_testbench.mumu._port_open", lambda *args, **kwargs: True)
 
-    assert client.resolve_serial(0) == "127.0.0.1:16384"
+    assert client.resolve_serial(1) == "192.0.2.1:16416"
 
 
 def test_resolve_serial_probes_fallback_ports_when_target_is_running(

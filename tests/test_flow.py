@@ -305,7 +305,7 @@ def test_open_action_defaults_package_and_validates_mime(tmp_path: Path) -> None
         """
 version: 1
 device:
-  package: org.mozilla.fennec_fdroid
+  package: com.example.app
 steps:
   - action: open
     uri: http://127.0.0.1:18765/
@@ -317,7 +317,7 @@ steps:
     flow = load_flow(path)
     assert flow.steps[0].params == {
         "uri": "http://127.0.0.1:18765/",
-        "package": "org.mozilla.fennec_fdroid",
+        "package": "com.example.app",
         "mime_type": "text/html",
     }
 
@@ -390,3 +390,74 @@ def test_orientation_action_rejects_unknown_mode(tmp_path: Path) -> None:
     )
     with pytest.raises(FlowError, match="portrait, landscape, or auto"):
         load_flow(path)
+
+
+def test_tap_text_and_clear_text_are_normalized(tmp_path: Path) -> None:
+    path = tmp_path / "selector.yaml"
+    path.write_text(
+        """
+version: 1
+steps:
+  - action: tap-text
+    text: Search
+    field: content-desc
+    match: exact
+    index: 1
+    timeout: 5
+    interval: 0.2
+    optional: true
+  - action: clear-text
+    count: 12
+""".strip(),
+        encoding="utf-8",
+    )
+
+    flow = load_flow(path)
+
+    assert flow.steps[0].action == "tap_text"
+    assert flow.steps[0].params == {
+        "text": "Search",
+        "field": "content-desc",
+        "match": "exact",
+        "index": 1,
+        "timeout": 5.0,
+        "interval": 0.2,
+        "ignore_case": False,
+        "optional": True,
+    }
+    assert flow.steps[1].params == {"count": 12}
+
+
+def test_tap_text_rejects_unknown_match_mode(tmp_path: Path) -> None:
+    path = tmp_path / "selector.yaml"
+    path.write_text(
+        """
+version: 1
+steps:
+  - action: tap_text
+    text: Search
+    match: fuzzy
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FlowError, match="exact or contains"):
+        load_flow(path)
+
+
+def test_wait_for_text_normalizes_anr_recovery(tmp_path: Path) -> None:
+    path = tmp_path / "wait-anr.yaml"
+    path.write_text(
+        """
+version: 1
+steps:
+  - action: wait_for_text
+    text: Ready
+    recover_anr: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    flow = load_flow(path)
+
+    assert flow.steps[0].params["recover_anr"] is True

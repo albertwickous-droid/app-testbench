@@ -192,7 +192,7 @@ def test_instance_list_json(fake_tools: dict[str, Path], capsys) -> None:
     )
     payload = json.loads(capsys.readouterr().out)
     assert code == 0
-    assert payload["data"]["instances"][0]["serial"] == "127.0.0.1:16384"
+    assert payload["data"]["instances"][0]["serial"] == "127.0.0.1:5555"
 
 
 def test_validate_flow(fake_tools: dict[str, Path], tmp_path: Path, capsys) -> None:
@@ -588,7 +588,7 @@ def test_open_cli_builds_view_intent(fake_tools: dict[str, Path], capsys) -> Non
             "open",
             "http://127.0.0.1:18765/",
             "--package",
-            "org.mozilla.fennec_fdroid",
+            "com.example.app",
             "--mime-type",
             "text/html",
             "--adb",
@@ -603,7 +603,7 @@ def test_open_cli_builds_view_intent(fake_tools: dict[str, Path], capsys) -> Non
     assert code == 0
     assert payload["ok"] is True
     assert payload["data"]["uri"] == "http://127.0.0.1:18765/"
-    assert payload["data"]["package"] == "org.mozilla.fennec_fdroid"
+    assert payload["data"]["package"] == "com.example.app"
     commands = [
         json.loads(line)
         for line in (fake_tools["adb_state"] / "adb-commands.jsonl")

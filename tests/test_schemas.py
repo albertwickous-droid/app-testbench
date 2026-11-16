@@ -22,7 +22,7 @@ def _result() -> RunResult:
         started_at=now_iso(),
         finished_at=now_iso(),
         duration_ms=12,
-        environment={"serial": "127.0.0.1:16384"},
+        environment={"serial": "127.0.0.1:5555"},
         config={},
         steps=[
             StepResult(

@@ -23,12 +23,12 @@ from app_testbench.utils import ProcessRunner
 
 def test_parse_adb_devices() -> None:
     output = """List of devices attached
-127.0.0.1:16384\tdevice product:fake model:FakeMuMu device:fake
+127.0.0.1:5555\tdevice product:fake model:FakeMuMu device:fake
 emulator-5554\toffline
 """
     assert parse_adb_devices(output) == [
         {
-            "serial": "127.0.0.1:16384",
+            "serial": "127.0.0.1:5555",
             "state": "device",
             "product": "fake",
             "model": "FakeMuMu",
@@ -71,7 +71,7 @@ def test_parse_surface_orientation() -> None:
 def test_android_device_fixture_workflow(fake_tools: dict[str, Path], tmp_path: Path) -> None:
     runner = ProcessRunner(10)
     device = AndroidDevice(fake_tools["adb"], runner)
-    assert device.connect() == "127.0.0.1:16384"
+    assert device.connect() == "127.0.0.1:5555"
     assert device.get_state() == "device"
 
     device.tap(10, 20)
@@ -155,9 +155,9 @@ def test_get_state_ignores_adb_stderr_diagnostics(
     fake_tools: dict[str, Path], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("FAKE_ADB_GET_STATE_STDERR", "1")
-    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:16384")
+    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:5555")
     assert device.get_state() == "device"
-    assert device.connect() == "127.0.0.1:16384"
+    assert device.connect() == "127.0.0.1:5555"
 
 
 def test_wait_until_boot_complete_polls_until_ready(
@@ -325,11 +325,11 @@ def test_open_uri_and_port_validation() -> None:
 
 
 def test_open_uri_builds_a_quoted_view_intent(fake_tools: dict[str, Path]) -> None:
-    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:16384")
+    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:5555")
 
     device.open_uri(
         "http://127.0.0.1:18765/?mode=qa",
-        package="org.mozilla.fennec_fdroid",
+        package="com.example.app",
         mime_type="text/html",
     )
 
@@ -343,13 +343,13 @@ def test_open_uri_builds_a_quoted_view_intent(fake_tools: dict[str, Path]) -> No
     assert any(
         "am start -W -a android.intent.action.VIEW" in command[command.index("shell") + 1]
         and "http://127.0.0.1:18765/?mode=qa" in command[command.index("shell") + 1]
-        and "-p org.mozilla.fennec_fdroid" in command[command.index("shell") + 1]
+        and "-p com.example.app" in command[command.index("shell") + 1]
         for command in shell_commands
     )
 
 
 def test_reverse_port_builds_and_removes_mapping(fake_tools: dict[str, Path]) -> None:
-    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:16384")
+    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:5555")
 
     device.reverse_port(18_765, local_port=18_766)
     device.reverse_port(18_765, remove=True)
@@ -371,7 +371,7 @@ def test_clear_data_and_orientation_command_shape(
     fake_tools: dict[str, Path], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("FAKE_ADB_SURFACE_ORIENTATION_SEQUENCE", "1,0")
-    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:16384")
+    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10), "127.0.0.1:5555")
 
     assert device.clear_app_data("com.example.app") == "Success"
     message = device.set_orientation("portrait")

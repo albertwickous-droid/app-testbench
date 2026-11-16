@@ -31,6 +31,8 @@ _ACTION_ALIASES = {
     "reverse-port": "reverse_port",
     "clear-data": "clear_app_data",
     "clear-app-data": "clear_app_data",
+    "tap-text": "tap_text",
+    "clear-text": "clear_text",
 }
 _ACTION_SPECS: dict[str, frozenset[str]] = {
     "install": frozenset(
@@ -50,6 +52,10 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
     "orientation": frozenset({"mode"}),
     "reverse_port": frozenset({"port", "local_port", "remove"}),
     "tap": frozenset({"x", "y"}),
+    "tap_text": frozenset(
+        {"text", "field", "match", "index", "timeout", "interval", "ignore_case", "optional"}
+    ),
+    "clear_text": frozenset({"count"}),
     "swipe": frozenset({"x1", "y1", "x2", "y2", "duration_ms"}),
     "text": frozenset({"text"}),
     "keyevent": frozenset({"key"}),
@@ -61,7 +67,7 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
     "logcat": frozenset({"label", "lines"}),
     "assert_ui_contains": frozenset({"text", "ignore_case"}),
     "assert_ui_not_contains": frozenset({"text", "ignore_case"}),
-    "wait_for_text": frozenset({"text", "timeout", "interval", "ignore_case"}),
+    "wait_for_text": frozenset({"text", "timeout", "interval", "ignore_case", "recover_anr"}),
 }
 _STEP_KEYS = frozenset({"action", "id", "name", "description", "continue_on_error", "screenshot"})
 _DEFAULT_NAMES = {
@@ -73,6 +79,8 @@ _DEFAULT_NAMES = {
     "orientation": "Set screen orientation",
     "reverse_port": "Configure ADB reverse port",
     "tap": "Tap",
+    "tap_text": "Tap visible UI text",
+    "clear_text": "Clear text input",
     "swipe": "Swipe",
     "text": "Enter text",
     "keyevent": "Press key",
@@ -371,6 +379,7 @@ def _normalize_step(
         "orientation": {"mode"},
         "reverse_port": {"port"},
         "tap": {"x", "y"},
+        "tap_text": {"text"},
         "swipe": {"x1", "y1", "x2", "y2"},
         "text": {"text"},
         "keyevent": {"key"},
@@ -490,6 +499,46 @@ def _normalize_step(
     elif action == "tap":
         params["x"] = _integer(params["x"], field_name=f"{location}.x", minimum=0, maximum=100_000)
         params["y"] = _integer(params["y"], field_name=f"{location}.y", minimum=0, maximum=100_000)
+    elif action == "tap_text":
+        params["text"] = _string(params["text"], field_name=f"{location}.text")
+        field = _string(params.get("field", "any"), field_name=f"{location}.field").lower()
+        if field not in {"any", "text", "content-desc"}:
+            raise FlowError(f"{location}.field must be any, text, or content-desc")
+        params["field"] = field
+        match = _string(params.get("match", "contains"), field_name=f"{location}.match").lower()
+        if match not in {"exact", "contains"}:
+            raise FlowError(f"{location}.match must be exact or contains")
+        params["match"] = match
+        params["index"] = _integer(
+            params.get("index", 0), field_name=f"{location}.index", minimum=0, maximum=100
+        )
+        params["timeout"] = _number(
+            params.get("timeout", 10),
+            field_name=f"{location}.timeout",
+            minimum=1,
+            maximum=600,
+        )
+        params["interval"] = _number(
+            params.get("interval", 0.5),
+            field_name=f"{location}.interval",
+            minimum=0.1,
+            maximum=30,
+        )
+        params["ignore_case"] = _bool(
+            params.get("ignore_case", False),
+            field_name=f"{location}.ignore_case",
+        )
+        params["optional"] = _bool(
+            params.get("optional", False),
+            field_name=f"{location}.optional",
+        )
+    elif action == "clear_text":
+        params["count"] = _integer(
+            params.get("count", 40),
+            field_name=f"{location}.count",
+            minimum=1,
+            maximum=500,
+        )
     elif action == "swipe":
         for key in ("x1", "y1", "x2", "y2"):
             params[key] = _integer(
@@ -550,6 +599,10 @@ def _normalize_step(
         params["ignore_case"] = _bool(
             params.get("ignore_case", False),
             field_name=f"{location}.ignore_case",
+        )
+        params["recover_anr"] = _bool(
+            params.get("recover_anr", False),
+            field_name=f"{location}.recover_anr",
         )
 
     return FlowStep(

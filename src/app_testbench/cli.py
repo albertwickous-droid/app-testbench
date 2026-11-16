@@ -110,7 +110,7 @@ def _common_parser() -> argparse.ArgumentParser:
         "--instance", type=int, default=argparse.SUPPRESS, help="MuMu instance index"
     )
     parser.add_argument(
-        "--serial", default=argparse.SUPPRESS, help="ADB serial, for example 127.0.0.1:16384"
+        "--serial", default=argparse.SUPPRESS, help="ADB serial, for example 127.0.0.1:5555"
     )
     parser.add_argument(
         "--timeout",

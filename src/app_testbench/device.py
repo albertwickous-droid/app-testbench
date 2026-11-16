@@ -20,6 +20,7 @@ ACTIVITY_RE = re.compile(r"^[A-Za-z_.$][A-Za-z0-9_.$]*(?:/[A-Za-z_.$][A-Za-z0-9_
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MIME_TYPE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+-]*/[A-Za-z0-9][A-Za-z0-9.+-]*$")
 OPEN_URI_SCHEMES = frozenset({"http", "https", "file", "content"})
+UI_BOUNDS_RE = re.compile(r"^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$")
 
 
 def validate_package(package: str) -> str:
@@ -592,6 +593,13 @@ class AndroidDevice:
         normalized = normalize_keyevent(key)
         return self._run("shell", "input", "keyevent", normalized).combined_output.strip()
 
+    def clear_text(self, count: int = 40) -> str:
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1 or count > 500:
+            raise DeviceError("clear_text count must be an integer between 1 and 500")
+        for _ in range(count):
+            self.keyevent("KEYCODE_DEL")
+        return f"Sent {count} delete key events"
+
     def back(self) -> str:
         return self.keyevent("KEYCODE_BACK")
 
@@ -652,6 +660,40 @@ class AndroidDevice:
                 if value and value not in values:
                     values.append(value)
         return values
+
+    def ui_nodes(self, xml_path: Path) -> list[dict[str, Any]]:
+        """Return visible UI nodes with parsed screen bounds and centers."""
+
+        try:
+            root = ET.parse(xml_path).getroot()
+        except (ET.ParseError, OSError) as exc:
+            raise DeviceError(f"Could not parse UI XML: {xml_path}") from exc
+
+        nodes: list[dict[str, Any]] = []
+        for raw_node in root.iter():
+            bounds_match = UI_BOUNDS_RE.fullmatch((raw_node.attrib.get("bounds") or "").strip())
+            if bounds_match is None:
+                continue
+            left, top, right, bottom = (int(value) for value in bounds_match.groups())
+            if right <= left or bottom <= top:
+                continue
+            text = (raw_node.attrib.get("text") or "").strip()
+            content_desc = (raw_node.attrib.get("content-desc") or "").strip()
+            if not text and not content_desc:
+                continue
+            nodes.append(
+                {
+                    "text": text,
+                    "content_desc": content_desc,
+                    "class": (raw_node.attrib.get("class") or "").strip(),
+                    "resource_id": (raw_node.attrib.get("resource-id") or "").strip(),
+                    "clickable": (raw_node.attrib.get("clickable") or "false").lower() == "true",
+                    "enabled": (raw_node.attrib.get("enabled") or "true").lower() == "true",
+                    "bounds": [left, top, right, bottom],
+                    "center": [(left + right) // 2, (top + bottom) // 2],
+                }
+            )
+        return nodes
 
     def ui_node_count(self, xml_path: Path) -> int:
         try:

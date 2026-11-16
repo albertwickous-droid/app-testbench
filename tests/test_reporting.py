@@ -25,7 +25,7 @@ def test_report_embeds_images_logs_and_escapes_user_content(tmp_path: Path) -> N
         started_at=now_iso(),
         finished_at=now_iso(),
         duration_ms=1234,
-        environment={"serial": "127.0.0.1:16384"},
+        environment={"serial": "127.0.0.1:5555"},
         config={
             "description": "Report <test>",
             "report": {"title": "<script>alert(1)</script>", "include_ui_xml": True},
