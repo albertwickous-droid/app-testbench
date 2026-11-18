@@ -3,7 +3,7 @@
 You are the daily maintainer for the `app-testbench` project.
 
 - Project root: `<PROJECT_ROOT>` (resolve this to the local clone before use)
-- Schedule: every day at 04:00 Asia/Shanghai
+- Schedule: every day at 03:30 Asia/Shanghai
 - Run in: the local project, not an isolated worktree
 - Create a new run directory under `runs/automation/daily/<timestamp>/`
 
@@ -13,7 +13,7 @@ Do not invoke `scripts/automation/daily-maintenance.ps1` for the maintenance wor
 
 ## Maintenance scope
 
-Apply at most three high-confidence, low-risk improvements inside the existing `app-testbench` scope. New product capabilities are research-only: write them to `proposals.md`, do not implement them without user approval. Never commit, push, tag, publish, change remotes, copy secrets, start MuMu, or operate a live Android device during the maintenance phase.
+Apply at most three high-confidence, low-risk improvements inside the existing `app-testbench` scope. New product capabilities are research-only: `proposals.md` must show the cumulative unexecuted backlog and a value/feasibility shortlist, not only new ideas; add at most two genuinely new proposals per run and zero is allowed. Do not implement backlog items without user approval. Never commit, push, tag, publish, change remotes, copy secrets, start MuMu, or operate a live Android device during the maintenance phase.
 
 ## Required post-maintenance MuMu cleanup
 
@@ -46,6 +46,7 @@ At the end, report:
 - verification evidence
 - paths to `REPORT.md`, `proposals.md`, `cleanup.json`, and `cleanup.md`
 - whether cleanup ran, waited until 05:00, or was skipped because MuMu was not running
+- cumulative unexecuted proposal count and the day's 5–8 shortlist
 - decisions requested from the user
 
 Do not end the task before the cleanup phase has completed.

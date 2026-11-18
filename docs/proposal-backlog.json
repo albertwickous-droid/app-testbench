@@ -1,0 +1,914 @@
+{
+  "source": "E:\\ai\\project\\app-testbench\\docs\\proposal-backlog.md",
+  "raw_record_count": 69,
+  "unique_count": 54,
+  "status_counts": {
+    "implemented": 7,
+    "partial": 6,
+    "pending": 41
+  },
+  "unique_proposals": [
+    {
+      "id": 1,
+      "title": "选择器 UI 定位扩展",
+      "status": "◐ 部分实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-07",
+      "notes": "已有 tap_text 的 text/content-desc；resource-id/class/package 仍未支持"
+    },
+    {
+      "id": 2,
+      "title": "JUnit XML 测试报告导出",
+      "status": "✅ 已实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-07",
+      "notes": "run --junit-xml；passed/failed/skipped"
+    },
+    {
+      "id": 3,
+      "title": "Unicode / 非 ASCII 文本输入",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "当前 text 只接受可打印 ASCII；需 ADBKeyboard 或剪贴板适配器"
+    },
+    {
+      "id": 4,
+      "title": "步骤级有界重试",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "只对显式幂等步骤重试，保留每次尝试证据"
+    },
+    {
+      "id": 5,
+      "title": "设备矩阵执行",
+      "status": "○ 未执行",
+      "value": "中高",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "先串行、后并行；与单实例锁和状态隔离耦合"
+    },
+    {
+      "id": 6,
+      "title": "报告脱敏 / 敏感信息策略",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "截图、日志、UI 文本、变量值的脱敏和保留边界"
+    },
+    {
+      "id": 7,
+      "title": "有界屏幕录制证据",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "限制时长、大小和保留时间，避免默认产生大文件"
+    },
+    {
+      "id": 8,
+      "title": "Split APK / 多 APK 安装",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "支持 .apks/.xapk 或显式 split 列表"
+    },
+    {
+      "id": 9,
+      "title": "只读 Android 运行时快照与预检",
+      "status": "◐ 部分实现",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-07",
+      "notes": "doctor 已有部分环境检查；缺统一快照和差异报告"
+    },
+    {
+      "id": 10,
+      "title": "运行证据 Manifest / 原子写入 / 保留策略",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-07",
+      "notes": "合并 run manifest、SHA-256、原子写、索引和清理策略"
+    },
+    {
+      "id": 11,
+      "title": "Android 启动完成就绪门禁",
+      "status": "✅ 已实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-08",
+      "notes": "device.wait_for_boot、boot_timeout、--wait-for-boot"
+    },
+    {
+      "id": 12,
+      "title": "前台 Activity 断言与等待",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-08",
+      "notes": "校验当前 resumed activity，避免误在系统页或错误 App 上操作"
+    },
+    {
+      "id": 13,
+      "title": "步骤级 logcat 时间窗证据",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-08",
+      "notes": "把每一步与对应时间窗日志关联，便于失败定位"
+    },
+    {
+      "id": 14,
+      "title": "显式 App 数据重置",
+      "status": "✅ 已实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-08",
+      "notes": "clear-data / clear_app_data"
+    },
+    {
+      "id": 15,
+      "title": "发布 Flow JSON Schema",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-08",
+      "notes": "为 flow 文件本身提供可编辑、可校验的 Schema"
+    },
+    {
+      "id": 16,
+      "title": "结构化 Crash / ANR 证据与自动识别",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-08",
+      "notes": "现有 recover_anr 只处理可见对话框，不等同于自动识别和证据包"
+    },
+    {
+      "id": 17,
+      "title": "App 身份与版本核验",
+      "status": "✅ 已实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-08",
+      "notes": "安装后 dumpsys package 核验 package/versionCode/versionName"
+    },
+    {
+      "id": 18,
+      "title": "冷/热启动性能预算",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-08",
+      "notes": "记录启动耗时并支持阈值失败"
+    },
+    {
+      "id": 19,
+      "title": "ADB 传输健康检查与显式恢复",
+      "status": "◐ 部分实现",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-08",
+      "notes": "doctor 有基础检查；缺传输异常分类和受控恢复"
+    },
+    {
+      "id": 20,
+      "title": "Flow 级执行预算与超时收口",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-09",
+      "notes": "给整条 flow 设置总预算并可靠终止"
+    },
+    {
+      "id": 21,
+      "title": "严格受限的 Deep Link 启动",
+      "status": "✅ 已实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-09",
+      "notes": "open action 校验 http/https/file/content 和 MIME"
+    },
+    {
+      "id": 22,
+      "title": "可解释的 UI 稳定等待",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-09",
+      "notes": "等待 UI 树稳定，而不是固定 sleep"
+    },
+    {
+      "id": 23,
+      "title": "ADB reverse 本地测试服务桥",
+      "status": "✅ 已实现",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-09",
+      "notes": "reverse-port action"
+    },
+    {
+      "id": 24,
+      "title": "受控测试文件传递",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-09",
+      "notes": "push fixture / pull artifact，并限制路径和大小"
+    },
+    {
+      "id": 25,
+      "title": "分辨率无关的归一化手势坐标",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-09",
+      "notes": "用比例坐标降低不同分辨率适配成本"
+    },
+    {
+      "id": 26,
+      "title": "Locale / timezone 只读场景契约",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-09",
+      "notes": "只读记录并断言语言、时区，不静默修改设备"
+    },
+    {
+      "id": 27,
+      "title": "assert_logcat 日志断言",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-10",
+      "notes": "把日志条件变成可失败的测试断言"
+    },
+    {
+      "id": 28,
+      "title": "权限与应用状态预设",
+      "status": "◐ 部分实现",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-10",
+      "notes": "已有 install -g 和 clear-data；缺显式 grant/revoke/reset 与状态审计"
+    },
+    {
+      "id": 29,
+      "title": "不触碰设备的 resolved execution plan / --dry-run",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-10",
+      "notes": "展示最终 flow、设备、变量和将要执行的命令"
+    },
+    {
+      "id": 30,
+      "title": "--vars-file / --var 可复现变量输入",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-10",
+      "notes": "当前只有环境变量插值，缺显式变量文件和优先级"
+    },
+    {
+      "id": 31,
+      "title": "Result / CLI JSON Schema 契约",
+      "status": "✅ 已实现",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-10",
+      "notes": "result-v1 和 cli-v1，Draft 2020-12"
+    },
+    {
+      "id": 32,
+      "title": "稳定 failure taxonomy",
+      "status": "◐ 部分实现",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-10",
+      "notes": "已有结构化 error.type；缺完整、稳定、可扩展的分类表"
+    },
+    {
+      "id": 33,
+      "title": "logcat tag/priority 过滤",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-10",
+      "notes": "限制采集范围，降低日志体积和噪声"
+    },
+    {
+      "id": 34,
+      "title": "有界重复执行与 flake 聚合",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-11",
+      "notes": "重复运行并区分首次通过、重试通过和稳定失败"
+    },
+    {
+      "id": 35,
+      "title": "文本清空 / 替换动作",
+      "status": "◐ 部分实现",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-11",
+      "notes": "clear_text 已实现；replace_text 仍未实现"
+    },
+    {
+      "id": 36,
+      "title": "可复用 flow 片段 include / template",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-11",
+      "notes": "减少重复 flow，并检测循环依赖"
+    },
+    {
+      "id": 37,
+      "title": "机器级配置 profile",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-11",
+      "notes": "不含凭据的本机工具路径和设备偏好"
+    },
+    {
+      "id": 38,
+      "title": "可选 UI 文本规范化断言",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-11",
+      "notes": "处理空白、全半角、大小写等文本差异"
+    },
+    {
+      "id": 39,
+      "title": "唤醒与解除非安全键盘锁",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-11",
+      "notes": "仅限授权测试设备，不处理安全锁"
+    },
+    {
+      "id": 40,
+      "title": "有界 Perfetto 性能 trace",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-11",
+      "notes": "限制时长和大小，保留可分析 trace"
+    },
+    {
+      "id": 41,
+      "title": "UI 可访问性 smoke audit",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-11",
+      "notes": "检查 content-desc、可点击区域、重复节点等基础问题"
+    },
+    {
+      "id": 42,
+      "title": "实时 NDJSON 步骤事件流",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-11",
+      "notes": "让 CI 或 Agent 实时消费步骤开始/结束/失败事件"
+    },
+    {
+      "id": 43,
+      "title": "APK 安装前 SHA-256 完整性校验",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-12",
+      "notes": "在 adb install 前验证文件摘要"
+    },
+    {
+      "id": 44,
+      "title": "MuMu 实例级并发执行锁",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-12",
+      "notes": "防止多个 runner 同时操作同一实例"
+    },
+    {
+      "id": 45,
+      "title": "Flow 标签元数据与筛选执行",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-12",
+      "notes": "按 smoke/regression/feature 标签选择 flow"
+    },
+    {
+      "id": 46,
+      "title": "只读显示环境契约",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-12",
+      "notes": "记录分辨率、DPI、方向和显示模式并断言"
+    },
+    {
+      "id": 47,
+      "title": "可选 ADB server 端口隔离",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-12",
+      "notes": "为专用测试环境隔离 ADB server"
+    },
+    {
+      "id": 48,
+      "title": "wait_for_text_gone",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "高",
+      "first_seen": "2026-11-13",
+      "notes": "等待 Loading/错误提示等文本消失，替代固定 sleep"
+    },
+    {
+      "id": 49,
+      "title": "APK test-only / 降级安装选项",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "中",
+      "first_seen": "2026-11-13",
+      "notes": "显式支持 testOnly 和 downgrade 安装参数"
+    },
+    {
+      "id": 50,
+      "title": "APK 安装失败分类",
+      "status": "○ 未执行",
+      "value": "中",
+      "feasibility": "高",
+      "first_seen": "2026-11-13",
+      "notes": "把 INSTALL_FAILED_* 转成稳定、可行动的错误分类"
+    },
+    {
+      "id": 51,
+      "title": "有界滚动查找文本",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-13",
+      "notes": "在有限次数/距离内滚动寻找目标，避免无限滑动"
+    },
+    {
+      "id": 52,
+      "title": "截图视觉回归基线",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-16",
+      "notes": "阈值、遮罩、diff 图和基线审批"
+    },
+    {
+      "id": 53,
+      "title": "Flow Suite 编排与聚合证据",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-17",
+      "notes": "多 flow 顺序执行、聚合 JUnit/HTML 和 suite 结果"
+    },
+    {
+      "id": 54,
+      "title": "数据驱动 Flow 用例",
+      "status": "○ 未执行",
+      "value": "高",
+      "feasibility": "中",
+      "first_seen": "2026-11-17",
+      "notes": "CSV/JSON 数据行生成 case，复用同一 flow"
+    }
+  ],
+  "raw_records": [
+    {
+      "run": "20261107-040003",
+      "number": 1,
+      "title": "基于选择器的 UI 定位与操作",
+      "group_id": 1
+    },
+    {
+      "run": "20261107-040003",
+      "number": 2,
+      "title": "JUnit XML 与 CI 测试摘要",
+      "group_id": 2
+    },
+    {
+      "run": "20261107-040003",
+      "number": 3,
+      "title": "可选 Unicode 输入适配器（ADBKeyboard）",
+      "group_id": 3
+    },
+    {
+      "run": "20261107-040003",
+      "number": 4,
+      "title": "只对幂等观测步骤启用有界重试",
+      "group_id": 4
+    },
+    {
+      "run": "20261107-040003",
+      "number": 5,
+      "title": "多实例矩阵执行（先串行，后并行）",
+      "group_id": 5
+    },
+    {
+      "run": "20261107-040003",
+      "number": 6,
+      "title": "可分享报告的脱敏/敏感信息策略",
+      "group_id": 6
+    },
+    {
+      "run": "20261107-124430",
+      "number": 1,
+      "title": "有界屏幕录制证据",
+      "group_id": 7
+    },
+    {
+      "run": "20261107-124430",
+      "number": 2,
+      "title": "Split APK / 多 APK 安装",
+      "group_id": 8
+    },
+    {
+      "run": "20261107-124430",
+      "number": 3,
+      "title": "只读 Android 运行时快照与预检",
+      "group_id": 9
+    },
+    {
+      "run": "20261107-124430",
+      "number": 4,
+      "title": "Run 索引、Manifest 与显式保留策略",
+      "group_id": 10
+    },
+    {
+      "run": "20261108-032644",
+      "number": 1,
+      "title": "Android 启动就绪门禁",
+      "group_id": 11
+    },
+    {
+      "run": "20261108-032644",
+      "number": 2,
+      "title": "前台 Activity 断言与等待",
+      "group_id": 12
+    },
+    {
+      "run": "20261108-032644",
+      "number": 3,
+      "title": "步骤级 logcat 时间窗证据",
+      "group_id": 13
+    },
+    {
+      "run": "20261108-032644",
+      "number": 4,
+      "title": "显式 App 数据重置测试隔离动作",
+      "group_id": 14
+    },
+    {
+      "run": "20261108-032644",
+      "number": 5,
+      "title": "发布 Flow JSON Schema",
+      "group_id": 15
+    },
+    {
+      "run": "20261108-040002",
+      "number": 1,
+      "title": "结构化 Crash/ANR 证据包",
+      "group_id": 16
+    },
+    {
+      "run": "20261108-040002",
+      "number": 2,
+      "title": "App 身份与版本预检",
+      "group_id": 17
+    },
+    {
+      "run": "20261108-040002",
+      "number": 3,
+      "title": "冷/热启动性能预算",
+      "group_id": 18
+    },
+    {
+      "run": "20261108-040002",
+      "number": 4,
+      "title": "ADB 传输健康检查与显式恢复",
+      "group_id": 19
+    },
+    {
+      "run": "20261109-033410",
+      "number": 1,
+      "title": "Flow 级执行预算与超时收口",
+      "group_id": 20
+    },
+    {
+      "run": "20261109-033410",
+      "number": 2,
+      "title": "严格受限的 Deep Link 启动",
+      "group_id": 21
+    },
+    {
+      "run": "20261109-033410",
+      "number": 3,
+      "title": "可解释的 UI 稳定等待",
+      "group_id": 22
+    },
+    {
+      "run": "20261109-040002",
+      "number": 1,
+      "title": "用 adb reverse 建立本地测试服务桥",
+      "group_id": 23
+    },
+    {
+      "run": "20261109-040002",
+      "number": 2,
+      "title": "受控测试文件传递：push fixture / pull artifact",
+      "group_id": 24
+    },
+    {
+      "run": "20261109-040002",
+      "number": 3,
+      "title": "分辨率无关的归一化手势坐标",
+      "group_id": 25
+    },
+    {
+      "run": "20261109-040002",
+      "number": 4,
+      "title": "Locale/timezone 只读场景契约",
+      "group_id": 26
+    },
+    {
+      "run": "20261110-032949",
+      "number": 1,
+      "title": "assert_logcat",
+      "group_id": 27
+    },
+    {
+      "run": "20261110-032949",
+      "number": 2,
+      "title": "只读权限状态审计与前置检查",
+      "group_id": 28
+    },
+    {
+      "run": "20261110-032949",
+      "number": 3,
+      "title": "resolved execution plan / --dry-run",
+      "group_id": 29
+    },
+    {
+      "run": "20261110-032949",
+      "number": 4,
+      "title": "--vars-file / --var",
+      "group_id": 30
+    },
+    {
+      "run": "20261110-040002",
+      "number": 1,
+      "title": "发布 RunResult JSON Schema",
+      "group_id": 31
+    },
+    {
+      "run": "20261110-040002",
+      "number": 2,
+      "title": "稳定 failure taxonomy",
+      "group_id": 32
+    },
+    {
+      "run": "20261110-040002",
+      "number": 3,
+      "title": "logcat tag/priority 过滤",
+      "group_id": 33
+    },
+    {
+      "run": "20261111-033112",
+      "number": 1,
+      "title": "有界重复执行与 flake 聚合",
+      "group_id": 34
+    },
+    {
+      "run": "20261111-033112",
+      "number": 2,
+      "title": "显式文本清空 / 替换",
+      "group_id": 35
+    },
+    {
+      "run": "20261111-033112",
+      "number": 3,
+      "title": "可复用 flow 片段 include/template",
+      "group_id": 36
+    },
+    {
+      "run": "20261111-033112",
+      "number": 4,
+      "title": "机器级配置 profile",
+      "group_id": 37
+    },
+    {
+      "run": "20261111-033112",
+      "number": 5,
+      "title": "可选 UI 文本规范化断言",
+      "group_id": 38
+    },
+    {
+      "run": "20261111-040002",
+      "number": 1,
+      "title": "权限场景控制：显式 grant/revoke",
+      "group_id": 28
+    },
+    {
+      "run": "20261111-040002",
+      "number": 2,
+      "title": "唤醒与解除非安全键盘锁",
+      "group_id": 39
+    },
+    {
+      "run": "20261111-040002",
+      "number": 3,
+      "title": "有界 Perfetto 性能 trace",
+      "group_id": 40
+    },
+    {
+      "run": "20261111-040002",
+      "number": 4,
+      "title": "UI 可访问性 smoke audit",
+      "group_id": 41
+    },
+    {
+      "run": "20261111-040002",
+      "number": 5,
+      "title": "实时 NDJSON 步骤事件流",
+      "group_id": 42
+    },
+    {
+      "run": "20261112-033530",
+      "number": 1,
+      "title": "APK 安装前 SHA-256 完整性校验",
+      "group_id": 43
+    },
+    {
+      "run": "20261112-033530",
+      "number": 2,
+      "title": "MuMu 实例级并发执行锁",
+      "group_id": 44
+    },
+    {
+      "run": "20261112-033530",
+      "number": 3,
+      "title": "Flow 标签元数据与显式筛选执行",
+      "group_id": 45
+    },
+    {
+      "run": "20261112-040003",
+      "number": 1,
+      "title": "只读显示环境契约",
+      "group_id": 46
+    },
+    {
+      "run": "20261112-040003",
+      "number": 2,
+      "title": "可选 ADB server 端口隔离",
+      "group_id": 47
+    },
+    {
+      "run": "20261112-040003",
+      "number": 3,
+      "title": "证据文件原子写入与 SHA-256 摘要",
+      "group_id": 10
+    },
+    {
+      "run": "20261113-032638",
+      "number": 1,
+      "title": "设备启动完成就绪门禁",
+      "group_id": 11
+    },
+    {
+      "run": "20261113-032638",
+      "number": 2,
+      "title": "JUnit XML 测试结果导出",
+      "group_id": 2
+    },
+    {
+      "run": "20261113-032638",
+      "number": 3,
+      "title": "安装后包身份与版本核验",
+      "group_id": 17
+    },
+    {
+      "run": "20261113-032638",
+      "number": 4,
+      "title": "机器可读输出的 JSON Schema 契约",
+      "group_id": 31
+    },
+    {
+      "run": "20261113-040003",
+      "number": 1,
+      "title": "wait_for_text_gone",
+      "group_id": 48
+    },
+    {
+      "run": "20261113-040003",
+      "number": 2,
+      "title": "APK test-only / 降级安装选项",
+      "group_id": 49
+    },
+    {
+      "run": "20261113-040003",
+      "number": 3,
+      "title": "APK 安装失败分类",
+      "group_id": 50
+    },
+    {
+      "run": "20261113-040003",
+      "number": 4,
+      "title": "有界滚动查找文本",
+      "group_id": 51
+    },
+    {
+      "run": "20261115-032916",
+      "number": 1,
+      "title": "崩溃与 ANR 自动识别",
+      "group_id": 16
+    },
+    {
+      "run": "20261115-032916",
+      "number": 2,
+      "title": "可访问性选择器动作",
+      "group_id": 1
+    },
+    {
+      "run": "20261115-032916",
+      "number": 3,
+      "title": "报告敏感信息脱敏策略",
+      "group_id": 6
+    },
+    {
+      "run": "20261115-032916",
+      "number": 4,
+      "title": "本地运行产物保留与清理策略",
+      "group_id": 10
+    },
+    {
+      "run": "20261116-033218",
+      "number": 1,
+      "title": "步骤级重试策略与尝试证据",
+      "group_id": 4
+    },
+    {
+      "run": "20261116-033218",
+      "number": 2,
+      "title": "截图视觉回归基线",
+      "group_id": 52
+    },
+    {
+      "run": "20261116-033218",
+      "number": 3,
+      "title": "非 ASCII 文本输入适配",
+      "group_id": 3
+    },
+    {
+      "run": "20261116-033218",
+      "number": 4,
+      "title": "顺序式设备矩阵执行",
+      "group_id": 5
+    },
+    {
+      "run": "20261117-032953",
+      "number": 1,
+      "title": "Flow Suite 编排与聚合证据",
+      "group_id": 53
+    },
+    {
+      "run": "20261117-032953",
+      "number": 2,
+      "title": "数据驱动 Flow 用例",
+      "group_id": 54
+    },
+    {
+      "run": "20261117-032953",
+      "number": 3,
+      "title": "权限与应用状态预设",
+      "group_id": 28
+    },
+    {
+      "run": "20261117-032953",
+      "number": 4,
+      "title": "运行证据完整性清单",
+      "group_id": 10
+    }
+  ]
+}

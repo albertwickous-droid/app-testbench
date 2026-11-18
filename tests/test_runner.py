@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -552,6 +553,38 @@ steps:
         .splitlines()
     ]
     assert any(command[-4:] == ["input", "tap", "300", "550"] for command in commands)
+
+
+def test_wait_for_text_recover_anr_respects_timeout(
+    fake_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("FAKE_ADB_UI_SEQUENCE", "anr")
+    flow_path = tmp_path / "anr-timeout.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: anr-timeout
+steps:
+  - action: wait_for_text
+    text: Login
+    timeout: 1
+    interval: 0.1
+    recover_anr: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    started = time.monotonic()
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+    elapsed = time.monotonic() - started
+
+    assert result.status == "failed"
+    assert result.steps[0].status == "failed"
+    assert "not found within 1s" in (result.steps[0].error or "")
+    assert "ANR recovery was attempted" in (result.steps[0].hint or "")
+    assert elapsed < 5
 
 
 def test_optional_tap_text_returns_not_found_without_failing(

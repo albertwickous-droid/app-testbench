@@ -1,6 +1,6 @@
 # Daily maintenance automation
 
-The canonical maintenance scheduler for this workspace is **Codex native Scheduled** in local-project mode. It runs daily at 04:00 Asia/Shanghai and uses `scripts/automation/codex-scheduled-prompt.md` as its prompt.
+The canonical maintenance scheduler for this workspace is **Codex native Scheduled** in local-project mode. It runs daily at 03:30 Asia/Shanghai and uses `scripts/automation/codex-scheduled-prompt.md` as its prompt.
 
 The Windows Task Scheduler wrapper is retained only as a fallback. The default task name is `app-testbench-daily-optimizer`; after a repository rename an existing task may still use the old name (for example `mumu-runner-daily-optimizer`). Verify the actual task name with `Get-ScheduledTask` and confirm it is **disabled** so the native scheduler and the wrapper cannot edit the same worktree concurrently. Do not enable or start both schedulers for the same maintenance window.
 
@@ -10,9 +10,23 @@ The maintenance workflow has a deliberately narrow contract:
 - **Research only:** new capabilities and expansion ideas. Every proposal is saved for human review and is not added to the product without approval.
 - **Never automatically:** commit, push, tag, publish, alter remotes or secrets, start MuMu, or operate a live device. The only MuMu lifecycle action is closing it after the run, as described below.
 
+## Proposal backlog
+
+`docs/proposal-backlog.md` is the cumulative human-readable proposal source and
+`docs/proposal-backlog.json` is its machine-readable mirror. Every daily run
+must read both, merge newer research from prior `proposals.md` files, and show:
+
+- all unexecuted proposals grouped by category
+- a 5–8 item shortlist ranked by value and feasibility
+- at most two genuinely new proposals; zero is allowed
+- explicit `已实现` / `部分实现` status for work already shipped
+
+The daily `proposals.md` is a cumulative view, not a list of only-new ideas. A
+backlog item is never implemented without explicit user approval.
+
 ## Native Codex Scheduled (active)
 
-Create or edit the Codex Scheduled task with the local project folder selected, daily at 04:00, and paste the contents of [`scripts/automation/codex-scheduled-prompt.md`](../scripts/automation/codex-scheduled-prompt.md) as its prompt. The native prompt invokes the maintenance contract directly and performs MuMu cleanup as a final phase; it does not call `daily-maintenance.ps1`, so there is no nested Codex process.
+Create or edit the Codex Scheduled task with the local project folder selected, daily at 03:30, and paste the contents of [`scripts/automation/codex-scheduled-prompt.md`](../scripts/automation/codex-scheduled-prompt.md) as its prompt. The native prompt invokes the maintenance contract directly and performs MuMu cleanup as a final phase; it does not call `daily-maintenance.ps1`, so there is no nested Codex process.
 
 Use local-project mode for this workflow. An isolated worktree separates edits but is unnecessary here and can make cleanup/report paths confusing. If the repository is moved or renamed, update the native Scheduled task's local project folder and prompt path before the next run; otherwise the scheduler may continue to target the old path.
 
@@ -26,7 +40,7 @@ From the repository root, re-enable it only when native Scheduled is intentional
 .\scripts\automation\register-daily-task.ps1
 ```
 
-The default schedule is every day at **04:00 local time**. The task:
+The default schedule is every day at **03:30 local time**. The task:
 
 - wakes the computer when Windows permits it
 - can start while on battery power
@@ -43,13 +57,14 @@ Use a different task name or time if needed:
 
 ## MuMu cleanup after every run
 
-After the Codex maintenance process finishes, the wrapper applies this shutdown policy:
+After all maintenance edits, tests, verification, and reports finish, the active scheduler (native Scheduled or fallback wrapper) applies this shutdown policy:
 
 - if the run finishes **before 05:00 local time**, it waits until 05:00 and then closes MuMu
 - if the run finishes **at or after 05:00**, it closes MuMu immediately
 - it stops only instances reported as running by `app-testbench instance list`
-- it then closes the MuMu main UI process if it is still present
-- it does not touch unrelated applications or MuMu remote backend services
+- it re-checks instance state before closing the MuMu UI
+- it then requests a normal close for any visible `MuMuNxMain`, `MuMuPlayer`, or `NemuPlayer` window; if the window remains after a short wait, it force-closes only that visible process
+- it does not terminate MuMu remote backend services, unrelated applications, or hidden MuMu processes that have no visible window
 
 Cleanup evidence is written to `cleanup.json` and `cleanup.md` in the run directory, and copied into the final report. If MuMu is not installed or no instance is running, the step completes without starting anything.
 

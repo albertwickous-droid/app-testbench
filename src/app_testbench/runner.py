@@ -569,7 +569,17 @@ class FlowRunner:
                     texts, xml_path
                 ):
                     anr_recoveries += 1
-                    time.sleep(1)
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise StepFailure(
+                            f"UI text was not found within "
+                            f"{float(params.get('timeout', 10)):g}s: {target}",
+                            hint=(
+                                f"ANR recovery was attempted {anr_recoveries} time(s), "
+                                "but the dialog remained visible."
+                            ),
+                        )
+                    time.sleep(min(1.0, remaining))
                     continue
             haystack = "\n".join(texts)
             haystack = haystack.casefold() if ignore_case else haystack

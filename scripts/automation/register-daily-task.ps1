@@ -1,6 +1,6 @@
 param(
     [string]$TaskName = "app-testbench-daily-optimizer",
-    [string]$At = "04:00",
+    [string]$At = "03:30",
     [string]$ProjectRoot = ""
 )
 

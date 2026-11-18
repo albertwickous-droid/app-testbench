@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Automation cleanup documentation now distinguishes the native Scheduled and fallback execution paths, re-checks instance state before UI closure, and requires a normal-close attempt before force-closing a visible MuMu UI window.
+- Automation guidance now targets the `app-testbench` project at 03:30 local time and keeps the Windows fallback disabled.
+- Daily maintenance now presents a cumulative unexecuted proposal backlog and a value/feasibility shortlist, with at most two genuinely new proposals per run.
+
+### Fixed
+
+- `wait_for_text` ANR recovery now respects the configured timeout instead of retrying indefinitely when the dialog remains visible.
+
 ## [0.1.1] - 2026-11-16
 
 ### Added
