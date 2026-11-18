@@ -2,9 +2,9 @@
 
 **简体中文** | [English](README.en.md) | [Agent](docs/agent-deployment.md)
 
-![App TestBench：在 MuMu 上执行可重复的 Android App 测试](assets/banner.png)
+![App TestBench 本地优先 Android 测试工作流](assets/hero-local-workbench.webp)
 
-*上图：YAML flow 经 App TestBench 调度 MuMuManager / ADB 执行，最后汇总为可离线打开的 HTML 证据报告。*
+*上图：编写 flow → 本机执行 → 断言 → 报告的工作流示意；实际界面和产物以运行结果为准。*
 
 > **面向个人开发者和小微团队的本地优先 Android 快速验证工作台。**
 
@@ -56,6 +56,10 @@
 
 云真机平台优化的是**设备覆盖和并发规模**；App TestBench 优化的是**最后一公里验证速度**。两者不是替代关系。
 
+![云真机与 App TestBench 的适用边界对比](assets/cloud-vs-local.webp)
+
+*示意图：云真机侧重设备覆盖与并发，App TestBench 侧重本地快速验证、数据留存和证据交付；两者可以配合使用。*
+
 | 维度 | 云真机平台 | App TestBench |
 | --- | --- | --- |
 | 设备覆盖 | **强**：适合跨品牌、跨系统、跨机型验证 | **不正面竞争**：当前以 Windows + MuMu 为主 |
@@ -77,6 +81,10 @@
 | **5 分钟跑通** | 在已安装 MuMu 和 Python 的前提下，装 APK → 跑 flow → 出 HTML/JUnit；不需要账号、服务器或云配额；`validate` 不碰设备，`run` 才执行 |
 | **失败现场可带走** | 设备仍可连接时，失败步骤、耗时、截图、UI 树、logcat、`result.json` 和 HTML 默认留在同一次运行目录 |
 | **Agent 和 CI 可直接使用** | `--json`、Draft 2020-12 schema、稳定退出码、JUnit XML 和环境变量插值 |
+
+![测试报告与失败证据链概念图](assets/evidence-chain.webp)
+
+*概念示意图，不是实际运行截图：展示 APK、flow、失败步骤、截图、UI 树、logcat 与 HTML/JUnit 之间的证据关系。*
 
 **为什么选它：** 如果你的痛点是“每天都要反复跑同一条 App 流程，但不想上传、排队、按分钟计费”，本地优先方案的路径更短；如果你的痛点是“一次覆盖几十种机型”，云真机仍然更合适。
 
