@@ -2,9 +2,9 @@
 
 [简体中文](README.md) | **English** | [Agent](docs/agent-deployment.md)
 
-![App TestBench: repeatable Android app testing on MuMu](assets/banner.png)
+![App TestBench local-first Android testing workflow](assets/hero-local-workbench.webp)
 
-*Above: a YAML flow is executed through App TestBench, MuMuManager, and ADB, then packaged into an offline HTML evidence report.*
+*Above: a workflow illustration from authoring a flow to local execution, assertions, and report generation; actual screens and artifacts come from real runs.*
 
 > **A local-first Android smoke and regression workbench for individual developers and small teams.**
 
@@ -56,6 +56,10 @@ Trend check: 2026-11-19
 
 A cloud device farm optimizes **device coverage and concurrency**. App TestBench optimizes the **last mile of verification**. They solve different problems and can be used together.
 
+![Cloud device farms and App TestBench have complementary fit](assets/cloud-vs-local.webp)
+
+*Illustration: cloud farms emphasize device coverage and concurrency, while App TestBench emphasizes fast local verification, local data retention, and evidence handoff. They can be used together.*
+
 | Dimension | Cloud device farm | App TestBench |
 | --- | --- | --- |
 | Device coverage | **Strong**: cross-brand, cross-OS, cross-model validation | **Not competing**: currently Windows + MuMu first |
@@ -77,6 +81,10 @@ A cloud device farm optimizes **device coverage and concurrency**. App TestBench
 | **Five-minute first run** | With MuMu and Python already installed: install an APK → run a flow → get HTML/JUnit without an account, server, or cloud quota; `validate` does not touch the device, while `run` does |
 | **Failure evidence you can hand off** | While the device is still reachable, the failed step, timing, screenshot, UI tree, logcat, `result.json`, and HTML remain in the same run directory by default |
 | **Ready for agents and CI** | `--json`, Draft 2020-12 schemas, stable exit codes, JUnit XML, and environment interpolation |
+
+![App TestBench report and failure-evidence chain concept](assets/evidence-chain.webp)
+
+*Concept illustration, not a real run screenshot: it shows how the APK, flow, failed step, screenshot, UI tree, logcat, and HTML/JUnit evidence relate.*
 
 **Why choose it:** if the pain is “I rerun the same app journey every day and do not want to upload, queue, or pay by the minute”, the local-first path is shorter. If the pain is “I need dozens of device models in one run”, a cloud device farm is still the better tool.
 
