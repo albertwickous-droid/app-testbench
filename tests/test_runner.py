@@ -186,7 +186,18 @@ steps:
     result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
     assert result.status == "failed"
     assert result.failed == 1
-    assert result.logcat_paths == ["logs/logcat-final.txt"]
+    assert "logs/step-steps-1-logcat.txt" in result.logcat_paths
+    assert "logs/logcat-final.txt" in result.logcat_paths
+    failed_step = next(step for step in result.steps if step.status == "failed")
+    assert failed_step.finished_at
+    assert failed_step.output["logcat_window"]["path"] == "logs/step-steps-1-logcat.txt"
+    commands = [
+        json.loads(line)
+        for line in (fake_tools["adb_state"] / "adb-commands.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any("-T" in command for command in commands)
     report = Path(result.report_path).read_text(encoding="utf-8")
     assert "UI text was not found" in report
     assert "data:image/png;base64," in report
@@ -751,3 +762,28 @@ steps:
     assert result.status == "passed"
     assert len(calls) == 2
     assert result.steps[0].output["found"] is False
+
+
+def test_capture_step_logcat_all_keeps_successful_windows(
+    fake_settings: Settings,
+    fake_tools: dict[str, Path],
+    tmp_path: Path,
+) -> None:
+    flow_path = tmp_path / "all-logcat.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: all-logcat
+report:
+  capture_step_logcat: all
+steps:
+  - action: back
+""".strip(),
+        encoding="utf-8",
+    )
+    result = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs").run()
+    assert result.status == "passed"
+    step = result.steps[0]
+    assert step.logcat_paths == ["logs/step-steps-1-logcat.txt"]
+    assert step.output["logcat_window"]["path"] == "logs/step-steps-1-logcat.txt"
+    assert "logs/step-steps-1-logcat.txt" in result.logcat_paths

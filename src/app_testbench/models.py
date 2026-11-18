@@ -79,6 +79,7 @@ class StepResult:
     section: str
     status: str
     started_at: str
+    finished_at: str = ""
     duration_ms: int = 0
     description: str | None = None
     params: dict[str, Any] = field(default_factory=dict)
@@ -87,6 +88,7 @@ class StepResult:
     hint: str | None = None
     screenshots: list[str] = field(default_factory=list)
     ui_files: list[str] = field(default_factory=list)
+    logcat_paths: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -96,6 +98,7 @@ class StepResult:
             "section": self.section,
             "status": self.status,
             "started_at": self.started_at,
+            "finished_at": self.finished_at,
             "duration_ms": self.duration_ms,
             "description": self.description,
             "params": self.params,
@@ -104,6 +107,7 @@ class StepResult:
             "hint": self.hint,
             "screenshots": self.screenshots,
             "ui_files": self.ui_files,
+            "logcat_paths": self.logcat_paths,
         }
 
 

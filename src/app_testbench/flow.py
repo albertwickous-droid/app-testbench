@@ -113,6 +113,7 @@ _REPORT_DEFAULTS: dict[str, Any] = {
     "clear_logcat": False,
     "include_ui_xml": True,
     "max_log_chars": 200_000,
+    "capture_step_logcat": "failures",
 }
 
 
@@ -912,6 +913,8 @@ def load_flow(
         raise FlowError("report.capture_screenshots must be one of: all, failures, manual")
     for key in ("collect_logcat", "clear_logcat", "include_ui_xml"):
         report[key] = _bool(report[key], field_name=f"report.{key}")
+    if report["capture_step_logcat"] not in {"all", "failures", "none"}:
+        raise FlowError("report.capture_step_logcat must be one of: all, failures, none")
     report["max_log_chars"] = _integer(
         report["max_log_chars"],
         field_name="report.max_log_chars",

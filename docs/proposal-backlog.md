@@ -33,7 +33,7 @@
 | 10 | 运行证据 Manifest / 原子写入 / 保留策略 | ✅ 已实现 | 高 | 高 | 2026-11-07 | `manifest.json` + SHA-256；原子写；`--keep-runs` 保守清理 |
 | 11 | Android 启动完成就绪门禁 | ✅ 已实现 | 高 | 高 | 2026-11-08 | device.wait_for_boot、boot_timeout、--wait-for-boot |
 | 12 | 前台 Activity 断言与等待 | ○ 未执行 | 高 | 高 | 2026-11-08 | 校验当前 resumed activity，避免误在系统页或错误 App 上操作 |
-| 13 | 步骤级 logcat 时间窗证据 | ○ 未执行 | 高 | 中 | 2026-11-08 | 把每一步与对应时间窗日志关联，便于失败定位 |
+| 13 | 步骤级 logcat 时间窗证据 | ✅ 已实现 | 高 | 中 | 2026-11-08 | 步骤 start/end + `adb logcat -T`；失败默认保留，`all` 可显式开启 |
 | 14 | 显式 App 数据重置 | ✅ 已实现 | 高 | 高 | 2026-11-08 | clear-data / clear_app_data |
 | 15 | 发布 Flow JSON Schema | ○ 未执行 | 中 | 高 | 2026-11-08 | 为 flow 文件本身提供可编辑、可校验的 Schema |
 | 16 | 结构化 Crash / ANR 证据与自动识别 | ○ 未执行 | 高 | 中 | 2026-11-08 | 现有 recover_anr 只处理可见对话框，不等同于自动识别和证据包 |

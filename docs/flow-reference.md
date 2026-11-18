@@ -387,6 +387,7 @@ report:
   clear_logcat: false
   include_ui_xml: true
   max_log_chars: 200000
+  capture_step_logcat: failures
 ```
 
 | Field | Values | Default |
@@ -397,10 +398,11 @@ report:
 | `clear_logcat` | boolean | `false` |
 | `include_ui_xml` | boolean | `true` |
 | `max_log_chars` | integer | `200000` |
+| `capture_step_logcat` | `all`, `failures`, `none` | `failures` |
 
 `clear_logcat: true` clears the device log buffer after connection and before setup. Use it only when you do not need logs from before the run.
 
-Every successful artifact write also produces `manifest.json`, a SHA-256 inventory of `result.json`, `report.html`, screenshots, UI dumps, and logs. The manifest deliberately excludes itself to avoid a self-referential hash. `--keep-runs N` is an opt-in retention policy: it removes only older direct child directories that contain a manifest, never unrelated folders, and never the current run.
+Step results include `started_at`, `finished_at`, and a `logcat_window` output when step logcat is captured. The window is requested with `adb logcat -T`; the final logcat remains available as a separate artifact. Every successful artifact write also produces `manifest.json`, a SHA-256 inventory of `result.json`, `report.html`, screenshots, UI dumps, and logs. The manifest deliberately excludes itself to avoid a self-referential hash. `--keep-runs N` is an opt-in retention policy: it removes only older direct child directories that contain a manifest, never unrelated folders, and never the current run.
 
 JUnit XML is opt-in on the CLI:
 

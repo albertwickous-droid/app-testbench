@@ -774,12 +774,17 @@ class AndroidDevice:
         *,
         lines: int = 1000,
         clear: bool = False,
+        since: str | None = None,
     ) -> str:
         if lines < 1 or lines > 100_000:
             raise DeviceError("logcat lines must be between 1 and 100000")
         if clear:
             self._run("logcat", "-c", check=False)
-        return self._run("logcat", "-d", "-v", "threadtime", "-t", str(lines)).stdout
+        args = ["logcat", "-d", "-v", "threadtime"]
+        if since:
+            args.extend(["-T", since])
+        args.extend(["-t", str(lines)])
+        return self._run(*args).stdout
 
     def logcat(
         self,
@@ -787,8 +792,9 @@ class AndroidDevice:
         *,
         lines: int = 1000,
         clear: bool = False,
+        since: str | None = None,
     ) -> Path:
-        text = self.logcat_text(lines=lines, clear=clear)
+        text = self.logcat_text(lines=lines, clear=clear, since=since)
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text, encoding="utf-8", newline="\n")
         return output

@@ -592,7 +592,8 @@ def _render_step(
         f'<div class="step-time">{_escape(section)} · {step.duration_ms:,} ms</div>'
         "</div>"
         f'<div class="step-body"><div class="meta-row"><span>ID: {_escape(step.id)}</span>'
-        f"<span>{_escape(step.started_at)}</span></div>"
+        f"<span>{_escape(step.started_at)}</span>"
+        f"{f'<span>{_escape(step.finished_at)}</span>' if step.finished_at else ''}</div>"
         f"{description_block}{error_block}{input_block}{output_block}"
         f"{screenshot_block}{''.join(ui_blocks)}"
         "</div></article>"

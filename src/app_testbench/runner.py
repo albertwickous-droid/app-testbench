@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import platform
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,14 @@ from app_testbench.models import RunResult, StepResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.reporting import create_run_directory, prune_old_runs, write_run_artifacts
 from app_testbench.utils import ProcessRunner, elapsed_ms, now_iso, slugify, unique_path
+
+
+def _logcat_since(value: str) -> str | None:
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed.strftime("%m-%d %H:%M:%S.000")
 
 
 class FlowRunner:
@@ -157,6 +166,7 @@ class FlowRunner:
             section="environment",
             status="failed",
             started_at=now_iso(),
+            finished_at=now_iso(),
             duration_ms=0,
             error=message,
             hint=error.hint,
@@ -248,6 +258,7 @@ class FlowRunner:
             section=step.section,
             status="failed",
             started_at=now_iso(),
+            finished_at=now_iso(),
             description=step.description,
             params=step.params,
             error=f"Flow timeout exceeded ({self.flow_timeout:g}s).",
@@ -296,6 +307,7 @@ class FlowRunner:
                 section=step.section,
                 status="skipped",
                 started_at=now_iso(),
+                finished_at=now_iso(),
                 description=step.description,
                 params=step.params,
                 output={"reason": reason},
@@ -325,6 +337,27 @@ class FlowRunner:
                 return
             raise
         result.screenshots.append(self._relative(path))
+
+    def _capture_step_logcat(self, step: FlowStep, result: StepResult) -> None:
+        assert self.device is not None
+        assert self.output_dir is not None
+        path = unique_path(
+            self.output_dir / "logs" / f"step-{slugify(step.id, fallback='step')}-logcat.txt"
+        )
+        since = _logcat_since(result.started_at)
+        try:
+            self.device.logcat(path, lines=5000, clear=False, since=since)
+        except RunnerError as exc:
+            self.warnings.append(f"Step logcat capture for {step.id} failed: {exc}")
+            return
+        relative = self._relative(path)
+        result.logcat_paths.append(relative)
+        self.logcat_paths.append(relative)
+        result.output["logcat_window"] = {
+            "started_at": result.started_at,
+            "finished_at": result.finished_at,
+            "path": relative,
+        }
 
     def _capture_final_logcat(self, *, force: bool = False) -> None:
         if not self.device:
@@ -371,7 +404,11 @@ class FlowRunner:
         except Exception as exc:
             result.status = "failed"
             result.error = f"Unexpected step error: {exc}"
+        result.finished_at = now_iso()
         result.duration_ms = elapsed_ms(started)
+        capture_mode = str(self.flow.report.get("capture_step_logcat", "failures"))
+        if capture_mode == "all" or (result.status == "failed" and capture_mode == "failures"):
+            self._capture_step_logcat(step, result)
         return result
 
     def _perform_action(self, step: FlowStep, result: StepResult) -> dict[str, Any]:

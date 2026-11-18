@@ -85,6 +85,9 @@
     },
     "junit_path": {
       "type": "string"
+    },
+    "manifest_path": {
+      "type": "string"
     }
   },
   "additionalProperties": true,
@@ -159,6 +162,9 @@
         "started_at": {
           "type": "string"
         },
+        "finished_at": {
+          "type": "string"
+        },
         "duration_ms": {
           "type": "integer",
           "minimum": 0
@@ -194,6 +200,12 @@
           }
         },
         "ui_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "logcat_paths": {
           "type": "array",
           "items": {
             "type": "string"
