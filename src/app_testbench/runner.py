@@ -449,7 +449,12 @@ class FlowRunner:
             return self._perform_activity_wait(step)
         elif action == "assert_logcat_contains":
             return self._perform_logcat_assertion(step)
-        elif action in {"assert_ui_contains", "assert_ui_not_contains", "wait_for_text"}:
+        elif action in {
+            "assert_ui_contains",
+            "assert_ui_not_contains",
+            "wait_for_text",
+            "wait_for_text_gone",
+        }:
             return self._perform_ui_assertion(action, step, result)
         else:
             raise StepFailure(f"Unsupported action: {action}")
@@ -644,7 +649,7 @@ class FlowRunner:
         ignore_case = bool(params.get("ignore_case", False))
         needle = target.casefold() if ignore_case else target
 
-        if action != "wait_for_text":
+        if action not in {"wait_for_text", "wait_for_text_gone"}:
             texts, _ = self._dump_ui_for_result(step, result)
             haystack = "\n".join(texts)
             haystack = haystack.casefold() if ignore_case else haystack
@@ -697,7 +702,14 @@ class FlowRunner:
                     continue
             haystack = "\n".join(texts)
             haystack = haystack.casefold() if ignore_case else haystack
-            if needle in haystack:
+            if action == "wait_for_text_gone" and needle not in haystack:
+                return {
+                    "message": f"UI text disappeared: {target}",
+                    "attempts": attempts,
+                    "anr_recoveries": anr_recoveries,
+                    "found": False,
+                }
+            if action == "wait_for_text" and needle in haystack:
                 return {
                     "message": f"Found UI text: {target}",
                     "attempts": attempts,
@@ -708,8 +720,12 @@ class FlowRunner:
                 hint = f"Visible text: {detail or '<none>'}"
                 if last_dump_error is not None:
                     hint = f"Last UI dump error: {last_dump_error}"
-                raise StepFailure(
-                    f"UI text was not found within {float(params.get('timeout', 10)):g}s: {target}",
-                    hint=hint,
+                message = (
+                    f"UI text did not disappear within "
+                    f"{float(params.get('timeout', 10)):g}s: {target}"
+                    if action == "wait_for_text_gone"
+                    else f"UI text was not found within "
+                    f"{float(params.get('timeout', 10)):g}s: {target}"
                 )
+                raise StepFailure(message, hint=hint)
             time.sleep(min(interval, max(0.0, deadline - time.monotonic())))

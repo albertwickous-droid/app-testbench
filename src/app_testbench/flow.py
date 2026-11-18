@@ -28,6 +28,7 @@ _ACTION_ALIASES = {
     "assert-ui-contains": "assert_ui_contains",
     "assert-ui-not-contains": "assert_ui_not_contains",
     "wait-for-text": "wait_for_text",
+    "wait-for-text-gone": "wait_for_text_gone",
     "open-url": "open",
     "reverse-port": "reverse_port",
     "clear-data": "clear_app_data",
@@ -71,6 +72,7 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
     "assert_ui_contains": frozenset({"text", "ignore_case"}),
     "assert_ui_not_contains": frozenset({"text", "ignore_case"}),
     "wait_for_text": frozenset({"text", "timeout", "interval", "ignore_case", "recover_anr"}),
+    "wait_for_text_gone": frozenset({"text", "timeout", "interval", "ignore_case", "recover_anr"}),
     "wait_for_activity": frozenset({"activity", "timeout", "interval"}),
     "assert_logcat_contains": frozenset({"text", "lines", "ignore_case"}),
 }
@@ -98,6 +100,7 @@ _DEFAULT_NAMES = {
     "assert_ui_contains": "Assert UI contains text",
     "assert_ui_not_contains": "Assert UI does not contain text",
     "wait_for_text": "Wait for UI text",
+    "wait_for_text_gone": "Wait for UI text to disappear",
     "wait_for_activity": "Wait for top Activity",
     "assert_logcat_contains": "Assert logcat contains text",
 }
@@ -498,6 +501,7 @@ def _normalize_step(
         "assert_ui_contains": {"text"},
         "assert_ui_not_contains": {"text"},
         "wait_for_text": {"text"},
+        "wait_for_text_gone": {"text"},
         "wait_for_activity": {"activity"},
         "assert_logcat_contains": {"text"},
     }.get(action, set())
@@ -695,7 +699,7 @@ def _normalize_step(
             params.get("ignore_case", False),
             field_name=f"{location}.ignore_case",
         )
-    elif action == "wait_for_text":
+    elif action in {"wait_for_text", "wait_for_text_gone"}:
         params["text"] = _string(params["text"], field_name=f"{location}.text")
         params["timeout"] = _number(
             params.get("timeout", 10),

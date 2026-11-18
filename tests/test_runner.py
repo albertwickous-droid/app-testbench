@@ -704,3 +704,38 @@ steps:
     failed = result.steps[0]
     assert "did not contain" in (failed.error or "")
     assert "sample error" in (failed.hint or "")
+
+
+def test_wait_for_text_gone_polls_until_text_disappears(
+    fake_settings: Settings,
+    fake_tools: dict[str, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    flow_path = tmp_path / "gone.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: gone
+steps:
+  - action: wait_for_text_gone
+    text: Loading
+    timeout: 2
+    interval: 0.1
+""".strip(),
+        encoding="utf-8",
+    )
+    runner = FlowRunner(fake_settings, load_flow(flow_path), output_base=tmp_path / "runs")
+    calls: list[int] = []
+
+    def fake_dump(step, result) -> tuple[list[str], Path]:
+        calls.append(1)
+        return (["Loading"] if len(calls) == 1 else ["Ready"]), Path("unused")
+
+    monkeypatch.setattr(runner, "_dump_ui_for_result", fake_dump)
+    monkeypatch.setattr("app_testbench.runner.time.monotonic", lambda: 0.0)
+    monkeypatch.setattr("app_testbench.runner.time.sleep", lambda _: None)
+    result = runner.run()
+    assert result.status == "passed"
+    assert len(calls) == 2
+    assert result.steps[0].output["found"] is False

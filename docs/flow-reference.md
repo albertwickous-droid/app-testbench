@@ -335,6 +335,18 @@ Fails if the text is present. `ignore_case` defaults to `false`.
 Polls `uiautomator dump` until the text appears. `timeout` is seconds (default `10`), `interval` is seconds (default `0.5`). Transient dump failures such as `null root node` are retried until the timeout; the last real dump error and UI XML are kept if the wait still fails. With `recover_anr: true`, a visible Android "app is not responding" dialog is handled by tapping its **Wait** action and continuing to poll; the step output records `anr_recoveries`.
 
 
+### `wait_for_text_gone`
+
+```yaml
+- action: wait_for_text_gone
+  text: Loading
+  timeout: 20
+  interval: 0.5
+  ignore_case: false
+```
+
+Polls the UI hierarchy until the text is absent. This is useful for transient loading overlays and error banners where a fixed `wait` would either be flaky or slow. Timeout and interval follow `wait_for_text`; `recover_anr: true` is also supported.
+
 ### `wait_for_activity`
 
 ```yaml
@@ -420,6 +432,7 @@ These aliases are accepted and normalized:
 - `assert-ui-contains` → `assert_ui_contains`
 - `assert-ui-not-contains` → `assert_ui_not_contains`
 - `wait-for-text` → `wait_for_text`
+- `wait-for-text-gone` → `wait_for_text_gone`
 - `clear-data` → `clear_app_data`
 - `reverse-port` → `reverse_port`
 - `tap-text` → `tap_text`

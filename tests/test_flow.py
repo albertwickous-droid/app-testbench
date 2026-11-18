@@ -577,3 +577,28 @@ def test_flow_timeout_rejects_too_small_values(tmp_path: Path) -> None:
     )
     with pytest.raises(FlowError, match=r"between 0\.1 and 86400"):
         load_flow(path)
+
+
+def test_wait_for_text_gone_is_normalized(tmp_path: Path) -> None:
+    path = tmp_path / "gone.yaml"
+    path.write_text(
+        """
+version: 1
+steps:
+  - action: wait-for-text-gone
+    text: Loading
+    timeout: 3
+    interval: 0.2
+    ignore_case: true
+""".strip(),
+        encoding="utf-8",
+    )
+    flow = load_flow(path)
+    assert flow.steps[0].action == "wait_for_text_gone"
+    assert flow.steps[0].params == {
+        "text": "Loading",
+        "timeout": 3.0,
+        "interval": 0.2,
+        "ignore_case": True,
+        "recover_anr": False,
+    }
