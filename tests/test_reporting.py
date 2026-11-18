@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from app_testbench.models import RunResult, StepResult
-from app_testbench.reporting import create_run_directory, write_run_artifacts
+from app_testbench.reporting import create_run_directory, prune_old_runs, write_run_artifacts
 from app_testbench.utils import now_iso
 
 PNG = base64.b64decode(
@@ -132,3 +132,20 @@ def test_junit_xml_export_contains_statuses_and_escaped_text(tmp_path: Path) -> 
     assert cases[2].find("skipped").attrib["message"] == "aborted <after> failure"
     assert '"junit_path"' in Path(result.result_path).read_text(encoding="utf-8")
     assert "JUnit XML" in Path(result.report_path).read_text(encoding="utf-8")
+
+
+def test_prune_old_runs_only_removes_manifest_directories(tmp_path: Path) -> None:
+    base = tmp_path / "runs"
+    base.mkdir()
+    for name in ("old", "middle", "new"):
+        run_dir = base / name
+        run_dir.mkdir()
+        (run_dir / "manifest.json").write_text("{}", encoding="utf-8")
+    unrelated = base / "keep-me"
+    unrelated.mkdir()
+    removed = prune_old_runs(base, 2)
+    assert [path.name for path in removed] == ["old"]
+    assert not (base / "old").exists()
+    assert (base / "middle").exists()
+    assert (base / "new").exists()
+    assert unrelated.exists()

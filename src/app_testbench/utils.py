@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -76,6 +77,14 @@ def atomic_write_text(path: Path, content: str) -> None:
 
 def write_json(path: Path, data: Any) -> None:
     atomic_write_text(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def truncate_text(value: str, limit: int) -> str:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -415,3 +416,27 @@ def test_clear_data_and_orientation_command_shape(
     assert ["shell", "wm", "fixed-to-user-rotation", "default"] in shell_commands
     assert ["shell", "wm", "user-rotation", "free"] in shell_commands
     assert ["shell", "dumpsys", "input"] in shell_commands
+
+
+def test_install_verifies_apk_sha256_before_adb(
+    fake_tools: dict[str, Path], apk_file: Path
+) -> None:
+    expected = hashlib.sha256(apk_file.read_bytes()).hexdigest()
+    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10))
+    assert device.install(apk_file, expected_sha256=expected) == "Success"
+    assert device.last_apk_sha256 == expected
+
+
+def test_install_sha256_mismatch_never_invokes_adb(
+    fake_tools: dict[str, Path], apk_file: Path
+) -> None:
+    device = AndroidDevice(fake_tools["adb"], ProcessRunner(10))
+    with pytest.raises(DeviceError, match="installation was not attempted"):
+        device.install(apk_file, expected_sha256="0" * 64)
+    command_log = fake_tools["adb_state"] / "adb-commands.jsonl"
+    if command_log.exists():
+        commands = [
+            json.loads(line) for line in command_log.read_text(encoding="utf-8").splitlines()
+        ]
+        assert not any("install" in command for command in commands)
+    assert device.last_apk_sha256 is None

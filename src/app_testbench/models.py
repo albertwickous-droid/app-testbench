@@ -123,6 +123,7 @@ class RunResult:
     report_path: str = ""
     result_path: str = ""
     junit_path: str = ""
+    manifest_path: str = ""
 
     @property
     def passed(self) -> int:
@@ -159,4 +160,5 @@ class RunResult:
             "report_path": self.report_path,
             "result_path": self.result_path,
             "junit_path": self.junit_path,
+            "manifest_path": self.manifest_path,
         }

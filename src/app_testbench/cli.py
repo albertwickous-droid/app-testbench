@@ -23,6 +23,7 @@ from app_testbench.device import (
     validate_open_uri,
     validate_package,
     validate_port,
+    validate_sha256,
 )
 from app_testbench.doctor import collect_doctor_checks
 from app_testbench.errors import ConfigError, DeviceError, RunnerError, StepFailure
@@ -56,6 +57,16 @@ def _nonnegative_float(value: str) -> float:
     parsed = _finite_float(value)
     if parsed < 0:
         raise argparse.ArgumentTypeError("must be >= 0")
+    return parsed
+
+
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
     return parsed
 
 
@@ -190,6 +201,10 @@ def build_parser() -> argparse.ArgumentParser:
     install.add_argument("apk", type=Path)
     install.add_argument("--no-reinstall", action="store_true", help="Do not pass adb install -r")
     install.add_argument("--grant-permissions", action="store_true", help="Pass adb install -g")
+    install.add_argument(
+        "--apk-sha256",
+        help="Verify the APK SHA-256 before attempting installation",
+    )
     install.add_argument("--expected-package", help="Verify the installed package name")
     install.add_argument(
         "--expected-version-code",
@@ -307,6 +322,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--flow-timeout",
         type=_positive_float,
         help="Total flow budget in seconds; overrides flow.timeout_seconds",
+    )
+    run.add_argument(
+        "--keep-runs",
+        type=_positive_int,
+        help="Keep this many newest manifest-bearing run directories under --output",
     )
     run.set_defaults(handler="run")
 
@@ -435,6 +455,8 @@ def _preflight_device_command(args: argparse.Namespace) -> Path | None:
             expected_version_name = getattr(args, "expected_version_name", None)
             if expected_package is not None:
                 validate_package(expected_package)
+            if args.apk_sha256 is not None:
+                validate_sha256(args.apk_sha256)
             if expected_version_code is not None and expected_version_code < 1:
                 raise ConfigError("--expected-version-code must be >= 1")
             if expected_version_name is not None and not expected_version_name.strip():
@@ -634,11 +656,13 @@ def _command_device(args: argparse.Namespace, settings: Settings) -> int:
             expected_package=getattr(args, "expected_package", None),
             expected_version_code=getattr(args, "expected_version_code", None),
             expected_version_name=getattr(args, "expected_version_name", None),
+            expected_sha256=getattr(args, "apk_sha256", None),
         )
         data = {
             "instance": instance,
             "serial": serial,
             "apk": str(args.apk.resolve()),
+            "apk_sha256": getattr(device, "last_apk_sha256", None),
             "message": message,
         }
         if device.last_package_identity is not None:
@@ -809,6 +833,7 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
         wait_for_boot=wait_for_boot,
         boot_timeout=args.boot_timeout,
         flow_timeout=args.flow_timeout,
+        keep_runs=args.keep_runs,
     ).run()
     data = result.to_dict()
 

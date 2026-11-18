@@ -12,12 +12,13 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from app_testbench.errors import DeviceError, RunnerError
-from app_testbench.utils import BinaryResult, ProcessRunner
+from app_testbench.utils import BinaryResult, ProcessRunner, sha256_file
 
 PACKAGE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$")
 KEY_RE = re.compile(r"^[A-Za-z0-9_]+$")
 ACTIVITY_RE = re.compile(r"^[A-Za-z_.$][A-Za-z0-9_.$]*(?:/[A-Za-z_.$][A-Za-z0-9_.$]*)?$")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+SHA256_RE = re.compile(r"^[A-Fa-f0-9]{64}$")
 MIME_TYPE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+-]*/[A-Za-z0-9][A-Za-z0-9.+-]*$")
 OPEN_URI_SCHEMES = frozenset({"http", "https", "file", "content"})
 UI_BOUNDS_RE = re.compile(r"^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$")
@@ -31,6 +32,13 @@ def validate_package(package: str) -> str:
     if not PACKAGE_RE.fullmatch(package):
         raise DeviceError(f"Invalid Android package name: {package!r}")
     return package
+
+
+def validate_sha256(value: str) -> str:
+    normalized = value.strip().lower()
+    if not SHA256_RE.fullmatch(normalized):
+        raise DeviceError("SHA-256 must be exactly 64 hexadecimal characters")
+    return normalized
 
 
 def validate_coordinate(value: int, *, name: str) -> int:
@@ -227,6 +235,7 @@ class AndroidDevice:
         self.runner = runner
         self.serial = serial
         self.last_package_identity: dict[str, Any] | None = None
+        self.last_apk_sha256: str | None = None
 
     def _command(self, *args: str, serial: bool = True) -> list[str]:
         command = [str(self.adb)]
@@ -387,14 +396,24 @@ class AndroidDevice:
         expected_package: str | None = None,
         expected_version_code: int | None = None,
         expected_version_name: str | None = None,
+        expected_sha256: str | None = None,
     ) -> str:
         self.last_package_identity = None
+        self.last_apk_sha256 = None
         if expected_package is not None:
             validate_package(expected_package)
         if expected_version_name is not None and not expected_version_name.strip():
             raise DeviceError("expected_version_name cannot be empty")
         if not apk.is_file():
             raise DeviceError(f"APK does not exist: {apk}")
+        actual_sha256 = sha256_file(apk)
+        if expected_sha256 is not None:
+            expected_sha256 = validate_sha256(expected_sha256)
+            if actual_sha256.lower() != expected_sha256:
+                raise DeviceError(
+                    "APK SHA-256 did not match; installation was not attempted.",
+                    hint=f"Expected {expected_sha256}; observed {actual_sha256}.",
+                )
         if expected_package is None and (
             expected_version_code is not None or expected_version_name is not None
         ):
@@ -402,6 +421,7 @@ class AndroidDevice:
                 "expected_package is required when verifying the installed version.",
                 hint="Pass expected_package together with version expectations.",
             )
+        self.last_apk_sha256 = actual_sha256
         args = ["install"]
         if reinstall:
             args.append("-r")

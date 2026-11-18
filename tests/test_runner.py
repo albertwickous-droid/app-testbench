@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -68,6 +69,17 @@ teardown:
     assert "hello%sworld" in report or "hello world" in report
     assert "Open &lt;dashboard&gt;" in report
     assert '"description": "Open <dashboard>"' in result_json
+    manifest_path = Path(result.manifest_path)
+    assert manifest_path.is_file()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    paths = {item["path"] for item in manifest["files"]}
+    assert {"result.json", "report.html"} <= paths
+    assert "manifest.json" not in paths
+    result_entry = next(item for item in manifest["files"] if item["path"] == "result.json")
+    assert (
+        result_entry["sha256"] == hashlib.sha256(Path(result.result_path).read_bytes()).hexdigest()
+    )
+    assert "Evidence manifest" in report
 
     commands = [
         json.loads(line)

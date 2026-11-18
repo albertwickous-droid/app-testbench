@@ -602,3 +602,32 @@ steps:
         "ignore_case": True,
         "recover_anr": False,
     }
+
+
+def test_install_sha256_is_validated(tmp_path: Path) -> None:
+    path = tmp_path / "install.yaml"
+    path.write_text(
+        """
+version: 1
+setup:
+  - action: install
+    apk: app.apk
+    sha256: ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789
+""".strip(),
+        encoding="utf-8",
+    )
+    flow = load_flow(path)
+    assert (
+        flow.setup[0].params["sha256"]
+        == "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    )
+
+
+def test_install_sha256_rejects_invalid_digest(tmp_path: Path) -> None:
+    path = tmp_path / "install.yaml"
+    path.write_text(
+        "version: 1\nsetup:\n  - action: install\n    apk: app.apk\n    sha256: not-a-digest\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(FlowError, match="SHA-256"):
+        load_flow(path)

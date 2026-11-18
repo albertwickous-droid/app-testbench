@@ -18,6 +18,7 @@ from app_testbench.device import (
     validate_open_uri,
     validate_package,
     validate_port,
+    validate_sha256,
 )
 from app_testbench.errors import FlowError, RunnerError
 
@@ -47,6 +48,7 @@ _ACTION_SPECS: dict[str, frozenset[str]] = {
             "expected_package",
             "expected_version_code",
             "expected_version_name",
+            "sha256",
         }
     ),
     "launch": frozenset({"package", "activity"}),
@@ -542,6 +544,13 @@ def _normalize_step(
                 params["expected_version_name"],
                 field_name=f"{location}.expected_version_name",
             )
+        if params.get("sha256") is not None:
+            try:
+                params["sha256"] = validate_sha256(
+                    _string(params["sha256"], field_name=f"{location}.sha256")
+                )
+            except RunnerError as exc:
+                raise FlowError(str(exc)) from exc
         has_version_expectation = (
             params.get("expected_version_code") is not None
             or params.get("expected_version_name") is not None

@@ -13,7 +13,7 @@ from app_testbench.errors import RunnerError, StepFailure
 from app_testbench.flow import Flow, FlowStep
 from app_testbench.models import RunResult, StepResult
 from app_testbench.mumu import MuMuManagerClient
-from app_testbench.reporting import create_run_directory, write_run_artifacts
+from app_testbench.reporting import create_run_directory, prune_old_runs, write_run_artifacts
 from app_testbench.utils import ProcessRunner, elapsed_ms, now_iso, slugify, unique_path
 
 
@@ -30,6 +30,7 @@ class FlowRunner:
         boot_timeout: float | None = None,
         boot_interval: float = 1.0,
         flow_timeout: float | None = None,
+        keep_runs: int | None = None,
     ) -> None:
         self.settings = settings
         self.flow = flow
@@ -40,6 +41,7 @@ class FlowRunner:
         self.boot_timeout = boot_timeout
         self.boot_interval = boot_interval
         self.flow_timeout = flow_timeout if flow_timeout is not None else flow.timeout_seconds
+        self.keep_runs = keep_runs
         self._deadline: float | None = None
         self.output_dir: Path | None = None
         self.device: AndroidDevice | None = None
@@ -224,6 +226,15 @@ class FlowRunner:
         if self.junit_path is not None:
             result.junit_path = str(self.junit_path)
         write_run_artifacts(result, self.output_dir)
+        if self.keep_runs is not None:
+            try:
+                prune_old_runs(
+                    self.output_base,
+                    self.keep_runs,
+                    protected=self.output_dir,
+                )
+            except OSError as exc:
+                self.warnings.append(f"Run retention cleanup failed: {exc}")
         return result
 
     def _budget_expired(self) -> bool:
@@ -377,6 +388,7 @@ class FlowRunner:
                 expected_package=params.get("expected_package"),
                 expected_version_code=params.get("expected_version_code"),
                 expected_version_name=params.get("expected_version_name"),
+                expected_sha256=params.get("sha256"),
             )
         elif action == "launch":
             message = self.device.launch(params["package"], params.get("activity"))
@@ -459,8 +471,11 @@ class FlowRunner:
         else:
             raise StepFailure(f"Unsupported action: {action}")
         output: dict[str, Any] = {"message": message}
-        if action == "install" and self.device.last_package_identity is not None:
-            output["package_identity"] = self.device.last_package_identity
+        if action == "install":
+            if self.device.last_apk_sha256 is not None:
+                output["apk_sha256"] = self.device.last_apk_sha256
+            if self.device.last_package_identity is not None:
+                output["package_identity"] = self.device.last_package_identity
         return output
 
     def _perform_activity_wait(self, step: FlowStep) -> dict[str, Any]:

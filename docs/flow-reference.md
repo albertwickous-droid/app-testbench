@@ -97,6 +97,7 @@ The plan marks `dry_run: true` and includes one command plan per step. It is saf
   expected_package: com.example.app
   expected_version_code: 42
   expected_version_name: 1.2.3
+  sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
 | Field | Required | Default |
@@ -107,12 +108,15 @@ The plan marks `dry_run: true` and includes one command plan per step. It is saf
 | `expected_package` | no | unset |
 | `expected_version_code` | no | unset |
 | `expected_version_name` | no | unset |
+| `sha256` | no | unset |
 
 Relative APK paths resolve against the flow file's directory. When any
 `expected_*` field is set, the runner reads `dumpsys package <package>` after a
 successful install and fails the step on a mismatch. If only version fields are
 set, `device.package` supplies the package name. With no expectation fields, the
 old install behavior is preserved and `dumpsys` is not called.
+
+When `sha256` is set, the local APK is hashed before any `adb install` command. A mismatch fails the step and leaves the device untouched; the observed digest is included in the step output when installation succeeds.
 
 ### `launch`
 
@@ -395,6 +399,8 @@ report:
 | `max_log_chars` | integer | `200000` |
 
 `clear_logcat: true` clears the device log buffer after connection and before setup. Use it only when you do not need logs from before the run.
+
+Every successful artifact write also produces `manifest.json`, a SHA-256 inventory of `result.json`, `report.html`, screenshots, UI dumps, and logs. The manifest deliberately excludes itself to avoid a self-referential hash. `--keep-runs N` is an opt-in retention policy: it removes only older direct child directories that contain a manifest, never unrelated folders, and never the current run.
 
 JUnit XML is opt-in on the CLI:
 

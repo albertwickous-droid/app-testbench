@@ -5,12 +5,24 @@ from __future__ import annotations
 import base64
 import html
 import json
+import mimetypes
+import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from app_testbench import SCHEMA_VERSION
+from app_testbench.errors import ConfigError
 from app_testbench.models import RunResult, StepResult
-from app_testbench.utils import atomic_write_text, slugify, truncate_text, unique_path, write_json
+from app_testbench.utils import (
+    atomic_write_text,
+    now_iso,
+    sha256_file,
+    slugify,
+    truncate_text,
+    unique_path,
+    write_json,
+)
 
 _STATUS_LABELS = {
     "passed": "Passed",
@@ -714,6 +726,7 @@ def render_html(result: RunResult, output_dir: Path) -> str:
     artifact_links = []
     for label, path_value in (
         ("JSON result", result.result_path),
+        ("Evidence manifest", result.manifest_path),
         ("JUnit XML", result.junit_path),
         ("Report", result.report_path),
     ):
@@ -871,14 +884,103 @@ def render_html(result: RunResult, output_dir: Path) -> str:
 """
 
 
+def _media_type(path: Path) -> str:
+    if path.suffix.lower() == ".json":
+        return "application/json"
+    if path.suffix.lower() == ".xml":
+        return "application/xml"
+    guessed, _ = mimetypes.guess_type(path.name)
+    return guessed or "application/octet-stream"
+
+
+def write_evidence_manifest(result: RunResult, output_dir: Path) -> Path:
+    """Write a hash inventory for every evidence file except the manifest itself."""
+
+    manifest_path = output_dir / "manifest.json"
+    files: list[dict[str, Any]] = []
+    for path in sorted(output_dir.rglob("*")):
+        if not path.is_file() or path.resolve() == manifest_path.resolve():
+            continue
+        relative = path.resolve().relative_to(output_dir.resolve()).as_posix()
+        files.append(
+            {
+                "path": relative,
+                "size_bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+                "media_type": _media_type(path),
+            }
+        )
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "app-testbench-evidence-manifest",
+        "generated_at": now_iso(),
+        "run": {
+            "name": result.name,
+            "status": result.status,
+            "started_at": result.started_at,
+            "finished_at": result.finished_at,
+            "duration_ms": result.duration_ms,
+        },
+        "file_count": len(files),
+        "total_bytes": sum(item["size_bytes"] for item in files),
+        "files": files,
+    }
+    write_json(manifest_path, payload)
+    return manifest_path
+
+
+def prune_old_runs(
+    output_base: Path,
+    keep: int,
+    *,
+    protected: Path | None = None,
+) -> list[Path]:
+    """Remove old manifest-bearing run directories, newest first.
+
+    Only direct child directories with a manifest are eligible. This makes the
+    opt-in retention command conservative and leaves unrelated folders alone.
+    """
+
+    if keep < 1:
+        raise ConfigError("--keep-runs must be at least 1")
+    base = output_base.resolve()
+    if not base.is_dir():
+        return []
+    candidates: list[Path] = []
+    for child in base.iterdir():
+        if child.is_symlink() or not child.is_dir():
+            continue
+        try:
+            if child.resolve().parent != base:
+                continue
+        except OSError:
+            continue
+        if not (child / "manifest.json").is_file():
+            continue
+        candidates.append(child)
+    candidates.sort(key=lambda path: path.stat().st_mtime_ns, reverse=True)
+    protected_resolved = protected.resolve() if protected is not None else None
+    removed: list[Path] = []
+    for path in candidates[keep:]:
+        if protected_resolved is not None and path.resolve() == protected_resolved:
+            continue
+        if path.resolve().parent != base:
+            continue
+        shutil.rmtree(path)
+        removed.append(path)
+    return removed
+
+
 def write_run_artifacts(result: RunResult, output_dir: Path) -> tuple[Path, Path]:
     report_path = output_dir / "report.html"
     result_path = output_dir / "result.json"
     result.output_dir = str(output_dir.resolve())
     result.report_path = str(report_path.resolve())
     result.result_path = str(result_path.resolve())
+    result.manifest_path = str((output_dir / "manifest.json").resolve())
     if result.junit_path:
         write_junit_xml(result, Path(result.junit_path))
     write_json(result_path, result.to_dict())
     atomic_write_text(report_path, render_html(result, output_dir))
+    write_evidence_manifest(result, output_dir)
     return report_path, result_path
