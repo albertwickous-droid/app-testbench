@@ -6,6 +6,7 @@ import json
 import math
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -144,6 +145,7 @@ class Flow:
     steps: list[FlowStep] = field(default_factory=list)
     teardown: list[FlowStep] = field(default_factory=list)
     report: dict[str, Any] = field(default_factory=dict)
+    variable_names: list[str] = field(default_factory=list)
 
     @property
     def all_steps(self) -> list[FlowStep]:
@@ -163,32 +165,133 @@ class Flow:
             "steps": [step.to_dict() for step in self.steps],
             "teardown": [step.to_dict() for step in self.teardown],
             "report": self.report,
+            "variable_names": self.variable_names,
             "step_count": self.step_count,
         }
 
 
-def _expand_environment(value: Any, *, path: str, missing: set[str]) -> Any:
+def _expand_environment(
+    value: Any,
+    *,
+    path: str,
+    missing: set[str],
+    variables: Mapping[str, Any],
+) -> Any:
     if isinstance(value, str):
+        exact = _ENV_PATTERN.fullmatch(value)
+        if exact is not None:
+            name = exact.group(1)
+            if name not in variables:
+                missing.add(name)
+                return value
+            return variables[name]
 
         def replace(match: re.Match[str]) -> str:
             name = match.group(1)
-            if name not in os.environ:
+            if name not in variables:
                 missing.add(name)
                 return match.group(0)
-            return os.environ[name]
+            resolved = variables[name]
+            return "" if resolved is None else str(resolved)
 
         return _ENV_PATTERN.sub(replace, value)
     if isinstance(value, list):
         return [
-            _expand_environment(item, path=f"{path}[{index}]", missing=missing)
+            _expand_environment(
+                item,
+                path=f"{path}[{index}]",
+                missing=missing,
+                variables=variables,
+            )
             for index, item in enumerate(value)
         ]
     if isinstance(value, dict):
         return {
-            key: _expand_environment(item, path=f"{path}.{key}", missing=missing)
+            key: _expand_environment(
+                item,
+                path=f"{path}.{key}",
+                missing=missing,
+                variables=variables,
+            )
             for key, item in value.items()
         }
     return value
+
+
+_VARIABLE_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def _validate_variable_name(name: Any, *, location: str) -> str:
+    if not isinstance(name, str) or not _VARIABLE_NAME.fullmatch(name):
+        raise FlowError(
+            f"{location} variable names must match [A-Za-z_][A-Za-z0-9_]*",
+            hint="Use a flat key such as APP_PACKAGE or user_email.",
+        )
+    return name
+
+
+def _validate_variable_value(value: Any, *, location: str) -> str | int | float | bool:
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    raise FlowError(
+        f"{location} must be a string, number, or boolean",
+        hint="Nested objects and lists are not supported in variable files.",
+    )
+
+
+def load_variables_file(path_value: str | Path) -> dict[str, Any]:
+    """Load a flat JSON/YAML variable map with duplicate-key validation."""
+
+    path = Path(path_value).expanduser().resolve()
+    if not path.is_file():
+        raise FlowError(f"Variables file does not exist: {path}")
+    raw = _read_document(path)
+    mapping = _mapping(raw, field_name="variables")
+    result: dict[str, Any] = {}
+    for name, value in mapping.items():
+        validated_name = _validate_variable_name(name, location=f"variables.{name}")
+        result[validated_name] = _validate_variable_value(
+            value, location=f"variables.{validated_name}"
+        )
+    return result
+
+
+def parse_cli_variables(values: list[str] | None) -> dict[str, str]:
+    """Parse repeated ``KEY=VALUE`` CLI assignments."""
+
+    result: dict[str, str] = {}
+    for raw in values or []:
+        if "=" not in raw:
+            raise FlowError(
+                f"Invalid --var value: {raw!r}",
+                hint="Use --var NAME=VALUE.",
+            )
+        name, value = raw.split("=", 1)
+        validated_name = _validate_variable_name(name.strip(), location="--var")
+        if validated_name in result:
+            raise FlowError(f"Duplicate --var assignment: {validated_name}")
+        result[validated_name] = value
+    return result
+
+
+def resolve_variables(
+    *,
+    vars_files: list[str | Path] | None = None,
+    cli_vars: list[str] | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Resolve explicit variables with CLI > vars files precedence.
+
+    Environment fallback is applied later by load_flow. Keeping it out of this
+    map lets reports and plans distinguish explicit flow variables from the
+    machine's ambient environment.
+    """
+    _ = environ
+    merged: dict[str, Any] = {}
+    for path in vars_files or []:
+        merged.update(load_variables_file(path))
+    merged.update(parse_cli_variables(cli_vars))
+    return merged
 
 
 def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -665,17 +768,30 @@ def _normalize_step(
     )
 
 
-def load_flow(path_value: str | Path) -> Flow:
+def load_flow(
+    path_value: str | Path,
+    *,
+    variables: Mapping[str, Any] | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> Flow:
     path = Path(path_value).expanduser().resolve()
     if not path.is_file():
         raise FlowError(f"Flow file does not exist: {path}")
     raw = _read_document(path)
     missing: set[str] = set()
-    raw = _expand_environment(raw, path="$", missing=missing)
+    resolved_variables: dict[str, Any] = dict(os.environ if environ is None else environ)
+    if variables:
+        resolved_variables.update(variables)
+    raw = _expand_environment(
+        raw,
+        path="$",
+        missing=missing,
+        variables=resolved_variables,
+    )
     if missing:
         raise FlowError(
-            f"Missing environment variable(s): {', '.join(sorted(missing))}",
-            hint="Set them before running, for example `$env:APP_PACKAGE='com.example.app'`.",
+            f"Missing environment variable(s) or flow variable(s): {', '.join(sorted(missing))}",
+            hint="Pass --vars-file/--var, or set the referenced environment variable.",
         )
     root = _mapping(raw, field_name="$")
     allowed_root = {
@@ -792,6 +908,7 @@ def load_flow(path_value: str | Path) -> Flow:
         steps=sections["steps"],
         teardown=sections["teardown"],
         report=report,
+        variable_names=sorted(name for name in resolved_variables if name in (variables or {})),
     )
 
 

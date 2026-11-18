@@ -705,3 +705,35 @@ def test_clear_data_and_orientation_cli(fake_tools: dict[str, Path], capsys, mon
     ]
     assert any("pm" in command and "clear" in command for command in commands)
     assert any("user-rotation" in command and "lock" in command for command in commands)
+
+
+def test_validate_flow_with_variables_file_and_override(tmp_path: Path, capsys) -> None:
+    flow = tmp_path / "flow.yaml"
+    flow.write_text(
+        """
+version: 1
+name: variables
+device:
+  package: ${APP_PACKAGE}
+steps:
+  - action: launch
+""".strip(),
+        encoding="utf-8",
+    )
+    variables = tmp_path / "vars.yaml"
+    variables.write_text("APP_PACKAGE: com.example.fromfile\n", encoding="utf-8")
+    code = main(
+        [
+            "validate",
+            str(flow),
+            "--vars-file",
+            str(variables),
+            "--var",
+            "APP_PACKAGE=com.example.cli",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["data"]["device"]["package"] == "com.example.cli"
+    assert payload["data"]["variable_names"] == ["APP_PACKAGE"]

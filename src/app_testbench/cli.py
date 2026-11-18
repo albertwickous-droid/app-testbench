@@ -26,7 +26,7 @@ from app_testbench.device import (
 )
 from app_testbench.doctor import collect_doctor_checks
 from app_testbench.errors import ConfigError, DeviceError, RunnerError, StepFailure
-from app_testbench.flow import load_flow, starter_document
+from app_testbench.flow import load_flow, resolve_variables, starter_document
 from app_testbench.models import Instance, RunResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.runner import FlowRunner
@@ -128,6 +128,29 @@ def _common_parser() -> argparse.ArgumentParser:
         help="Show tracebacks for unexpected errors",
     )
     return parser
+
+
+def _add_variable_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--vars-file",
+        type=Path,
+        action="append",
+        help="Flat JSON/YAML variable map; later files override earlier files",
+    )
+    parser.add_argument(
+        "--var",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="Override one flow variable; repeat for multiple values",
+    )
+
+
+def _resolved_variables(args: argparse.Namespace) -> dict[str, Any]:
+    return resolve_variables(
+        vars_files=getattr(args, "vars_file", None),
+        cli_vars=getattr(args, "var", None),
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -252,10 +275,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = subparsers.add_parser("validate", parents=[common], help="Validate a JSON/YAML flow")
     validate.add_argument("flow", type=Path)
+    _add_variable_arguments(validate)
     validate.set_defaults(handler="validate")
 
     run = subparsers.add_parser("run", parents=[common], help="Run a JSON/YAML flow")
     run.add_argument("flow", type=Path)
+    _add_variable_arguments(run)
     run.add_argument("--output", type=Path, help="Parent directory for run artifacts")
     run.add_argument(
         "--junit-xml",
@@ -724,7 +749,7 @@ def _command_device(args: argparse.Namespace, settings: Settings) -> int:
 
 
 def _command_validate(args: argparse.Namespace, _: Settings) -> int:
-    flow = load_flow(args.flow)
+    flow = load_flow(args.flow, variables=_resolved_variables(args))
     data = flow.to_dict()
 
     def human(payload: dict[str, Any]) -> None:
@@ -739,7 +764,7 @@ def _command_validate(args: argparse.Namespace, _: Settings) -> int:
 
 
 def _command_run(args: argparse.Namespace, settings: Settings) -> int:
-    flow = load_flow(args.flow)
+    flow = load_flow(args.flow, variables=_resolved_variables(args))
     output_base = _resolve_directory_output(args.output or Path.cwd() / "runs")
     junit_path = _resolve_file_output(args.junit_xml) if args.junit_xml else None
     wait_for_boot = True if args.wait_for_boot or args.boot_timeout is not None else None

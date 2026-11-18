@@ -43,9 +43,15 @@ Precedence:
 3. `APP_TESTBENCH_SERIAL` / `APP_TESTBENCH_INSTANCE`
 4. Defaults (`0`; resolve the port from MuMuManager)
 
-## Environment variables
+## Variables and environment fallback
 
-Any string value may contain `${NAME}`:
+Use `--vars-file` for a flat JSON/YAML map and repeat `--var NAME=VALUE` for CLI overrides:
+
+```powershell
+app-testbench run .\flow.yaml --vars-file .\qa.yaml --var APP_PACKAGE=com.example.debug
+```
+
+Precedence is `--var` > later `--vars-file` > environment variable. Any string value may contain `${NAME}`:
 
 ```yaml
 device:
@@ -55,7 +61,7 @@ setup:
     apk: ${APK_PATH}
 ```
 
-All `${NAME}` references must exist when the flow is loaded. Missing variables produce a `FlowError` before any device action.
+All `${NAME}` references must exist when the flow is loaded. Missing values produce a `FlowError` before any device action. A whole-value reference such as `timeout: ${WAIT_SECONDS}` preserves the numeric/boolean type from a variable file; references embedded inside a larger string are converted to text. Variable files are flat maps of strings, numbers, or booleans; nested objects and lists are rejected.
 
 ## Common step fields
 

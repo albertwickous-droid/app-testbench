@@ -506,3 +506,53 @@ def test_activity_wait_requires_a_full_component(tmp_path: Path) -> None:
 
     with pytest.raises(FlowError, match="must be a full component"):
         load_flow(path)
+
+
+def test_variables_file_and_cli_overrides_resolve_typed_values(tmp_path: Path) -> None:
+    flow_path = tmp_path / "flow.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: ${FLOW_NAME}
+device:
+  package: ${APP_PACKAGE}
+steps:
+  - action: launch
+  - action: wait
+    seconds: ${WAIT_SECONDS}
+""".strip(),
+        encoding="utf-8",
+    )
+    variables_path = tmp_path / "vars.yaml"
+    variables_path.write_text(
+        "FLOW_NAME: variable-smoke\nAPP_PACKAGE: com.example.fromfile\nWAIT_SECONDS: 1.25\n",
+        encoding="utf-8",
+    )
+    from app_testbench.flow import resolve_variables
+
+    variables = resolve_variables(
+        vars_files=[variables_path],
+        cli_vars=["APP_PACKAGE=com.example.cli"],
+        environ={},
+    )
+    flow = load_flow(flow_path, variables=variables, environ={})
+    assert flow.name == "variable-smoke"
+    assert flow.device["package"] == "com.example.cli"
+    assert flow.steps[1].params["seconds"] == 1.25
+    assert flow.variable_names == ["APP_PACKAGE", "FLOW_NAME", "WAIT_SECONDS"]
+
+
+def test_variable_file_rejects_nested_values(tmp_path: Path) -> None:
+    from app_testbench.flow import load_variables_file
+
+    path = tmp_path / "vars.json"
+    path.write_text(json.dumps({"nested": {"value": 1}}), encoding="utf-8")
+    with pytest.raises(FlowError, match="must be a string, number, or boolean"):
+        load_variables_file(path)
+
+
+def test_duplicate_cli_variable_is_rejected() -> None:
+    from app_testbench.flow import parse_cli_variables
+
+    with pytest.raises(FlowError, match="Duplicate --var"):
+        parse_cli_variables(["NAME=first", "NAME=second"])
