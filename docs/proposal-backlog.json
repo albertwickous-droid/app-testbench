@@ -3,9 +3,9 @@
   "raw_record_count": 69,
   "unique_count": 54,
   "status_counts": {
-    "implemented": 7,
+    "implemented": 22,
     "partial": 6,
-    "pending": 41
+    "pending": 26
   },
   "unique_proposals": [
     {
@@ -56,11 +56,11 @@
     {
       "id": 6,
       "title": "报告脱敏 / 敏感信息策略",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "中",
       "first_seen": "2026-11-07",
-      "notes": "截图、日志、UI 文本、变量值的脱敏和保留边界"
+      "notes": "`report.redact` 覆盖 JSON/JUnit/HTML/Manifest/文本证据；截图边界明确"
     },
     {
       "id": 7,
@@ -92,11 +92,11 @@
     {
       "id": 10,
       "title": "运行证据 Manifest / 原子写入 / 保留策略",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-07",
-      "notes": "合并 run manifest、SHA-256、原子写、索引和清理策略"
+      "notes": "`manifest.json` + SHA-256；原子写；`--keep-runs` 保守清理"
     },
     {
       "id": 11,
@@ -110,20 +110,20 @@
     {
       "id": 12,
       "title": "前台 Activity 断言与等待",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-08",
-      "notes": "校验当前 resumed activity，避免误在系统页或错误 App 上操作"
+      "notes": "`wait_for_activity`；解析 topResumedActivity 等，超时报告最后观测组件"
     },
     {
       "id": 13,
       "title": "步骤级 logcat 时间窗证据",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "中",
       "first_seen": "2026-11-08",
-      "notes": "把每一步与对应时间窗日志关联，便于失败定位"
+      "notes": "步骤 start/end + `adb logcat -T`；失败默认保留，`all` 可显式开启"
     },
     {
       "id": 14,
@@ -182,11 +182,11 @@
     {
       "id": 20,
       "title": "Flow 级执行预算与超时收口",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-09",
-      "notes": "给整条 flow 设置总预算并可靠终止"
+      "notes": "`timeout_seconds` / `--flow-timeout`；步骤边界失败并保留 teardown"
     },
     {
       "id": 21,
@@ -245,11 +245,11 @@
     {
       "id": 27,
       "title": "assert_logcat 日志断言",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "中",
       "first_seen": "2026-11-10",
-      "notes": "把日志条件变成可失败的测试断言"
+      "notes": "`assert_logcat_contains`；把日志条件变成可失败断言"
     },
     {
       "id": 28,
@@ -263,20 +263,20 @@
     {
       "id": 29,
       "title": "不触碰设备的 resolved execution plan / --dry-run",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-10",
-      "notes": "展示最终 flow、设备、变量和将要执行的命令"
+      "notes": "展示最终 flow、设备、变量和预期命令；不创建目录、不连接设备"
     },
     {
       "id": 30,
       "title": "--vars-file / --var 可复现变量输入",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-10",
-      "notes": "当前只有环境变量插值，缺显式变量文件和优先级"
+      "notes": "CLI > 变量文件 > 环境变量；支持类型保留与严格校验"
     },
     {
       "id": 31,
@@ -285,7 +285,7 @@
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-10",
-      "notes": "result-v1 和 cli-v1，Draft 2020-12"
+      "notes": "cli-v1、result-v1、events-v1、collection-result-v1，Draft 2020-12"
     },
     {
       "id": 32,
@@ -326,11 +326,11 @@
     {
       "id": 36,
       "title": "可复用 flow 片段 include / template",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "中",
       "first_seen": "2026-11-11",
-      "notes": "减少重复 flow，并检测循环依赖"
+      "notes": "`include` / `template`；相对路径、嵌套、循环检测、重复 ID 校验"
     },
     {
       "id": 37,
@@ -380,20 +380,20 @@
     {
       "id": 42,
       "title": "实时 NDJSON 步骤事件流",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "中",
       "feasibility": "高",
       "first_seen": "2026-11-11",
-      "notes": "让 CI 或 Agent 实时消费步骤开始/结束/失败事件"
+      "notes": "`run --events-jsonl`；flow/step start-end 事件并即时 flush"
     },
     {
       "id": 43,
       "title": "APK 安装前 SHA-256 完整性校验",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-12",
-      "notes": "在 adb install 前验证文件摘要"
+      "notes": "CLI/flow 均支持；摘要不匹配时不调用 adb install"
     },
     {
       "id": 44,
@@ -407,11 +407,11 @@
     {
       "id": 45,
       "title": "Flow 标签元数据与筛选执行",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "中",
       "feasibility": "高",
       "first_seen": "2026-11-12",
-      "notes": "按 smoke/regression/feature 标签选择 flow"
+      "notes": "Flow `tags` + `suite --tag`；大小写不敏感，无匹配报配置错误"
     },
     {
       "id": 46,
@@ -434,11 +434,11 @@
     {
       "id": 48,
       "title": "wait_for_text_gone",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "高",
       "first_seen": "2026-11-13",
-      "notes": "等待 Loading/错误提示等文本消失，替代固定 sleep"
+      "notes": "轮询 UI，直到指定文本消失；支持 timeout/interval/ignore_case/ANR 恢复"
     },
     {
       "id": 49,
@@ -479,20 +479,20 @@
     {
       "id": 53,
       "title": "Flow Suite 编排与聚合证据",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "中",
       "first_seen": "2026-11-17",
-      "notes": "多 flow 顺序执行、聚合 JUnit/HTML 和 suite 结果"
+      "notes": "`suite` 顺序执行；独立 run 目录 + 聚合 JSON/HTML/JUnit/Manifest"
     },
     {
       "id": 54,
       "title": "数据驱动 Flow 用例",
-      "status": "○ 未执行",
+      "status": "✅ 已实现",
       "value": "高",
       "feasibility": "中",
       "first_seen": "2026-11-17",
-      "notes": "CSV/JSON 数据行生成 case，复用同一 flow"
+      "notes": "`run --data`；CSV/JSON/YAML 行生成独立 case，复用变量系统"
     }
   ],
   "raw_records": [

@@ -20,6 +20,7 @@ CLI (argparse)
   ├─ doctor
   ├─ one-shot device commands
   ├─ flow validation
+  ├─ sequential suite / data-driven collection
   └─ flow runner
        ├─ MuMuManager adapter
        ├─ ADB device adapter
@@ -52,9 +53,13 @@ Wraps ADB commands with a fixed serial and bounded timeout. It validates package
 
 Implements a strict, versioned flow schema. Unknown fields and wrong types are configuration errors, not runtime surprises. Relative APK paths resolve against the flow file.
 
+### `suite.py`
+
+Loads strict suite manifests and data rows, filters flows by case-insensitive tags, and runs selected cases sequentially through the same `FlowRunner`. Each case keeps its own run directory and evidence; the collection layer adds aggregate `suite-result.json` or `data-result.json`, JUnit, HTML, and a SHA-256 manifest. Suite variables are merged as CLI > per-flow/data row > vars file > environment.
+
 ### `runner.py`
 
-Executes `setup` → `steps` → `teardown`, records every step, and continues teardown after failures. It attempts a diagnostic screenshot and final logcat on failure. Deterministic assertions cover UI text, top Activity components, and logcat content; `wait_for_activity` retains the last observed component when a timeout occurs.
+Executes `setup` → `steps` → `teardown`, records every step, and continues teardown after failures. It attempts a diagnostic screenshot and final logcat on failure. Deterministic assertions cover UI text, top Activity components, and logcat content; `wait_for_activity` retains the last observed component when a timeout occurs. `--events-jsonl` emits flushed `flow_start`, `step_start`, `step_end`, and `flow_end` records without changing the normal report contract.
 
 ### `reporting.py`
 
@@ -77,7 +82,7 @@ Screenshots are embedded as base64. HTML text is escaped. Logs and UI XML are tr
 | `MuMuError` | 1 | MuMuManager operation failed |
 | `StepFailure` | 1 | flow assertion failed |
 
-The CLI catches expected errors and emits a structured JSON object when `--json` is active. The packaged schemas `result-v1.schema.json` and `cli-v1.schema.json` define the machine-readable contracts for draft 2020-12 validators.
+The CLI catches expected errors and emits a structured JSON object when `--json` is active. The packaged schemas `result-v1.schema.json`, `cli-v1.schema.json`, `events-v1.schema.json`, and `collection-result-v1.schema.json` define the machine-readable contracts for draft 2020-12 validators.
 
 ## Security boundaries
 

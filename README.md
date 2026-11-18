@@ -16,7 +16,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
-![Status](https://img.shields.io/badge/status-v0.1.1-0B7A75.svg)
+![Status](https://img.shields.io/badge/status-v0.2.0-0B7A75.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 > 独立开源项目，与网易 / MuMu 官方无隶属关系。只测试你拥有或明确获授权测试的应用、账号、设备和数据。
@@ -94,6 +94,7 @@ App TestBench 不追求“设备矩阵全面”，而是把一条验证链路做
 | 等待与断言 | `wait_for_text`、`wait_for_activity`、UI 包含/不包含、logcat 包含、可见 ANR 恢复 | 把“应该到页面了”变成明确的通过/失败条件 |
 | 证据收集 | 截图、UI 树、logcat、失败诊断、步骤耗时和状态 | 失败后仍能说明“在哪一步、看到了什么、日志是什么” |
 | 流程编排 | JSON/YAML、`setup`/`steps`/`teardown`、环境变量、`continue_on_error`、开机就绪门禁 | 把安装、测试、清理和证据收集组合起来 |
+| 批量与复用 | Flow `include`/`template`、`tags`、`suite` 顺序编排、CSV/JSON `--data` 数据驱动 | 多个 flow 或数据行各自生成独立证据，并聚合 JUnit/HTML |
 | 本地测试服务 | `reverse-port` 映射宿主机端口、`open` 打开 URI | 覆盖 WebView、下载、媒体和本地 QA fixture |
 | 报告与 CI | 自包含 HTML、`result.json`、可选 JUnit XML、失败 JSON envelope | 人看报告，CI/Agent 读结构化结果 |
 | Agent 协助 | 打包的 Codex skill、Agent runbook、严格 schema、五个可复现案例 | Agent 按步骤执行，不靠猜坐标和临时环境 |
@@ -115,7 +116,7 @@ python -m pip install .
 app-testbench --version
 ```
 
-看到 `app-testbench 0.1.1` 即可继续。
+看到 `app-testbench 0.2.0` 即可继续。
 
 ### 2. 检查 MuMu、ADB 和实例
 
@@ -247,6 +248,9 @@ runs/<timestamp>-first-app-smoke/
 | 截图 / UI 树 / logcat | `screenshot` / `dump-ui` / `logcat` | `action: screenshot` / `dump_ui` / `logcat` |
 | 映射本机测试服务 | `app-testbench reverse-port 18765 --local-port 18765` | `action: reverse_port` |
 | 生成报告 / 接入 CI | `app-testbench run .\flow.yaml` | `run` 自动生成；加 `--json` 给 CI/Agent |
+| 批量跑多条 flow | `app-testbench suite .\suite.yaml --tag smoke` | suite manifest；每个 flow 独立证据 |
+| 一行数据一个用例 | `app-testbench run .\flow.yaml --data .\cases.csv` | 复用同一 flow，聚合 data 结果与 JUnit |
+| 实时消费步骤事件 | `app-testbench run .\flow.yaml --events-jsonl .\events.ndjson` | NDJSON 事件流，适合 Agent/CI |
 
 </details>
 

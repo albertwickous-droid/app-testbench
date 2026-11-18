@@ -1,19 +1,19 @@
 # 发布检查清单 / Release Checklist
 
-版本 / Version: `0.1.1` · 目标 tag / Target tag: `v0.1.1`
+版本 / Version: `0.2.0` · 目标 tag / Target tag: `v0.2.0`
 
 ## 1. 源码与版本 / Source and version
 
-- [ ] `CHANGELOG.md` 已包含 `0.1.1` / changelog includes `0.1.1`
+- [ ] `CHANGELOG.md` 已包含 `0.2.0` / changelog includes `0.2.0`
 - [ ] `pyproject.toml`、`src/app_testbench/__init__.py` 版本一致 / versions match
 - [ ] `README.md` 和 `README.en.md` 内容对齐 / both READMEs are in sync
-- [ ] `docs/releases/v0.1.1.md` 已审阅 / release notes reviewed
+- [ ] `docs/releases/v0.2.0.md` 已审阅 / release notes reviewed
 - [ ] LICENSE 使用项目级署名，不包含私人信息 / license uses project attribution
 - [ ] DISCLAIMER.md、RESPONSIBLE_USE.md、PRIVACY.md、THIRD_PARTY_NOTICES.md 已审阅 / responsibility notices reviewed
 - [ ] 权责声明不与 MIT License 冲突，第三方商标与依赖已列明 / notices do not conflict with MIT and list third-party marks/dependencies
 - [ ] 没有个人介绍、用户名、邮箱或机器专属路径 / no personal intro, username, email, or machine path
 - [ ] Git author 使用仓库级公开 handle 与 GitHub noreply 邮箱 / local Git identity uses a public handle and noreply email
-- [ ] README 和 v0.1.1 release notes 中的 OWNER 已替换为真实仓库所有者 / OWNER placeholders in user-facing READMEs and release notes are replaced
+- [ ] README 和 v0.2.0 release notes 中的 OWNER 已替换为真实仓库所有者 / OWNER placeholders in user-facing READMEs and release notes are replaced
 
 ## 2. 隐私与安全 / Privacy and security
 
@@ -46,11 +46,13 @@
 - [ ] tap/swipe/text/keyevent 已验证 / input actions tested
 - [ ] screenshot、`dump-ui`、logcat 已验证 / evidence actions tested
 - [ ] 至少一个 JSON 或 YAML flow 生成报告 / one flow produces a report
+- [ ] 本次维护未启动真实 MuMu，suite/data/events 的 live-device 行为已明确列为未覆盖 / live-device behavior for suite/data/events is explicitly listed as not covered
 - [ ] `report.html` 离线打开且截图已内嵌 / report opens offline with embedded images
 - [ ] Wikipedia 真实案例 63/63 步通过 / Wikipedia live case passed 63/63 steps
 - [ ] Firefox/Fennec 真实案例 66/66 步通过，下载文件精确校验 / Firefox live case passed 66/66 with exact download verification
 - [ ] VLC 真实案例 43/43 步通过，Activity 与 logcat 断言通过 / VLC live case passed 43/43 with Activity and logcat assertions
 - [ ] `wait_for_activity` 与 `assert_logcat_contains` 有单元测试 / new actions have unit and flow tests
+- [ ] `suite`、`--data`、`--events-jsonl` 与两个新 schema 有确定性 fake-backend 测试 / suite, data, events, and new schemas have deterministic fake-backend tests
 - [ ] 失败 `run --json` 通过打包的 `cli-v1.schema.json` / failed `run --json` validates against the packaged schema
 - [ ] 测试的 MuMu 版本记录在 release notes / MuMu version documented
 - [ ] 无法完成的真实环境项明确列为限制 / unavailable live checks are documented as limits
@@ -73,7 +75,7 @@
 - [ ] 初始提交信息已确认 / initial commit message confirmed
 - [ ] 先以 private 仓库验证渲染和 Actions / private repository checked first
 - [ ] 确认后再切换 Public / public switch explicitly approved
-- [ ] `v0.1.1` 指向预期提交 / tag points to the intended commit
+- [ ] `v0.2.0` 指向预期提交 / tag points to the intended commit
 - [ ] Release 为 draft，人工核对后才发布 / release stays draft until reviewed
 - [ ] 资产包含 wheel、sdist、`SHA256SUMS.txt` / expected assets attached
 - [ ] Release notes 包含安全限制与已知边界 / notes contain safety and limits

@@ -16,7 +16,7 @@ The runner does not ask a vision model to guess the next screen. Each step passe
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
-![Status](https://img.shields.io/badge/status-v0.1.1-0B7A75.svg)
+![Status](https://img.shields.io/badge/status-v0.2.0-0B7A75.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 > Independent open-source project. Not affiliated with or endorsed by NetEase or the MuMu team. Test only apps, accounts, devices, and data that you own or are explicitly authorized to test.
@@ -94,8 +94,10 @@ App TestBench does not compete on device-matrix breadth. It completes one verifi
 | Waits and assertions | `wait_for_text`, `wait_for_activity`, UI contains/not-contains, logcat contains, visible ANR recovery | A test that can pass or fail on an actual condition |
 | Evidence | Screenshots, UI hierarchy, logcat, failure diagnostics, step status and timing | A clear record of what failed and what the app showed |
 | Flow orchestration | JSON/YAML, `setup`/`steps`/`teardown`, environment interpolation, `continue_on_error`, boot readiness gate | Install, test, cleanup, and evidence in one repeatable document |
+| Batch and reuse | Flow `include`/`template`, `tags`, sequential `suite`, CSV/JSON `--data` rows | Independent evidence per flow/case with aggregate JUnit/HTML |
 | Local test services | `reverse-port` for host-to-device ports and `open` for URIs | WebView, download, media, and local QA fixture coverage |
 | Reports and CI | Self-contained HTML, `result.json`, optional JUnit XML, structured failure JSON | Humans read the report; CI and agents read the result |
+| Suite, data, and live events | `suite --tag`, `run --data`, and `run --events-jsonl` | Batch flows or rows locally; stream step events to agents and CI |
 | Agent support | Packaged Codex skill, English agent runbook, strict schemas, five reproducible live cases | A stable operating procedure instead of guessed coordinates |
 
 ## Five-minute path
@@ -115,7 +117,7 @@ python -m pip install .
 app-testbench --version
 ```
 
-Continue when the command reports `app-testbench 0.1.1`.
+Continue when the command reports `app-testbench 0.2.0`.
 
 ### 2. Check MuMu, ADB, and the instance
 
@@ -301,7 +303,7 @@ MuMu Player provides the mature instance lifecycle, Android runtime, and ADB con
 | A temporary ADB script | One action | No waits, assertions, failure context, or common result format |
 | Vision-model screen clicking | Exploratory automation | Environment and per-step decisions are difficult to reproduce |
 | An ad-hoc AI-built Android environment | A quick demo | Toolchain instability and hard-to-diagnose failures |
-| **App TestBench + MuMu** | Frequent smoke tests, regression, WebView/browser journeys, defect handoff | v0.1.1 is Windows + MuMu first; physical-device acceptance still matters |
+| **App TestBench + MuMu** | Frequent smoke tests, regression, WebView/browser journeys, defect handoff | v0.2.0 is Windows + MuMu first; physical-device acceptance still matters |
 
 ## Authorized scenarios and boundaries
 
@@ -333,7 +335,7 @@ Every device command supports `--json`. A failed `run --json` still returns the 
 
 ## Known limits
 
-- v0.1.1 is Windows + MuMu Player first. It does not claim every MuMu, Android, ADB, resolution, or language combination.
+- v0.2.0 is Windows + MuMu Player first. It does not claim every MuMu, Android, ADB, resolution, or language combination.
 - Selectors and coordinates are calibrated for pinned apps, languages, and `720x1280`; app updates require flow maintenance.
 - Native `text` input supports printable ASCII only; Chinese input is not covered.
 - Games, Canvas surfaces, custom-rendered UI, and incomplete accessibility trees may not be readable through `uiautomator dump`.

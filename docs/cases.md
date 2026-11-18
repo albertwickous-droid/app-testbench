@@ -4,9 +4,9 @@
 
 This page records the five live MuMu cases on the current App TestBench `main` branch. Every screenshot comes from the actual app, not a generated mockup or redrawn page. APK versions and SHA256 values are pinned for reproduction.
 
-> `v0.1.1` tag 最初发布 Wikipedia、Firefox/Fennec 和 VLC 三个案例。AnkiDroid 与 Markor 是之后合入 `main` 的维护更新；本次没有创建新版本号或移动已有 tag。
+> `v0.2.0` 继续保留这五个真实案例作为证据；本次维护门禁没有启动真实 MuMu，新增 suite、数据驱动和事件流能力由确定性 fake 后端测试覆盖。
 
-> The published `v0.1.1` tag introduced the Wikipedia, Firefox/Fennec, and VLC cases. AnkiDroid and Markor were added later on `main`; this maintenance update does not create a new version or move the existing tag.
+> `v0.2.0` retains these five live cases as evidence. The maintenance gate for this release does not start MuMu; suite, data-driven, and event-stream behavior is covered by deterministic fake-backend tests.
 
 ## 结果总览 / Result summary
 

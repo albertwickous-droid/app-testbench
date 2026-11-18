@@ -5,36 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-This maintenance update intentionally keeps the package version at `0.1.1` and
-does not move the existing `v0.1.1` tag.
+## [0.2.0] - 2026-11-19
 
 ### Added
 
-- Post-release AnkiDroid deck/card persistence case (49/49) and Markor note
-  persistence case (46/46), joining the published Wikipedia, Firefox/Fennec, and
-  VLC cases for five reproducible live examples in the current `main` branch.
-- Human onboarding sections in both READMEs covering suitable and unsuitable
-  use, a capability matrix, a goal-to-command/action map, a complete first-run
-  walkthrough, artifact inspection, and an independent English version.
-- README guidance for authorized native-app testing when a web surface is
-  incomplete or desktop automation is constrained, with explicit anti-bypass and
-  data-handling boundaries.
+- Reproducible flat variables through `--vars-file` and repeatable `--var`,
+  with CLI > variables file > environment precedence and scalar type
+  preservation.
+- Device-free `run --dry-run` plans that resolve the final flow, device,
+  variables, output location, and expected commands without touching MuMu or
+  ADB or creating a run directory.
+- Flow-level time budgets, `wait_for_text_gone`, reusable `include`/
+  `template` fragments, case-insensitive `tags`, sequential `suite`
+  execution, and CSV/JSON data-driven cases.
+- Per-run `manifest.json` with SHA-256 evidence inventories, conservative
+  `--keep-runs` retention, APK SHA-256 preflight, and per-step logcat time
+  windows.
+- Literal report redaction for JSON, HTML, JUnit, manifests, and text evidence;
+  binary screenshots remain explicitly outside pixel redaction.
+- Flushed NDJSON event streams through `run --events-jsonl`, plus packaged
+  Draft 2020-12 schemas for CLI envelopes, run results, events, and aggregate
+  suite/data results.
+- Two post-release live cases: AnkiDroid deck/card persistence (49/49) and
+  Markor note persistence (46/46), alongside the published Wikipedia,
+  Firefox/Fennec, and VLC cases.
 
 ### Changed
 
-- The self-contained HTML report now provides Light/Dark theme controls and a
-  vertically scrollable desktop step rail without adding CDN or runtime web
-  dependencies.
-- Documentation now distinguishes the published `v0.1.1` tag from later
-  maintenance changes on `main` and requires explicit approval for new tags,
-  Releases, or package publication.
+- The product positioning is now explicitly local-first for individual
+  developers and small teams doing fast smoke/regression checks; it does not
+  compete with cloud device farms on device scale or concurrency.
+- README onboarding now explains suitable and unsuitable use, a capability
+  matrix, a goal-to-command map, a first-run walkthrough, artifact inspection,
+  and an independent English version.
+- The HTML report supports Light/Dark theme controls and a scrollable desktop
+  step rail without CDN or runtime web dependencies.
+- Package and CLI version are `0.2.0`.
 
 ### Fixed
 
-- `wait_for_text` ANR recovery now respects the configured timeout instead of
-  retrying indefinitely when the not-responding dialog remains visible.
+- `wait_for_text` ANR recovery respects the configured timeout instead of
+  retrying indefinitely when the dialog remains visible.
+- Failed `run --json` output includes the structured error required by the
+  published CLI schema while retaining the complete result payload.
+
+## [Unreleased]
+
+No unreleased changes after `0.2.0`.
 
 ## [0.1.1] - 2026-11-16
 

@@ -98,6 +98,63 @@ Tags are optional metadata. They do not change a single `run`; use them with
 case-insensitive, duplicate tags in one flow are rejected, and no matching flow
 is a configuration error rather than a silently successful empty run.
 
+## Data-driven runs
+
+Use `run --data` with a CSV, JSON, or YAML list. Each row is an independent
+case and gets its own run directory, variables, report, and evidence:
+
+```powershell
+app-testbench run .\checkout.yaml --data .\checkout-cases.csv --output .\runs
+app-testbench run .\checkout.yaml --data .\checkout-cases.json --output .\runs
+```
+
+CSV values are strings. JSON/YAML preserve strings, numbers, booleans, and null
+is rejected. The column names become flow variables; an optional `case_name`
+column controls the display label. The aggregate collection writes
+`data-result.json`, `data-report.html`, `junit.xml`, and `manifest.json`
+under one parent directory. The collection result contract is
+`collection-result-v1.schema.json`.
+
+## Suites
+
+A suite manifest runs selected flows sequentially, with a separate run directory
+for each flow:
+
+```yaml
+version: 1
+name: smoke-suite
+description: Daily local checks
+flows:
+  - path: flows/login.yaml
+    variables:
+      APP_PACKAGE: com.example.debug
+  - path: flows/checkout.yaml
+```
+
+```powershell
+app-testbench suite .\suite.yaml --tag smoke --output .\runs
+```
+
+Tags come from each flow's `tags` field and match case-insensitively. Repeating
+`--tag` matches any requested tag. If no flow matches, the suite fails with a
+configuration error instead of silently running zero tests. Suite output includes
+`suite-result.json`, `suite-report.html`, aggregate `junit.xml`, and
+`manifest.json`, while each case keeps its own full report and manifest.
+
+## Live event stream
+
+`run --events-jsonl` writes one flushed JSON object per line for CI or Agent
+consumption:
+
+```powershell
+app-testbench run .\flow.yaml --events-jsonl .\runs\events.ndjson
+```
+
+The stream contains `flow_start`, `step_start`, `step_end`, and `flow_end`
+events. Each `step_end` includes status, timing, error type, and step output.
+The event contract is `events-v1.schema.json`. Event files are observability
+artifacts; the normal HTML/JSON/JUnit report remains the source of truth.
+
 ## Dry run
 
 Add `--dry-run` to `run` to resolve the final flow, device selection, output location, and expected ADB commands without connecting to MuMu or ADB and without creating a run directory:

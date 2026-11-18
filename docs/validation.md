@@ -4,19 +4,20 @@
 
 This page records the maintenance validation for the App TestBench `main` branch. Results apply only to the versions, environments, apps, and flows listed below. Untested combinations are not presented as expected to work.
 
-验证日期 / Validation date: **2026-11-18, Asia/Shanghai**
+验证日期 / Validation date: **2026-11-19, Asia/Shanghai**
 
-> Package version remains `0.1.1`. This maintenance update does not create a tag, move `v0.1.1`, publish a GitHub Release, or publish to PyPI.
+> Package version is `0.2.0`. This maintenance run does not create or push a remote tag, publish a GitHub Release, or publish to PyPI. The live cases below are retained evidence from earlier MuMu runs; this maintenance run did not start MuMu or operate an Android device.
 
 ## 1. 发布门禁 / Release gate
 
 | 检查 / Check | 实际结果 / Actual result |
 | --- | --- |
-| Full pytest | **148 passed** |
+| Full pytest | **187 passed** |
 | Ruff lint | PASS |
 | Ruff format check | PASS |
-| wheel + sdist build | `app_testbench-0.1.1-py3-none-any.whl` and `app_testbench-0.1.1.tar.gz` built |
+| wheel + sdist build | `app_testbench-0.2.0-py3-none-any.whl` and `app_testbench-0.2.0.tar.gz` built |
 | `twine check` | wheel and sdist PASSED |
+| CLI version | `app-testbench 0.2.0` |
 | failed `run --json` | exit `1`, structured `error`, complete `data`, packaged schema PASS |
 | public evidence test | 18 PNG files checked for dimensions, privacy-sensitive metadata chunks, SHA256 manifest coverage, and expected file set |
 | HTML offline check | screenshots embedded as data URIs; no external script, stylesheet, or CSS import |
@@ -49,7 +50,7 @@ CI uses deterministic fake `adb` / `MuMuManager` backends to verify command cons
 | AnkiDroid | **49 passed / 0 failed / 0 skipped** | 75.203 s | 3 public PNGs; onboarding, deck/card creation, cold launch, reopened fields |
 | Markor | **46 passed / 0 failed / 0 skipped** | 80.203 s | 3 public PNGs; note input, save, exact search, cold-start body recovery |
 
-The published `v0.1.1` tag introduced the Wikipedia, Firefox/Fennec, and VLC cases. AnkiDroid and Markor were merged later into `main` and are part of this unversioned maintenance update.
+The five live cases are retained evidence from earlier MuMu runs. The 0.2.0 automated gate verifies suite orchestration, data-driven cases, live event streams, schemas, and fake-backend behavior without starting MuMu.
 
 ## 4. 失败 JSON 契约 / Failed JSON contract
 
@@ -104,5 +105,6 @@ Packaged result-v1.schema.json: PASS
 - VLC logcat assertions use a bounded Android log buffer and stop unrelated log-heavy browser processes in setup.
 - `text` remains printable ASCII only; Chinese input is not claimed.
 - `wait_for_text` depends on `uiautomator dump`; games, custom-rendered surfaces, and incomplete accessibility trees may need another approach.
+- Suite/data/events behavior in this gate is verified with deterministic fake ADB and MuMuManager backends, not a new live-device run.
 - The project does not support bypassing login, CAPTCHA, anti-automation, anti-scraping, risk controls, rate limits, paywalls, or access controls.
 - Physical devices remain the final acceptance environment for hardware, OEM, and production-account behavior.

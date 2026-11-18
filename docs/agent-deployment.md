@@ -115,6 +115,21 @@ Expected coverage:
 
 A final passing case must report `failed=0` and `skipped=0` in `result.json`, with screenshots, UI XML, logcat, HTML, and JUnit present. A previously passing run is not a substitute for the clean run associated with the release candidate.
 
+For a batch check, keep the same authorization boundary and use one of these paths:
+
+```powershell
+# Select flows by case-insensitive tag; each flow gets its own run directory.
+app-testbench suite .\suite.yaml --tag smoke --output .\runs --json
+
+# Run the same flow once per CSV/JSON row.
+app-testbench run .\flow.yaml --data .\cases.csv --output .\runs --json
+
+# Stream live events to an agent or CI job.
+app-testbench run .\flow.yaml --events-jsonl .\runs\events.ndjson --json
+```
+
+A suite or data-driven run writes aggregate `suite-result.json` / `data-result.json`, HTML, JUnit, and `manifest.json`. Inspect each case report before treating the aggregate status as proof. The schemas are packaged as `events-v1.schema.json` and `collection-result-v1.schema.json`.
+
 If a live run fails:
 
 1. Read the failed step, error, hint, screenshot, UI tree, and logcat.
@@ -252,7 +267,7 @@ app-testbench close net.gsantner.markor
 app-testbench instance stop 0 --json
 ```
 
-There is no one-shot `app-testbench uninstall` command in v0.1.1. If a dedicated test instance must remove a package, use the wrapper's documented cleanup or `adb shell pm uninstall <package>` with the verified serial, and only after confirming that the package is case-owned.
+There is no one-shot `app-testbench uninstall` command in v0.2.0. If a dedicated test instance must remove a package, use the wrapper's documented cleanup or `adb shell pm uninstall <package>` with the verified serial, and only after confirming that the package is case-owned.
 
 Do not delete ignored `runs/` evidence that may be needed for the final report. Do not remove unrelated background MuMu services if they belong to the host owner and the task only requires stopping the Android instance.
 

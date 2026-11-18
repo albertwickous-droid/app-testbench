@@ -60,7 +60,8 @@ screenshot [--output ...]
 dump-ui [--output ...]
 logcat [--output ...] [--lines ...] [--clear]
 validate <flow>
-run <flow> [--output <parent-dir>] [--junit-xml <file>] [--wait-for-boot] [--boot-timeout <seconds>]
+run <flow> [--output <parent-dir>] [--junit-xml <file>] [--wait-for-boot] [--boot-timeout <seconds>] [--data <csv/json>] [--events-jsonl <file>]
+suite <manifest> [--tag <tag>] [--output <parent-dir>] [--junit-xml <file>]
 init [--output ...] [--format yaml|json]
 skill-path
 ```
@@ -79,6 +80,9 @@ app-testbench --instance 0 screenshot --output .\artifacts\home.png
 app-testbench --instance 0 dump-ui --output .\artifacts\home.xml
 app-testbench --instance 0 logcat --output .\artifacts\logcat.txt --lines 2000
 app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifacts\junit.xml --wait-for-boot
+app-testbench run .\checkout.yaml --data .\checkout-cases.csv --output .\runs
+app-testbench suite .\suite.yaml --tag smoke --output .\runs
+app-testbench run .\flow.yaml --events-jsonl .\runs\events.ndjson
 ```
 
 ## Public live cases
@@ -163,12 +167,13 @@ runs/<timestamp>-<flow-name>/
 └── logs/
 ```
 
-The HTML report embeds screenshots and logcat excerpts and works offline.
+The HTML report embeds screenshots and logcat excerpts and works offline. Every run also writes `manifest.json` with evidence hashes. Suite and data-driven runs keep each case in `cases/<timestamp>-<flow>/` and add aggregate `suite-result.json` or `data-result.json`, HTML, JUnit, and a collection manifest.
 
 ## JSON contract
 
-The packaged schemas are `app_testbench/schemas/cli-v1.schema.json` and
-`app_testbench/schemas/result-v1.schema.json` (JSON Schema draft 2020-12).
+The packaged schemas are `app_testbench/schemas/cli-v1.schema.json`,
+`app_testbench/schemas/result-v1.schema.json`, `events-v1.schema.json`, and
+`collection-result-v1.schema.json` (JSON Schema draft 2020-12).
 
 Success:
 

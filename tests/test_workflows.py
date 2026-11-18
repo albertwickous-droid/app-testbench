@@ -45,5 +45,5 @@ def test_release_version_metadata_matches() -> None:
     pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
     package_init = (root / "src" / "app_testbench" / "__init__.py").read_text(encoding="utf-8")
 
-    assert 'version = "0.1.1"' in pyproject
-    assert '__version__ = "0.1.1"' in package_init
+    assert 'version = "0.2.0"' in pyproject
+    assert '__version__ = "0.2.0"' in package_init
