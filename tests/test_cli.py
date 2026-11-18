@@ -737,3 +737,46 @@ steps:
     assert code == 0
     assert payload["data"]["device"]["package"] == "com.example.cli"
     assert payload["data"]["variable_names"] == ["APP_PACKAGE"]
+
+
+def test_dry_run_is_device_free_and_does_not_create_run_dir(
+    fake_tools: dict[str, Path], tmp_path: Path, capsys
+) -> None:
+    flow = tmp_path / "flow.yaml"
+    flow.write_text(
+        """
+version: 1
+name: dry-run-smoke
+device:
+  package: com.example.app
+steps:
+  - action: launch
+  - action: wait_for_text
+    text: Login
+""".strip(),
+        encoding="utf-8",
+    )
+    output = tmp_path / "runs"
+    code = main(
+        [
+            "run",
+            str(flow),
+            "--dry-run",
+            "--output",
+            str(output),
+            "--adb",
+            str(fake_tools["adb"]),
+            "--mumumanager",
+            str(fake_tools["manager"]),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["data"]["dry_run"] is True
+    assert payload["data"]["step_count"] == 2
+    assert "monkey" in payload["data"]["steps"][0]["command"]
+    assert "com.example.app" in payload["data"]["steps"][0]["command"]
+    assert not output.exists()
+    assert not (fake_tools["adb_state"] / "adb-commands.jsonl").exists()
+    assert not (fake_tools["mumu_state"] / "mumu-commands.jsonl").exists()

@@ -49,7 +49,7 @@
 | 26 | Locale / timezone 只读场景契约 | ○ 未执行 | 中 | 高 | 2026-11-09 | 只读记录并断言语言、时区，不静默修改设备 |
 | 27 | assert_logcat 日志断言 | ○ 未执行 | 高 | 中 | 2026-11-10 | 把日志条件变成可失败的测试断言 |
 | 28 | 权限与应用状态预设 | ◐ 部分实现 | 高 | 中 | 2026-11-10 | 已有 install -g 和 clear-data；缺显式 grant/revoke/reset 与状态审计 |
-| 29 | 不触碰设备的 resolved execution plan / --dry-run | ○ 未执行 | 高 | 高 | 2026-11-10 | 展示最终 flow、设备、变量和将要执行的命令 |
+| 29 | 不触碰设备的 resolved execution plan / --dry-run | ✅ 已实现 | 高 | 高 | 2026-11-10 | 展示最终 flow、设备、变量和预期命令；不创建目录、不连接设备 |
 | 30 | --vars-file / --var 可复现变量输入 | ✅ 已实现 | 高 | 高 | 2026-11-10 | CLI > 变量文件 > 环境变量；支持类型保留与严格校验 |
 | 31 | Result / CLI JSON Schema 契约 | ✅ 已实现 | 高 | 高 | 2026-11-10 | result-v1 和 cli-v1，Draft 2020-12 |
 | 32 | 稳定 failure taxonomy | ◐ 部分实现 | 高 | 中 | 2026-11-10 | 已有结构化 error.type；缺完整、稳定、可扩展的分类表 |

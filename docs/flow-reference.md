@@ -63,6 +63,16 @@ setup:
 
 All `${NAME}` references must exist when the flow is loaded. Missing values produce a `FlowError` before any device action. A whole-value reference such as `timeout: ${WAIT_SECONDS}` preserves the numeric/boolean type from a variable file; references embedded inside a larger string are converted to text. Variable files are flat maps of strings, numbers, or booleans; nested objects and lists are rejected.
 
+## Dry run
+
+Add `--dry-run` to `run` to resolve the final flow, device selection, output location, and expected ADB commands without connecting to MuMu or ADB and without creating a run directory:
+
+```powershell
+app-testbench run .\flow.yaml --vars-file .\qa.yaml --dry-run --json
+```
+
+The plan marks `dry_run: true` and includes one command plan per step. It is safe to run in CI or before a live device is available.
+
 ## Common step fields
 
 | Field | Type | Default | Meaning |

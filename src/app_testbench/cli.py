@@ -29,6 +29,7 @@ from app_testbench.errors import ConfigError, DeviceError, RunnerError, StepFail
 from app_testbench.flow import load_flow, resolve_variables, starter_document
 from app_testbench.models import Instance, RunResult
 from app_testbench.mumu import MuMuManagerClient
+from app_testbench.planning import build_execution_plan
 from app_testbench.runner import FlowRunner
 from app_testbench.utils import ProcessRunner, atomic_write_text, now_iso, unique_path
 
@@ -282,6 +283,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("flow", type=Path)
     _add_variable_arguments(run)
     run.add_argument("--output", type=Path, help="Parent directory for run artifacts")
+    run.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve and print the execution plan without touching MuMu or ADB",
+    )
     run.add_argument(
         "--junit-xml",
         type=Path,
@@ -766,8 +772,29 @@ def _command_validate(args: argparse.Namespace, _: Settings) -> int:
 def _command_run(args: argparse.Namespace, settings: Settings) -> int:
     flow = load_flow(args.flow, variables=_resolved_variables(args))
     output_base = _resolve_directory_output(args.output or Path.cwd() / "runs")
-    junit_path = _resolve_file_output(args.junit_xml) if args.junit_xml else None
     wait_for_boot = True if args.wait_for_boot or args.boot_timeout is not None else None
+    if args.dry_run:
+        plan = build_execution_plan(
+            flow,
+            settings,
+            output_base=output_base,
+            wait_for_boot=wait_for_boot,
+            boot_timeout=args.boot_timeout,
+        )
+
+        def human_plan(payload: dict[str, Any]) -> None:
+            print(f"DRY RUN: {payload['flow']['name']} ({payload['step_count']} steps)")
+            print(
+                f"Device: instance {payload['device']['instance']}, "
+                f"serial {payload['device']['serial'] or '<auto>'}"
+            )
+            print(f"Expected run directory: {payload['expected_run_dir']}")
+            for step in payload["steps"]:
+                print(f"  [{step['section']}] {step['id']}: {step['action']}")
+                print(f"    {' '.join(step['command'])}")
+
+        return _finish(args, "run", plan, human_plan)
+    junit_path = _resolve_file_output(args.junit_xml) if args.junit_xml else None
     result = FlowRunner(
         settings,
         flow,
