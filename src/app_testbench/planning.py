@@ -136,6 +136,7 @@ def build_execution_plan(
     output_base: Path,
     wait_for_boot: bool | None = None,
     boot_timeout: float | None = None,
+    flow_timeout: float | None = None,
 ) -> dict[str, Any]:
     """Return a resolved, side-effect-free description of a flow run."""
 
@@ -184,6 +185,9 @@ def build_execution_plan(
         },
         "output_base": str(output_base.resolve()),
         "expected_run_dir": str(expected_dir.resolve()),
+        "flow_timeout_seconds": (
+            flow_timeout if flow_timeout is not None else flow.timeout_seconds
+        ),
         "step_count": len(steps),
         "steps": steps,
     }

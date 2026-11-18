@@ -556,3 +556,24 @@ def test_duplicate_cli_variable_is_rejected() -> None:
 
     with pytest.raises(FlowError, match="Duplicate --var"):
         parse_cli_variables(["NAME=first", "NAME=second"])
+
+
+def test_flow_timeout_seconds_is_validated_and_serialized(tmp_path: Path) -> None:
+    path = tmp_path / "flow.yaml"
+    path.write_text(
+        "version: 1\ntimeout_seconds: 2.5\nsteps:\n  - action: back\n",
+        encoding="utf-8",
+    )
+    flow = load_flow(path)
+    assert flow.timeout_seconds == 2.5
+    assert flow.to_dict()["timeout_seconds"] == 2.5
+
+
+def test_flow_timeout_rejects_too_small_values(tmp_path: Path) -> None:
+    path = tmp_path / "flow.yaml"
+    path.write_text(
+        "version: 1\ntimeout_seconds: 0.01\nsteps:\n  - action: back\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(FlowError, match=r"between 0\.1 and 86400"):
+        load_flow(path)

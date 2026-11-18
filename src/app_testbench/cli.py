@@ -303,6 +303,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=_positive_float,
         help="Boot readiness timeout in seconds (implies --wait-for-boot)",
     )
+    run.add_argument(
+        "--flow-timeout",
+        type=_positive_float,
+        help="Total flow budget in seconds; overrides flow.timeout_seconds",
+    )
     run.set_defaults(handler="run")
 
     init = subparsers.add_parser("init", parents=[common], help="Create a starter flow")
@@ -780,6 +785,7 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
             output_base=output_base,
             wait_for_boot=wait_for_boot,
             boot_timeout=args.boot_timeout,
+            flow_timeout=args.flow_timeout,
         )
 
         def human_plan(payload: dict[str, Any]) -> None:
@@ -802,6 +808,7 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
         junit_path=junit_path,
         wait_for_boot=wait_for_boot,
         boot_timeout=args.boot_timeout,
+        flow_timeout=args.flow_timeout,
     ).run()
     data = result.to_dict()
 

@@ -29,6 +29,7 @@ class FlowRunner:
         wait_for_boot: bool | None = None,
         boot_timeout: float | None = None,
         boot_interval: float = 1.0,
+        flow_timeout: float | None = None,
     ) -> None:
         self.settings = settings
         self.flow = flow
@@ -38,6 +39,8 @@ class FlowRunner:
         self.wait_for_boot = wait_for_boot
         self.boot_timeout = boot_timeout
         self.boot_interval = boot_interval
+        self.flow_timeout = flow_timeout if flow_timeout is not None else flow.timeout_seconds
+        self._deadline: float | None = None
         self.output_dir: Path | None = None
         self.device: AndroidDevice | None = None
         self.manager: MuMuManagerClient | None = None
@@ -67,6 +70,7 @@ class FlowRunner:
             "instance": instance,
             "serial": serial,
             "timeout_seconds": self.settings.timeout,
+            "flow_timeout_seconds": self.flow_timeout,
         }
 
     def _make_result(
@@ -89,6 +93,7 @@ class FlowRunner:
                 "description": self.flow.description,
                 "device": self.flow.device,
                 "report": self.flow.report,
+                "flow_timeout_seconds": self.flow_timeout,
             },
             steps=steps,
             logcat_paths=self.logcat_paths,
@@ -182,6 +187,9 @@ class FlowRunner:
             steps.extend(self._skipped_steps(self.flow.all_steps, "Device connection failed."))
             status = "failed"
         else:
+            self._deadline = (
+                time.monotonic() + self.flow_timeout if self.flow_timeout is not None else None
+            )
             setup_ok = self._run_section(self.flow.setup, steps)
             if setup_ok:
                 main_ok = self._run_section(self.flow.steps, steps)
@@ -194,7 +202,14 @@ class FlowRunner:
                     )
                 )
             if self.flow.teardown:
-                self._run_section(self.flow.teardown, steps, force_continue=True)
+                # Teardown is evidence/cleanup work; let it run even after the
+                # main budget expires, while still respecting per-command timeouts.
+                self._run_section(
+                    self.flow.teardown,
+                    steps,
+                    force_continue=True,
+                    respect_deadline=False,
+                )
             failed = aborted or any(step.status == "failed" for step in steps)
             if failed:
                 status = "failed"
@@ -211,15 +226,40 @@ class FlowRunner:
         write_run_artifacts(result, self.output_dir)
         return result
 
+    def _budget_expired(self) -> bool:
+        return self._deadline is not None and time.monotonic() >= self._deadline
+
+    def _timeout_step(self, step: FlowStep) -> StepResult:
+        return StepResult(
+            id=step.id,
+            name=step.name,
+            action=step.action,
+            section=step.section,
+            status="failed",
+            started_at=now_iso(),
+            description=step.description,
+            params=step.params,
+            error=f"Flow timeout exceeded ({self.flow_timeout:g}s).",
+            hint="The flow budget expired before this step started; teardown will still run.",
+            output={"reason": "flow_timeout", "timeout_seconds": self.flow_timeout},
+        )
+
     def _run_section(
         self,
         section: list[FlowStep],
         steps: list[StepResult],
         *,
         force_continue: bool = False,
+        respect_deadline: bool = True,
     ) -> bool:
         all_passed = True
         for index, step in enumerate(section):
+            if respect_deadline and self._budget_expired():
+                steps.append(self._timeout_step(step))
+                remaining = section[index + 1 :]
+                if remaining:
+                    steps.extend(self._skipped_steps(remaining, "Flow timeout exceeded."))
+                return False
             result = self._execute_step(step)
             steps.append(result)
             if result.status == "failed":

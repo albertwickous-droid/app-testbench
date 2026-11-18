@@ -14,6 +14,7 @@ A flow is a JSON or YAML object with `version: 1`. The runner validates the whol
 | `steps` | array | yes* | Main test actions |
 | `teardown` | array | no | Actions run even after a main failure |
 | `report` | object | no | Screenshot/log/report settings |
+| `timeout_seconds` | number | no | Total flow budget in seconds; CLI `--flow-timeout` overrides it |
 
 \* The document must contain at least one action across `setup`, `steps`, and `teardown`.
 
@@ -405,6 +406,8 @@ A failed step always attempts a diagnostic screenshot and a final logcat when po
 6. Run `teardown` even when setup or steps fail.
 7. Collect final logcat.
 8. Write `result.json` and `report.html`; write JUnit XML when requested.
+
+The flow budget starts after the device connects. When it expires at a step boundary, that step is recorded as failed, remaining main steps are skipped, and `teardown` still runs for cleanup and evidence. A single long-running ADB command is still bounded by `--timeout`.
 
 If a main step fails and `continue_on_error` is `false`, later main steps are recorded as `skipped`; teardown still runs. If `continue_on_error` is `true`, later steps run, while the overall result remains `failed`.
 

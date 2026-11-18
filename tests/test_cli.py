@@ -780,3 +780,43 @@ steps:
     assert not output.exists()
     assert not (fake_tools["adb_state"] / "adb-commands.jsonl").exists()
     assert not (fake_tools["mumu_state"] / "mumu-commands.jsonl").exists()
+
+
+def test_run_flow_timeout_marks_remaining_step_failed(
+    fake_tools: dict[str, Path], tmp_path: Path, capsys
+) -> None:
+    flow = tmp_path / "flow.yaml"
+    flow.write_text(
+        """
+version: 1
+name: timeout-smoke
+steps:
+  - action: wait
+    seconds: 0.2
+  - action: tap
+    x: 1
+    y: 2
+""".strip(),
+        encoding="utf-8",
+    )
+    code = main(
+        [
+            "run",
+            str(flow),
+            "--flow-timeout",
+            "0.01",
+            "--output",
+            str(tmp_path / "runs"),
+            "--adb",
+            str(fake_tools["adb"]),
+            "--mumumanager",
+            str(fake_tools["manager"]),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert payload["data"]["status"] == "failed"
+    timeout_step = payload["data"]["steps"][-1]
+    assert timeout_step["status"] == "failed"
+    assert "Flow timeout exceeded" in timeout_step["error"]

@@ -40,7 +40,7 @@
 | 17 | App 身份与版本核验 | ✅ 已实现 | 高 | 高 | 2026-11-08 | 安装后 dumpsys package 核验 package/versionCode/versionName |
 | 18 | 冷/热启动性能预算 | ○ 未执行 | 中 | 中 | 2026-11-08 | 记录启动耗时并支持阈值失败 |
 | 19 | ADB 传输健康检查与显式恢复 | ◐ 部分实现 | 高 | 中 | 2026-11-08 | doctor 有基础检查；缺传输异常分类和受控恢复 |
-| 20 | Flow 级执行预算与超时收口 | ○ 未执行 | 高 | 高 | 2026-11-09 | 给整条 flow 设置总预算并可靠终止 |
+| 20 | Flow 级执行预算与超时收口 | ✅ 已实现 | 高 | 高 | 2026-11-09 | `timeout_seconds` / `--flow-timeout`；步骤边界失败并保留 teardown |
 | 21 | 严格受限的 Deep Link 启动 | ✅ 已实现 | 高 | 高 | 2026-11-09 | open action 校验 http/https/file/content 和 MIME |
 | 22 | 可解释的 UI 稳定等待 | ○ 未执行 | 高 | 中 | 2026-11-09 | 等待 UI 树稳定，而不是固定 sleep |
 | 23 | ADB reverse 本地测试服务桥 | ✅ 已实现 | 中 | 高 | 2026-11-09 | reverse-port action |

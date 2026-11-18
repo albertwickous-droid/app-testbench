@@ -146,6 +146,7 @@ class Flow:
     teardown: list[FlowStep] = field(default_factory=list)
     report: dict[str, Any] = field(default_factory=dict)
     variable_names: list[str] = field(default_factory=list)
+    timeout_seconds: float | None = None
 
     @property
     def all_steps(self) -> list[FlowStep]:
@@ -166,6 +167,7 @@ class Flow:
             "teardown": [step.to_dict() for step in self.teardown],
             "report": self.report,
             "variable_names": self.variable_names,
+            "timeout_seconds": self.timeout_seconds,
             "step_count": self.step_count,
         }
 
@@ -803,6 +805,7 @@ def load_flow(
         "steps",
         "teardown",
         "report",
+        "timeout_seconds",
     }
     unknown_root = set(root) - allowed_root
     if unknown_root:
@@ -817,6 +820,14 @@ def load_flow(
         name = path.stem
     name = _string(name, field_name="name")
     description = _string(root.get("description", ""), field_name="description", allow_empty=True)
+    timeout_seconds = None
+    if root.get("timeout_seconds") is not None:
+        timeout_seconds = _number(
+            root["timeout_seconds"],
+            field_name="timeout_seconds",
+            minimum=0.1,
+            maximum=86_400,
+        )
 
     device_raw = _mapping(root.get("device", {}), field_name="device")
     allowed_device = {"instance", "serial", "package", "wait_for_boot", "boot_timeout"}
@@ -909,6 +920,7 @@ def load_flow(
         teardown=sections["teardown"],
         report=report,
         variable_names=sorted(name for name in resolved_variables if name in (variables or {})),
+        timeout_seconds=timeout_seconds,
     )
 
 
