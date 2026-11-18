@@ -8,6 +8,7 @@ import json
 import mimetypes
 import shutil
 import xml.etree.ElementTree as ET
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -972,16 +973,74 @@ def prune_old_runs(
     return removed
 
 
-def write_run_artifacts(result: RunResult, output_dir: Path) -> tuple[Path, Path]:
+def _redact_text(value: str, patterns: list[str], replacement: str) -> str:
+    for pattern in patterns:
+        value = value.replace(pattern, replacement)
+    return value
+
+
+def _redact_value(value: Any, patterns: list[str], replacement: str) -> Any:
+    if isinstance(value, str):
+        return _redact_text(value, patterns, replacement)
+    if isinstance(value, list):
+        return [_redact_value(item, patterns, replacement) for item in value]
+    if isinstance(value, dict):
+        return {key: _redact_value(item, patterns, replacement) for key, item in value.items()}
+    return value
+
+
+def redact_text_artifacts(output_dir: Path, patterns: list[str], replacement: str) -> None:
+    """Redact text evidence in-place; binary screenshots are intentionally untouched."""
+
+    suffixes = {".txt", ".xml", ".json", ".html", ".md"}
+    for path in output_dir.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in suffixes:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        redacted = _redact_text(text, patterns, replacement)
+        if redacted != text:
+            atomic_write_text(path, redacted)
+
+
+def redact_run_result(result: RunResult, patterns: list[str], replacement: str) -> RunResult:
+    """Redact all serializable result fields in-place."""
+
+    for item in (result, *result.steps):
+        for field in fields(item):
+            if field.name == "steps":
+                continue
+            setattr(
+                item, field.name, _redact_value(getattr(item, field.name), patterns, replacement)
+            )
+    return result
+
+
+def write_run_artifacts(
+    result: RunResult,
+    output_dir: Path,
+    *,
+    redact_patterns: list[str] | None = None,
+    redact_replacement: str = "[REDACTED]",
+) -> tuple[Path, Path]:
     report_path = output_dir / "report.html"
     result_path = output_dir / "result.json"
     result.output_dir = str(output_dir.resolve())
     result.report_path = str(report_path.resolve())
     result.result_path = str(result_path.resolve())
     result.manifest_path = str((output_dir / "manifest.json").resolve())
+    patterns = [pattern for pattern in (redact_patterns or []) if pattern]
+    if patterns:
+        redact_run_result(result, patterns, redact_replacement)
+        redact_text_artifacts(output_dir, patterns, redact_replacement)
     if result.junit_path:
         write_junit_xml(result, Path(result.junit_path))
     write_json(result_path, result.to_dict())
-    atomic_write_text(report_path, render_html(result, output_dir))
+    report_html = render_html(result, output_dir)
+    if patterns:
+        report_html = _redact_text(report_html, patterns, redact_replacement)
+    atomic_write_text(report_path, report_html)
     write_evidence_manifest(result, output_dir)
     return report_path, result_path

@@ -631,3 +631,34 @@ def test_install_sha256_rejects_invalid_digest(tmp_path: Path) -> None:
     )
     with pytest.raises(FlowError, match="SHA-256"):
         load_flow(path)
+
+
+def test_report_redaction_patterns_are_validated_and_not_serialized(tmp_path: Path) -> None:
+    path = tmp_path / "redact.yaml"
+    path.write_text(
+        """
+version: 1
+report:
+  redact:
+    - secret-value
+  redact_replacement: "[MASKED]"
+steps:
+  - action: back
+""".strip(),
+        encoding="utf-8",
+    )
+    flow = load_flow(path)
+    public = flow.to_dict()["report"]
+    assert flow.report["redact"] == ["secret-value"]
+    assert "redact" not in public
+    assert public["redact_pattern_count"] == 1
+
+
+def test_report_redaction_rejects_non_list_values(tmp_path: Path) -> None:
+    path = tmp_path / "redact.yaml"
+    path.write_text(
+        "version: 1\nreport:\n  redact: secret-value\nsteps:\n  - action: back\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(FlowError, match="redact must be a list"):
+        load_flow(path)

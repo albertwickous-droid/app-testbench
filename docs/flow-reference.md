@@ -399,10 +399,12 @@ report:
 | `include_ui_xml` | boolean | `true` |
 | `max_log_chars` | integer | `200000` |
 | `capture_step_logcat` | `all`, `failures`, `none` | `failures` |
+| `redact` | array of literal strings | `[]` |
+| `redact_replacement` | string | `[REDACTED]` |
 
 `clear_logcat: true` clears the device log buffer after connection and before setup. Use it only when you do not need logs from before the run.
 
-Step results include `started_at`, `finished_at`, and a `logcat_window` output when step logcat is captured. The window is requested with `adb logcat -T`; the final logcat remains available as a separate artifact. Every successful artifact write also produces `manifest.json`, a SHA-256 inventory of `result.json`, `report.html`, screenshots, UI dumps, and logs. The manifest deliberately excludes itself to avoid a self-referential hash. `--keep-runs N` is an opt-in retention policy: it removes only older direct child directories that contain a manifest, never unrelated folders, and never the current run.
+Step results include `started_at`, `finished_at`, and a `logcat_window` output when step logcat is captured. The window is requested with `adb logcat -T`; the final logcat remains available as a separate artifact. `report.redact` is an explicit literal replacement list applied to result JSON, JUnit, HTML, the manifest, and text evidence. Screenshots are binary evidence and are not pixel-redacted; review them before sharing. Every successful artifact write also produces `manifest.json`, a SHA-256 inventory of `result.json`, `report.html`, screenshots, UI dumps, and logs. The manifest deliberately excludes itself to avoid a self-referential hash. `--keep-runs N` is an opt-in retention policy: it removes only older direct child directories that contain a manifest, never unrelated folders, and never the current run.
 
 JUnit XML is opt-in on the CLI:
 

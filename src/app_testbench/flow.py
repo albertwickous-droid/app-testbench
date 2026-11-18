@@ -114,7 +114,18 @@ _REPORT_DEFAULTS: dict[str, Any] = {
     "include_ui_xml": True,
     "max_log_chars": 200_000,
     "capture_step_logcat": "failures",
+    "redact": [],
+    "redact_replacement": "[REDACTED]",
 }
+
+
+def public_report_config(report: dict[str, Any]) -> dict[str, Any]:
+    """Return report settings without copying literal redaction patterns."""
+
+    public = dict(report)
+    patterns = public.pop("redact", [])
+    public["redact_pattern_count"] = len(patterns)
+    return public
 
 
 @dataclass(slots=True)
@@ -171,7 +182,7 @@ class Flow:
             "setup": [step.to_dict() for step in self.setup],
             "steps": [step.to_dict() for step in self.steps],
             "teardown": [step.to_dict() for step in self.teardown],
-            "report": self.report,
+            "report": public_report_config(self.report),
             "variable_names": self.variable_names,
             "timeout_seconds": self.timeout_seconds,
             "step_count": self.step_count,
@@ -915,6 +926,15 @@ def load_flow(
         report[key] = _bool(report[key], field_name=f"report.{key}")
     if report["capture_step_logcat"] not in {"all", "failures", "none"}:
         raise FlowError("report.capture_step_logcat must be one of: all, failures, none")
+    if not isinstance(report["redact"], list):
+        raise FlowError("report.redact must be a list of strings")
+    report["redact"] = [
+        _string(value, field_name=f"report.redact[{index}]")
+        for index, value in enumerate(report["redact"])
+    ]
+    report["redact_replacement"] = _string(
+        report["redact_replacement"], field_name="report.redact_replacement"
+    )
     report["max_log_chars"] = _integer(
         report["max_log_chars"],
         field_name="report.max_log_chars",

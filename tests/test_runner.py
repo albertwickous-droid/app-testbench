@@ -787,3 +787,54 @@ steps:
     assert step.logcat_paths == ["logs/step-steps-1-logcat.txt"]
     assert step.output["logcat_window"]["path"] == "logs/step-steps-1-logcat.txt"
     assert "logs/step-steps-1-logcat.txt" in result.logcat_paths
+
+
+def test_report_redaction_covers_json_html_junit_and_text_artifacts(
+    fake_settings: Settings,
+    fake_tools: dict[str, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("FAKE_ADB_LOGCAT_EXTRA", "super-secret")
+    flow_path = tmp_path / "redact.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: redact
+report:
+  redact:
+    - super-secret
+  redact_replacement: "[MASKED]"
+steps:
+  - action: text
+    text: super-secret
+  - action: logcat
+    lines: 100
+""".strip(),
+        encoding="utf-8",
+    )
+    junit = tmp_path / "junit.xml"
+    result = FlowRunner(
+        fake_settings,
+        load_flow(flow_path),
+        output_base=tmp_path / "runs",
+        junit_path=junit,
+    ).run()
+    assert result.status == "passed"
+    assert result.steps[0].params["text"] == "[MASKED]"
+    assert "redact" not in result.config["report"]
+    assert result.config["report"]["redact_pattern_count"] == 1
+    for path in (
+        Path(result.report_path),
+        Path(result.result_path),
+        junit,
+        Path(result.manifest_path),
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert "super-secret" not in text
+    assert "[MASKED]" in Path(result.report_path).read_text(encoding="utf-8")
+    assert "[MASKED]" in Path(result.result_path).read_text(encoding="utf-8")
+    for log_path in result.logcat_paths:
+        assert "super-secret" not in (Path(result.output_dir) / log_path).read_text(
+            encoding="utf-8"
+        )

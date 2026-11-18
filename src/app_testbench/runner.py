@@ -11,7 +11,7 @@ from typing import Any
 from app_testbench.config import Settings
 from app_testbench.device import AndroidDevice
 from app_testbench.errors import RunnerError, StepFailure
-from app_testbench.flow import Flow, FlowStep
+from app_testbench.flow import Flow, FlowStep, public_report_config
 from app_testbench.models import RunResult, StepResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.reporting import create_run_directory, prune_old_runs, write_run_artifacts
@@ -103,7 +103,7 @@ class FlowRunner:
                 "flow_path": str(self.flow.path),
                 "description": self.flow.description,
                 "device": self.flow.device,
-                "report": self.flow.report,
+                "report": public_report_config(self.flow.report),
                 "flow_timeout_seconds": self.flow_timeout,
             },
             steps=steps,
@@ -235,7 +235,12 @@ class FlowRunner:
         )
         if self.junit_path is not None:
             result.junit_path = str(self.junit_path)
-        write_run_artifacts(result, self.output_dir)
+        write_run_artifacts(
+            result,
+            self.output_dir,
+            redact_patterns=self.flow.report.get("redact", []),
+            redact_replacement=self.flow.report.get("redact_replacement", "[REDACTED]"),
+        )
         if self.keep_runs is not None:
             try:
                 prune_old_runs(
