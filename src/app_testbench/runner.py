@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import platform
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from app_testbench import SCHEMA_VERSION
 from app_testbench.config import Settings
 from app_testbench.device import AndroidDevice
 from app_testbench.errors import RunnerError, StepFailure
@@ -15,7 +17,14 @@ from app_testbench.flow import Flow, FlowStep, public_report_config
 from app_testbench.models import RunResult, StepResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.reporting import create_run_directory, prune_old_runs, write_run_artifacts
-from app_testbench.utils import ProcessRunner, elapsed_ms, now_iso, slugify, unique_path
+from app_testbench.utils import (
+    ProcessRunner,
+    atomic_write_text,
+    elapsed_ms,
+    now_iso,
+    slugify,
+    unique_path,
+)
 
 
 def _logcat_since(value: str) -> str | None:
@@ -40,6 +49,7 @@ class FlowRunner:
         boot_interval: float = 1.0,
         flow_timeout: float | None = None,
         keep_runs: int | None = None,
+        events_path: Path | None = None,
     ) -> None:
         self.settings = settings
         self.flow = flow
@@ -51,6 +61,8 @@ class FlowRunner:
         self.boot_interval = boot_interval
         self.flow_timeout = flow_timeout if flow_timeout is not None else flow.timeout_seconds
         self.keep_runs = keep_runs
+        self.events_path = events_path.expanduser().resolve() if events_path else None
+        self._events_initialized = False
         self._deadline: float | None = None
         self.output_dir: Path | None = None
         self.device: AndroidDevice | None = None
@@ -58,6 +70,58 @@ class FlowRunner:
         self.warnings: list[str] = []
         self.logcat_paths: list[str] = []
         self.environment: dict[str, Any] = {}
+
+    def _emit_event(self, event: str, **fields: Any) -> None:
+        if self.events_path is None:
+            return
+        if not self._events_initialized:
+            atomic_write_text(self.events_path, "")
+            self._events_initialized = True
+        payload = {
+            "schema_version": SCHEMA_VERSION,
+            "event": event,
+            "timestamp": now_iso(),
+            **fields,
+        }
+        with self.events_path.open("a", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(payload, ensure_ascii=False, default=str) + "\n")
+            stream.flush()
+
+    def _step_event(self, event: str, step: FlowStep, **fields: Any) -> None:
+        self._emit_event(
+            event,
+            step={
+                "id": step.id,
+                "name": step.name,
+                "action": step.action,
+                "section": step.section,
+            },
+            **fields,
+        )
+
+    def _emit_step_end(self, result: StepResult) -> None:
+        self._emit_event(
+            "step_end",
+            step={
+                "id": result.id,
+                "name": result.name,
+                "action": result.action,
+                "section": result.section,
+            },
+            status=result.status,
+            started_at=result.started_at,
+            finished_at=result.finished_at,
+            duration_ms=result.duration_ms,
+            error_type=(
+                "flow_timeout"
+                if result.output.get("reason") == "flow_timeout"
+                else "step_failure"
+                if result.status == "failed"
+                else None
+            ),
+            error=result.error,
+            output=result.output,
+        )
 
     def _relative(self, path: Path) -> str:
         assert self.output_dir is not None
@@ -175,6 +239,13 @@ class FlowRunner:
     def run(self) -> RunResult:
         started_at = now_iso()
         started = time.monotonic()
+        self._emit_event(
+            "flow_start",
+            flow=self.flow.name,
+            flow_path=str(self.flow.path),
+            started_at=started_at,
+            step_count=self.flow.step_count,
+        )
         instance = (
             self.settings.instance
             if self.settings.instance_explicit
@@ -195,7 +266,19 @@ class FlowRunner:
             self._connect(instance, requested_serial)
         except RunnerError as exc:
             self.warnings.append(str(exc))
-            steps.append(self._failure_step(str(exc), error=exc))
+            failure = self._failure_step(str(exc), error=exc)
+            self._emit_event(
+                "step_start",
+                step={
+                    "id": failure.id,
+                    "name": failure.name,
+                    "action": failure.action,
+                    "section": failure.section,
+                },
+                started_at=failure.started_at,
+            )
+            self._emit_step_end(failure)
+            steps.append(failure)
             steps.extend(self._skipped_steps(self.flow.all_steps, "Device connection failed."))
             status = "failed"
         else:
@@ -250,19 +333,37 @@ class FlowRunner:
                 )
             except OSError as exc:
                 self.warnings.append(f"Run retention cleanup failed: {exc}")
+        self._emit_event(
+            "flow_end",
+            flow=result.name,
+            status=result.status,
+            started_at=result.started_at,
+            finished_at=result.finished_at,
+            duration_ms=result.duration_ms,
+            summary={
+                "passed": result.passed,
+                "failed": result.failed,
+                "skipped": result.skipped,
+                "total": len(result.steps),
+            },
+            report_path=result.report_path,
+            result_path=result.result_path,
+        )
         return result
 
     def _budget_expired(self) -> bool:
         return self._deadline is not None and time.monotonic() >= self._deadline
 
     def _timeout_step(self, step: FlowStep) -> StepResult:
-        return StepResult(
+        started_at = now_iso()
+        self._step_event("step_start", step, started_at=started_at)
+        result = StepResult(
             id=step.id,
             name=step.name,
             action=step.action,
             section=step.section,
             status="failed",
-            started_at=now_iso(),
+            started_at=started_at,
             finished_at=now_iso(),
             description=step.description,
             params=step.params,
@@ -270,6 +371,8 @@ class FlowRunner:
             hint="The flow budget expired before this step started; teardown will still run.",
             output={"reason": "flow_timeout", "timeout_seconds": self.flow_timeout},
         )
+        self._emit_step_end(result)
+        return result
 
     def _run_section(
         self,
@@ -304,21 +407,25 @@ class FlowRunner:
         return all_passed
 
     def _skipped_steps(self, section: list[FlowStep], reason: str) -> list[StepResult]:
-        return [
-            StepResult(
+        results: list[StepResult] = []
+        for step in section:
+            started_at = now_iso()
+            self._step_event("step_start", step, started_at=started_at)
+            result = StepResult(
                 id=step.id,
                 name=step.name,
                 action=step.action,
                 section=step.section,
                 status="skipped",
-                started_at=now_iso(),
+                started_at=started_at,
                 finished_at=now_iso(),
                 description=step.description,
                 params=step.params,
                 output={"reason": reason},
             )
-            for step in section
-        ]
+            self._emit_step_end(result)
+            results.append(result)
+        return results
 
     def _capture_screenshot(
         self,
@@ -382,6 +489,7 @@ class FlowRunner:
     def _execute_step(self, step: FlowStep) -> StepResult:
         started_at = now_iso()
         started = time.monotonic()
+        self._step_event("step_start", step, started_at=started_at)
         result = StepResult(
             id=step.id,
             name=step.name,
@@ -414,6 +522,7 @@ class FlowRunner:
         capture_mode = str(self.flow.report.get("capture_step_logcat", "failures"))
         if capture_mode == "all" or (result.status == "failed" and capture_mode == "failures"):
             self._capture_step_logcat(step, result)
+        self._emit_step_end(result)
         return result
 
     def _perform_action(self, step: FlowStep, result: StepResult) -> dict[str, Any]:

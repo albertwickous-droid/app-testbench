@@ -40,7 +40,12 @@ def _result() -> RunResult:
 
 def test_schema_files_are_valid_draft_2020_12() -> None:
     jsonschema = pytest.importorskip("jsonschema")
-    for name in ("result-v1.schema.json", "cli-v1.schema.json"):
+    for name in (
+        "result-v1.schema.json",
+        "cli-v1.schema.json",
+        "events-v1.schema.json",
+        "collection-result-v1.schema.json",
+    ):
         schema = _load_schema(name)
         assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
         jsonschema.Draft202012Validator.check_schema(schema)
@@ -74,3 +79,5 @@ def test_schemas_are_packaged_resources() -> None:
     package_files = files("app_testbench.schemas")
     assert package_files.joinpath("result-v1.schema.json").is_file()
     assert package_files.joinpath("cli-v1.schema.json").is_file()
+    assert package_files.joinpath("events-v1.schema.json").is_file()
+    assert package_files.joinpath("collection-result-v1.schema.json").is_file()

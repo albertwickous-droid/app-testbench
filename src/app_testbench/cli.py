@@ -32,6 +32,7 @@ from app_testbench.models import Instance, RunResult
 from app_testbench.mumu import MuMuManagerClient
 from app_testbench.planning import build_execution_plan
 from app_testbench.runner import FlowRunner
+from app_testbench.suite import load_data_cases, load_suite_definition, run_collection
 from app_testbench.utils import ProcessRunner, atomic_write_text, now_iso, unique_path
 
 
@@ -299,6 +300,16 @@ def build_parser() -> argparse.ArgumentParser:
     _add_variable_arguments(run)
     run.add_argument("--output", type=Path, help="Parent directory for run artifacts")
     run.add_argument(
+        "--data",
+        type=Path,
+        help="CSV/JSON rows; each row becomes an independent data-driven case",
+    )
+    run.add_argument(
+        "--events-jsonl",
+        type=Path,
+        help="Write live flow and step events as newline-delimited JSON",
+    )
+    run.add_argument(
         "--dry-run",
         action="store_true",
         help="Resolve and print the execution plan without touching MuMu or ADB",
@@ -329,6 +340,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="Keep this many newest manifest-bearing run directories under --output",
     )
     run.set_defaults(handler="run")
+
+    suite = subparsers.add_parser(
+        "suite", parents=[common], help="Run a sequential flow suite with aggregate evidence"
+    )
+    suite.add_argument("manifest", type=Path)
+    _add_variable_arguments(suite)
+    suite.add_argument(
+        "--tag",
+        action="append",
+        default=[],
+        metavar="TAG",
+        help="Run only flows with at least one matching tag; repeat to match any",
+    )
+    suite.add_argument("--output", type=Path, help="Parent directory for suite artifacts")
+    suite.add_argument("--junit-xml", type=Path, help="Aggregate JUnit XML path")
+    suite.add_argument(
+        "--wait-for-boot",
+        action="store_true",
+        help="Wait for sys.boot_completed before each flow",
+    )
+    suite.add_argument(
+        "--boot-timeout",
+        type=_positive_float,
+        help="Boot readiness timeout in seconds (implies --wait-for-boot)",
+    )
+    suite.add_argument(
+        "--flow-timeout",
+        type=_positive_float,
+        help="Per-flow budget in seconds; overrides each flow's timeout_seconds",
+    )
+    suite.set_defaults(handler="suite")
 
     init = subparsers.add_parser("init", parents=[common], help="Create a starter flow")
     init.add_argument(
@@ -798,11 +840,93 @@ def _command_validate(args: argparse.Namespace, _: Settings) -> int:
     return _finish(args, "validate", data, human)
 
 
+def _collection_artifact(payload: dict[str, Any], label: str) -> str:
+    value = str(payload.get("artifacts", {}).get(label, ""))
+    if not value:
+        return ""
+    path = Path(value)
+    if path.is_absolute():
+        return str(path)
+    return str((Path(payload["output_dir"]) / path).resolve())
+
+
+def _failure_from_collection(payload: dict[str, Any]) -> RunnerError:
+    failed = next((case for case in payload.get("cases", []) if case["status"] == "failed"), None)
+    if failed is not None:
+        message = (
+            f"Collection case '{failed['label']}' failed: {failed.get('error') or 'unknown error'}"
+        )
+        return StepFailure(
+            message,
+            hint=f"Inspect the collection report: {_collection_artifact(payload, 'Report')}",
+        )
+    return RunnerError(
+        f"Collection finished with status '{payload.get('status', 'failed')}'.",
+        hint=f"Inspect the collection report: {_collection_artifact(payload, 'Report')}",
+    )
+
+
+def _print_collection(payload: dict[str, Any]) -> None:
+    summary = payload["summary"]
+    print(
+        f"{payload['status'].upper()}: {summary['total']} cases, "
+        f"{summary['passed']} passed, {summary['failed']} failed, "
+        f"{summary['skipped']} skipped in {summary['duration_ms']:,} ms"
+    )
+    print(f"Report: {_collection_artifact(payload, 'Report')}")
+    print(f"JSON:   {_collection_artifact(payload, 'JSON result')}")
+    print(f"JUnit:  {_collection_artifact(payload, 'JUnit XML')}")
+
+
 def _command_run(args: argparse.Namespace, settings: Settings) -> int:
-    flow = load_flow(args.flow, variables=_resolved_variables(args))
     output_base = _resolve_directory_output(args.output or Path.cwd() / "runs")
     wait_for_boot = True if args.wait_for_boot or args.boot_timeout is not None else None
+    junit_path = _resolve_file_output(args.junit_xml) if args.junit_xml else None
+
+    if args.data is not None:
+        if args.dry_run:
+            raise ConfigError("--data cannot be combined with --dry-run")
+        if args.events_jsonl is not None:
+            raise ConfigError("--data cannot be combined with --events-jsonl")
+        if args.keep_runs is not None:
+            raise ConfigError("--data cannot be combined with --keep-runs")
+        base_variables = resolve_variables(vars_files=args.vars_file)
+        cases = load_data_cases(
+            args.flow,
+            args.data,
+            base_variables=base_variables,
+            cli_vars=args.var,
+        )
+        collection = run_collection(
+            cases,
+            settings,
+            output_base=output_base,
+            name=f"{cases[0].flow.name}-data",
+            kind="data",
+            description=f"Data-driven cases for {cases[0].flow.path}",
+            wait_for_boot=wait_for_boot,
+            boot_timeout=args.boot_timeout,
+            flow_timeout=args.flow_timeout,
+            junit_path=junit_path,
+        )
+        return _finish(
+            args,
+            "run",
+            collection.payload,
+            _print_collection,
+            ok=collection.status == "passed",
+            error=(
+                None
+                if collection.status == "passed"
+                else _failure_from_collection(collection.payload)
+            ),
+        )
+
+    flow = load_flow(args.flow, variables=_resolved_variables(args))
+    events_path = _resolve_file_output(args.events_jsonl) if args.events_jsonl else None
     if args.dry_run:
+        if events_path is not None:
+            raise ConfigError("--events-jsonl cannot be combined with --dry-run")
         plan = build_execution_plan(
             flow,
             settings,
@@ -824,7 +948,6 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
                 print(f"    {' '.join(step['command'])}")
 
         return _finish(args, "run", plan, human_plan)
-    junit_path = _resolve_file_output(args.junit_xml) if args.junit_xml else None
     result = FlowRunner(
         settings,
         flow,
@@ -834,6 +957,7 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
         boot_timeout=args.boot_timeout,
         flow_timeout=args.flow_timeout,
         keep_runs=args.keep_runs,
+        events_path=events_path,
     ).run()
     data = result.to_dict()
 
@@ -856,6 +980,42 @@ def _command_run(args: argparse.Namespace, settings: Settings) -> int:
         human,
         ok=result.status == "passed",
         error=None if result.status == "passed" else _failure_from_result(result),
+    )
+
+
+def _command_suite(args: argparse.Namespace, settings: Settings) -> int:
+    output_base = _resolve_directory_output(args.output or Path.cwd() / "runs")
+    wait_for_boot = True if args.wait_for_boot or args.boot_timeout is not None else None
+    base_variables = resolve_variables(vars_files=args.vars_file)
+    definition = load_suite_definition(
+        args.manifest,
+        tags=args.tag,
+        base_variables=base_variables,
+        cli_vars=args.var,
+    )
+    junit_path = _resolve_file_output(args.junit_xml) if args.junit_xml else None
+    collection = run_collection(
+        definition.cases,
+        settings,
+        output_base=output_base,
+        name=definition.name,
+        kind="suite",
+        description=definition.description,
+        wait_for_boot=wait_for_boot,
+        boot_timeout=args.boot_timeout,
+        flow_timeout=args.flow_timeout,
+        junit_path=junit_path,
+        tags=args.tag,
+    )
+    return _finish(
+        args,
+        "suite",
+        collection.payload,
+        _print_collection,
+        ok=collection.status == "passed",
+        error=(
+            None if collection.status == "passed" else _failure_from_collection(collection.payload)
+        ),
     )
 
 
@@ -912,6 +1072,8 @@ def _dispatch(args: argparse.Namespace, settings: Settings) -> int:
         return _command_validate(args, settings)
     if handler == "run":
         return _command_run(args, settings)
+    if handler == "suite":
+        return _command_suite(args, settings)
     if handler == "init":
         return _command_init(args, settings)
     if handler == "skill_path":

@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:app-testbench:events:1.0",
+  "title": "app-testbench NDJSON event",
+  "description": "One newline-delimited JSON event emitted by run --events-jsonl.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/flow_start"
+    },
+    {
+      "$ref": "#/$defs/step_start"
+    },
+    {
+      "$ref": "#/$defs/step_end"
+    },
+    {
+      "$ref": "#/$defs/flow_end"
+    }
+  ],
+  "$defs": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "action",
+        "section"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "section": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "passed",
+        "failed",
+        "skipped",
+        "total"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "flow_start": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event",
+        "timestamp",
+        "flow",
+        "flow_path",
+        "started_at",
+        "step_count"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schema_version"
+        },
+        "event": {
+          "const": "flow_start"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "flow": {
+          "type": "string"
+        },
+        "flow_path": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "step_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "step_start": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event",
+        "timestamp",
+        "step",
+        "started_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schema_version"
+        },
+        "event": {
+          "const": "step_start"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "started_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "step_end": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event",
+        "timestamp",
+        "step",
+        "status",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "error_type",
+        "error",
+        "output"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schema_version"
+        },
+        "event": {
+          "const": "step_end"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "skipped"
+          ]
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "output": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "flow_end": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event",
+        "timestamp",
+        "flow",
+        "status",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "summary",
+        "report_path",
+        "result_path"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schema_version"
+        },
+        "event": {
+          "const": "flow_end"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "flow": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "skipped"
+          ]
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "report_path": {
+          "type": "string"
+        },
+        "result_path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
