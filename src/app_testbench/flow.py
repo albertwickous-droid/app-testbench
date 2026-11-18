@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import os
@@ -164,6 +165,8 @@ class Flow:
     report: dict[str, Any] = field(default_factory=dict)
     variable_names: list[str] = field(default_factory=list)
     timeout_seconds: float | None = None
+    tags: list[str] = field(default_factory=list)
+    includes: list[str] = field(default_factory=list)
 
     @property
     def all_steps(self) -> list[FlowStep]:
@@ -185,6 +188,8 @@ class Flow:
             "report": public_report_config(self.report),
             "variable_names": self.variable_names,
             "timeout_seconds": self.timeout_seconds,
+            "tags": self.tags,
+            "includes": self.includes,
             "step_count": self.step_count,
         }
 
@@ -374,6 +379,137 @@ def _read_document(path: Path) -> Any:
         f"Unsupported flow extension: {suffix or '<none>'}",
         hint="Use a .yaml, .yml, or .json file.",
     )
+
+
+def _include_paths(root: dict[str, Any], *, location: str) -> list[str]:
+    values: list[Any] = []
+    for include_field in ("include", "template"):
+        raw = root.get(include_field)
+        if raw is None:
+            continue
+        if isinstance(raw, str):
+            values.append(raw)
+        elif isinstance(raw, list):
+            values.extend(raw)
+        else:
+            raise FlowError(f"{location}.{include_field} must be a string or list of strings")
+    result: list[str] = []
+    for index, value in enumerate(values):
+        result.append(_string(value, field_name=f"{location}.include[{index}]"))
+    return result
+
+
+def _resolve_step_apks(items: list[Any], *, base_dir: Path) -> None:
+    """Resolve install APK paths before fragments from different folders are merged."""
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        action = item.get("action")
+        apk = item.get("apk")
+        if not isinstance(action, str) or not isinstance(apk, str):
+            continue
+        normalized_action = _ACTION_ALIASES.get(action.strip().lower(), action.strip().lower())
+        if normalized_action.replace("-", "_") != "install":
+            continue
+        path = Path(os.path.expandvars(os.path.expanduser(apk)))
+        if not path.is_absolute():
+            item["apk"] = str((base_dir / path).resolve())
+
+
+def _merge_includes(
+    root: dict[str, Any],
+    *,
+    flow_path: Path,
+    variables: Mapping[str, Any],
+    stack: tuple[Path, ...],
+) -> tuple[dict[str, Any], list[str]]:
+    local = copy.deepcopy(root)
+    local.pop("include", None)
+    local.pop("template", None)
+    for section in ("setup", "steps", "teardown"):
+        _resolve_step_apks(
+            _sequence(local.get(section, []), field_name=f"{flow_path}:{section}"),
+            base_dir=flow_path.parent,
+        )
+
+    merged = dict(local)
+    merged["setup"] = []
+    merged["steps"] = []
+    merged["teardown"] = []
+    included_paths: list[str] = []
+    included_teardowns: list[list[Any]] = []
+    for include_value in _include_paths(root, location="$"):
+        include_path = Path(include_value).expanduser()
+        if not include_path.is_absolute():
+            include_path = flow_path.parent / include_path
+        include_path = include_path.resolve()
+        if include_path in stack:
+            chain = " -> ".join(str(item) for item in (*stack, include_path))
+            raise FlowError(f"Circular flow include: {chain}")
+        if not include_path.is_file():
+            raise FlowError(f"Included flow does not exist: {include_path}")
+        raw = _read_document(include_path)
+        missing: set[str] = set()
+        raw = _expand_environment(raw, path="$", missing=missing, variables=variables)
+        if missing:
+            raise FlowError(
+                f"Missing environment variable(s) or flow variable(s) in {include_path}: "
+                f"{', '.join(sorted(missing))}"
+            )
+        if isinstance(raw, list):
+            included = {"steps": raw}
+        else:
+            included = _mapping(raw, field_name=f"included flow {include_path}")
+        if "version" in included and str(included["version"]) != "1":
+            raise FlowError(
+                f"Unsupported flow version in included file {include_path}: "
+                f"{included['version']!r}",
+                hint="Use version: 1",
+            )
+        allowed = {
+            "version",
+            "name",
+            "description",
+            "steps",
+            "setup",
+            "teardown",
+            "include",
+            "template",
+        }
+        unknown = set(included) - allowed
+        if unknown:
+            raise FlowError(
+                f"Unknown field(s) in included flow {include_path}: {', '.join(sorted(unknown))}"
+            )
+        nested, nested_paths = _merge_includes(
+            included,
+            flow_path=include_path,
+            variables=variables,
+            stack=(*stack, include_path),
+        )
+        included_paths.extend([str(include_path), *nested_paths])
+        for section in ("setup", "steps"):
+            items = _sequence(nested.get(section, []), field_name=f"{include_path}:{section}")
+            if items:
+                merged[section].extend(items)
+        included_teardowns.append(
+            _sequence(nested.get("teardown", []), field_name=f"{include_path}:teardown")
+        )
+
+    for section in ("setup", "steps"):
+        merged[section].extend(
+            _sequence(local.get(section, []), field_name=f"{flow_path}:{section}")
+        )
+
+    # Parent cleanup runs before included cleanup so shared helpers can release
+    # their own resources after the calling flow has finished its teardown.
+    merged["teardown"].extend(
+        _sequence(local.get("teardown", []), field_name=f"{flow_path}:teardown")
+    )
+    for teardown in included_teardowns:
+        merged["teardown"].extend(teardown)
+    return merged, included_paths
 
 
 def _mapping(value: Any, *, field_name: str) -> dict[str, Any]:
@@ -821,6 +957,12 @@ def load_flow(
             hint="Pass --vars-file/--var, or set the referenced environment variable.",
         )
     root = _mapping(raw, field_name="$")
+    root, included_paths = _merge_includes(
+        root,
+        flow_path=path,
+        variables=resolved_variables,
+        stack=(path,),
+    )
     allowed_root = {
         "version",
         "name",
@@ -831,6 +973,9 @@ def load_flow(
         "teardown",
         "report",
         "timeout_seconds",
+        "tags",
+        "include",
+        "template",
     }
     unknown_root = set(root) - allowed_root
     if unknown_root:
@@ -853,6 +998,11 @@ def load_flow(
             minimum=0.1,
             maximum=86_400,
         )
+
+    tags_raw = _sequence(root.get("tags", []), field_name="tags")
+    tags = [_string(value, field_name=f"tags[{index}]") for index, value in enumerate(tags_raw)]
+    if len(tags) != len({tag.casefold() for tag in tags}):
+        raise FlowError("tags must not contain duplicates (case-insensitive)")
 
     device_raw = _mapping(root.get("device", {}), field_name="device")
     allowed_device = {"instance", "serial", "package", "wait_for_boot", "boot_timeout"}
@@ -957,7 +1107,17 @@ def load_flow(
         report=report,
         variable_names=sorted(name for name in resolved_variables if name in (variables or {})),
         timeout_seconds=timeout_seconds,
+        tags=tags,
+        includes=included_paths,
     )
+
+
+def flow_matches_tags(flow: Flow, tags: list[str] | None) -> bool:
+    requested = {tag.strip().casefold() for tag in (tags or []) if tag.strip()}
+    if not requested:
+        return True
+    available = {tag.casefold() for tag in flow.tags}
+    return bool(requested & available)
 
 
 STARTER_YAML = """\

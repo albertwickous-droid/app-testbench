@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from app_testbench.errors import FlowError
-from app_testbench.flow import load_flow, starter_document
+from app_testbench.flow import flow_matches_tags, load_flow, starter_document
 
 
 def test_load_yaml_flow_with_defaults(tmp_path: Path) -> None:
@@ -661,4 +661,142 @@ def test_report_redaction_rejects_non_list_values(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     with pytest.raises(FlowError, match="redact must be a list"):
+        load_flow(path)
+
+
+def test_include_prepends_shared_actions_and_resolves_fragment_apk(tmp_path: Path) -> None:
+    fragments = tmp_path / "fragments"
+    fragments.mkdir()
+    fragment = fragments / "login.yaml"
+    fragment.write_text(
+        """
+version: 1
+setup:
+  - id: install-shared
+    action: install
+    apk: ./shared.apk
+steps:
+  - id: shared-login
+    action: back
+teardown:
+  - id: shared-cleanup
+    action: home
+""".strip(),
+        encoding="utf-8",
+    )
+    flow_path = tmp_path / "flow.yaml"
+    flow_path.write_text(
+        """
+version: 1
+name: included-flow
+include: fragments/login.yaml
+setup:
+  - id: local-setup
+    action: home
+steps:
+  - id: local-step
+    action: back
+teardown:
+  - id: local-cleanup
+    action: close
+    package: com.example.app
+""".strip(),
+        encoding="utf-8",
+    )
+
+    flow = load_flow(flow_path)
+
+    assert [step.id for step in flow.setup] == ["install-shared", "local-setup"]
+    assert [step.id for step in flow.steps] == ["shared-login", "local-step"]
+    assert [step.id for step in flow.teardown] == ["local-cleanup", "shared-cleanup"]
+    assert flow.setup[0].params["apk"] == str((fragments / "shared.apk").resolve())
+    assert flow.includes == [str(fragment.resolve())]
+
+
+def test_template_alias_supports_nested_includes(tmp_path: Path) -> None:
+    (tmp_path / "leaf.yaml").write_text(
+        "steps:\n  - {id: leaf, action: back}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "middle.yaml").write_text(
+        "template: leaf.yaml\nsteps:\n  - {id: middle, action: home}\n",
+        encoding="utf-8",
+    )
+    flow_path = tmp_path / "flow.yaml"
+    flow_path.write_text(
+        "template: middle.yaml\nsteps:\n  - {id: outer, action: back}\n",
+        encoding="utf-8",
+    )
+
+    flow = load_flow(flow_path)
+
+    assert [step.id for step in flow.steps] == ["leaf", "middle", "outer"]
+    assert flow.includes == [
+        str((tmp_path / "middle.yaml").resolve()),
+        str((tmp_path / "leaf.yaml").resolve()),
+    ]
+
+
+def test_include_cycle_is_rejected(tmp_path: Path) -> None:
+    first = tmp_path / "first.yaml"
+    second = tmp_path / "second.yaml"
+    first.write_text("include: second.yaml\nsteps:\n  - {action: back}\n", encoding="utf-8")
+    second.write_text("include: first.yaml\nsteps:\n  - {action: home}\n", encoding="utf-8")
+
+    with pytest.raises(FlowError, match="Circular flow include"):
+        load_flow(first)
+
+
+@pytest.mark.parametrize(
+    ("fragment", "message"),
+    [
+        ("version: 2\nsteps:\n  - {action: back}\n", "Unsupported flow version"),
+        ("steps:\n  - {action: back}\ntypo: true\n", "Unknown field"),
+        ("steps:\n  - {id: same, action: back}\n", "Duplicate step id"),
+    ],
+)
+def test_include_rejects_invalid_fragments(tmp_path: Path, fragment: str, message: str) -> None:
+    (tmp_path / "fragment.yaml").write_text(fragment, encoding="utf-8")
+    flow_path = tmp_path / "flow.yaml"
+    flow_path.write_text(
+        "include: fragment.yaml\nsteps:\n  - {id: same, action: home}\n"
+        if message == "Duplicate step id"
+        else "include: fragment.yaml\nsteps:\n  - {action: home}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FlowError, match=message):
+        load_flow(flow_path)
+
+
+def test_tags_are_case_insensitive_and_match_any_requested_tag(tmp_path: Path) -> None:
+    path = tmp_path / "tags.yaml"
+    path.write_text(
+        "tags: [Smoke, release]\nsteps:\n  - {action: back}\n",
+        encoding="utf-8",
+    )
+
+    flow = load_flow(path)
+
+    assert flow.tags == ["Smoke", "release"]
+    assert flow.to_dict()["tags"] == ["Smoke", "release"]
+    assert flow_matches_tags(flow, ["smoke"])
+    assert flow_matches_tags(flow, ["RELEASE", "missing"])
+    assert flow_matches_tags(flow, [])
+    assert not flow_matches_tags(flow, ["missing"])
+
+
+@pytest.mark.parametrize(
+    "tags",
+    [
+        "tags: [smoke, SMOKE]\n",
+        "tags: ['']\n",
+        "tags: smoke\n",
+    ],
+)
+def test_invalid_tags_are_rejected(tmp_path: Path, tags: str) -> None:
+    path = tmp_path / "tags.yaml"
+    path.write_text(tags + "steps:\n  - {action: back}\n", encoding="utf-8")
+
+    with pytest.raises(FlowError, match="tags"):
         load_flow(path)

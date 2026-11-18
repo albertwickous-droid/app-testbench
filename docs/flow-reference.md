@@ -15,6 +15,8 @@ A flow is a JSON or YAML object with `version: 1`. The runner validates the whol
 | `teardown` | array | no | Actions run even after a main failure |
 | `report` | object | no | Screenshot/log/report settings |
 | `timeout_seconds` | number | no | Total flow budget in seconds; CLI `--flow-timeout` overrides it |
+| `tags` | array of strings | no | Case-insensitive labels used by suite filtering |
+| `include` / `template` | string or array | no | Reusable flow fragments loaded before local actions |
 
 \* The document must contain at least one action across `setup`, `steps`, and `teardown`.
 
@@ -63,6 +65,38 @@ setup:
 ```
 
 All `${NAME}` references must exist when the flow is loaded. Missing values produce a `FlowError` before any device action. A whole-value reference such as `timeout: ${WAIT_SECONDS}` preserves the numeric/boolean type from a variable file; references embedded inside a larger string are converted to text. Variable files are flat maps of strings, numbers, or booleans; nested objects and lists are rejected.
+
+## Reusable fragments and tags
+
+`include` and `template` are aliases. Each value is a relative or absolute
+JSON/YAML path; relative paths resolve from the including flow file. An included
+file may be a step list or an object with `setup`, `steps`, `teardown`, and
+nested `include`/`template` fields.
+
+Execution order is deterministic:
+
+1. Included `setup` and `steps` run before the calling flow's own sections.
+2. The calling flow's `teardown` runs before included teardown.
+3. Nested includes are expanded depth-first, and cycles are rejected.
+4. Relative `install.apk` paths resolve from the file that declares them.
+5. Step IDs must remain unique across the fully expanded flow.
+
+```yaml
+version: 1
+name: checkout-smoke
+tags: [smoke, checkout]
+include:
+  - fragments/login.yaml
+  - fragments/seed-cart.yaml
+steps:
+  - action: wait_for_text
+    text: Checkout
+```
+
+Tags are optional metadata. They do not change a single `run`; use them with
+`app-testbench suite --tag smoke` to select flows. Matching is
+case-insensitive, duplicate tags in one flow are rejected, and no matching flow
+is a configuration error rather than a silently successful empty run.
 
 ## Dry run
 
