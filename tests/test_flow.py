@@ -461,3 +461,48 @@ steps:
     flow = load_flow(path)
 
     assert flow.steps[0].params["recover_anr"] is True
+
+
+def test_activity_wait_and_logcat_assertion_are_normalized(tmp_path: Path) -> None:
+    path = tmp_path / "activity-logcat.yaml"
+    path.write_text(
+        """
+version: 1
+steps:
+  - action: wait-for-activity
+    activity: org.example/.PlayerActivity
+    timeout: 20
+    interval: 0.25
+  - action: assert-logcat-contains
+    text: "Creating an input"
+    lines: 10000
+    ignore_case: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    flow = load_flow(path)
+
+    assert flow.steps[0].action == "wait_for_activity"
+    assert flow.steps[0].params == {
+        "activity": "org.example/.PlayerActivity",
+        "timeout": 20.0,
+        "interval": 0.25,
+    }
+    assert flow.steps[1].action == "assert_logcat_contains"
+    assert flow.steps[1].params == {
+        "text": "Creating an input",
+        "lines": 10000,
+        "ignore_case": True,
+    }
+
+
+def test_activity_wait_requires_a_full_component(tmp_path: Path) -> None:
+    path = tmp_path / "activity-short.yaml"
+    path.write_text(
+        "version: 1\nsteps:\n  - action: wait_for_activity\n    activity: MainActivity\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FlowError, match="must be a full component"):
+        load_flow(path)

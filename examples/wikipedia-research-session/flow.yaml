@@ -1,0 +1,334 @@
+version: 1
+name: wikipedia-research-session
+description: >
+  Wikipedia first-run onboarding, English search, article reading, reading-list
+  persistence, and cold-start verification on a real MediaWiki-backed app.
+device:
+  instance: 0
+  package: org.wikipedia
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: Wikipedia research and saved-article persistence
+  capture_screenshots: failures
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+  max_log_chars: 240000
+setup:
+  - id: install-wikipedia
+    name: Install the pinned Wikipedia build
+    action: install
+    apk: "${WIKIPEDIA_APK}"
+    expected_package: org.wikipedia
+    expected_version_code: 50616
+    expected_version_name: r/50616-r-2026-11-03
+  - id: reset-wikipedia
+    name: Clear app state for deterministic onboarding
+    action: clear_app_data
+  - id: portrait-before-launch
+    name: Lock portrait before onboarding
+    action: orientation
+    mode: portrait
+  - id: launch-wikipedia
+    name: Launch Wikipedia
+    action: launch
+steps:
+  - id: welcome-wait
+    name: Wait for the first onboarding page
+    action: wait_for_text
+    text: "全世界的知识"
+    timeout: 30
+  - id: welcome-shot
+    name: Capture the Wikipedia onboarding page
+    action: screenshot
+    label: welcome
+  - id: welcome-next
+    name: Continue to the privacy page
+    action: tap_text
+    text: "下一页"
+    field: content-desc
+    match: exact
+    timeout: 15
+  - id: privacy-wait
+    name: Wait for the privacy page
+    action: wait_for_text
+    text: "数据和隐私"
+    timeout: 20
+  - id: privacy-next
+    name: Continue to language selection
+    action: tap_text
+    text: "下一页"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: language-wait
+    name: Wait for the language page
+    action: wait_for_text
+    text: "提供超过300种语言的阅读版本"
+    timeout: 20
+  - id: choose-english
+    name: Select English as the content language
+    action: tap_text
+    text: "English"
+    match: exact
+    timeout: 10
+  - id: language-next
+    name: Continue to interest selection
+    action: tap_text
+    text: "下一页"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: interests-wait
+    name: Wait for interest selection
+    action: wait_for_text
+    text: "跟随你的好奇心"
+    timeout: 20
+  - id: skip-interests
+    name: Skip optional interest personalization
+    action: tap_text
+    text: "跳过"
+    match: exact
+    timeout: 10
+  - id: home-wait
+    name: Wait for the live Wikipedia home feed
+    action: wait_for_text
+    text: "社群"
+    timeout: 40
+  - id: home-shot
+    name: Capture the live home feed
+    action: screenshot
+    label: home
+  - id: open-search
+    name: Open the search tab
+    action: tap_text
+    text: "搜索"
+    field: content-desc
+    match: exact
+    timeout: 15
+  - id: search-tip-wait
+    name: Wait for the first-run search-widget tip
+    action: wait_for_text
+    text: "更快捷的搜索方式"
+    timeout: 15
+  - id: dismiss-search-tip
+    name: Dismiss the optional search-widget tip
+    action: tap_text
+    text: "关闭"
+    field: content-desc
+    match: exact
+    timeout: 5
+    optional: true
+  - id: search-screen-wait
+    name: Wait for the search screen
+    action: wait_for_text
+    text: "搜索维基百科"
+    timeout: 20
+  - id: focus-search
+    name: Focus the Wikipedia search field
+    action: tap
+    x: 360
+    y: 172
+  - id: focus-search-settle
+    name: Let the keyboard and search input settle
+    action: wait
+    seconds: 1
+  - id: enter-query
+    name: Search for Ada Lovelace
+    action: text
+    text: "Ada Lovelace"
+  - id: query-wait
+    name: Wait for the query to be committed
+    action: wait_for_text
+    text: "Ada Lovelace"
+    timeout: 10
+  - id: choose-english-results
+    name: Switch the result language to English
+    action: tap_text
+    text: "ENGLISH"
+    match: exact
+    timeout: 15
+  - id: results-wait
+    name: Wait for the deterministic English search result
+    action: wait_for_text
+    text: "English mathematician (1815–1852)"
+    timeout: 30
+  - id: results-shot
+    name: Capture English search results
+    action: screenshot
+    label: search-results
+  - id: results-ui
+    name: Capture result UI evidence
+    action: dump_ui
+    label: search-results
+  - id: open-article
+    name: Open the Ada Lovelace article
+    action: tap_text
+    text: "Ada Lovelace"
+    index: 1
+    match: exact
+    timeout: 15
+  - id: article-wait
+    name: Wait for the article toolbar
+    action: wait_for_text
+    text: "保存"
+    timeout: 35
+  - id: article-settled
+    name: Allow the WebView article body to render
+    action: wait
+    seconds: 2
+  - id: article-shot
+    name: Capture the rendered article and WebView body
+    action: screenshot
+    label: article
+  - id: article-ui
+    name: Capture article UI evidence
+    action: dump_ui
+    label: article
+  - id: open-save-sheet
+    name: Open the save-to-reading-list sheet
+    action: tap_text
+    text: "保存"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: save-sheet-wait
+    name: Wait for the reading-list sheet
+    action: wait_for_text
+    text: "新建收藏"
+    timeout: 15
+  - id: save-sheet-shot
+    name: Capture the save-to-list sheet
+    action: screenshot
+    label: save-sheet
+  - id: create-list
+    name: Start a new reading list
+    action: tap_text
+    text: "新建收藏"
+    match: exact
+    timeout: 10
+  - id: list-name-wait
+    name: Wait for the reading-list name field
+    action: wait_for_text
+    text: "此收藏的名称"
+    timeout: 15
+  - id: focus-list-name
+    name: Focus the reading-list name field
+    action: tap_text
+    text: "此收藏的名称"
+    match: exact
+    timeout: 10
+  - id: enter-list-name
+    name: Name the reading list
+    action: text
+    text: "QA Reading List"
+  - id: confirm-list
+    name: Create the reading list
+    action: tap_text
+    text: "确定"
+    match: exact
+    timeout: 10
+  - id: list-confirmed-wait
+    name: Wait for the saved article sheet
+    action: wait_for_text
+    text: "QA Reading List"
+    timeout: 20
+  - id: saved-sheet-shot
+    name: Capture the saved article and list
+    action: screenshot
+    label: saved-sheet
+  - id: return-to-results
+    name: Return from the article to the search results
+    action: back
+  - id: results-return-wait
+    name: Wait for the search results to reappear
+    action: wait_for_text
+    text: "ENGLISH"
+    timeout: 10
+  - id: return-to-home
+    name: Close the search results from the search toolbar
+    action: tap_text
+    text: "转到上一层级"
+    field: content-desc
+    match: exact
+    timeout: 10
+  - id: open-saved-tab
+    name: Open the saved-items tab
+    action: tap_text
+    text: "已保存"
+    field: content-desc
+    match: exact
+    timeout: 15
+  - id: saved-list-wait
+    name: Wait for the saved-item collection
+    action: wait_for_text
+    text: "QA Reading List"
+    timeout: 25
+  - id: saved-article-assertion
+    name: Verify the article and description are in the saved collection
+    action: assert_ui_contains
+    text: "English mathematician (1815–1852)"
+  - id: saved-list-shot
+    name: Capture the saved collection
+    action: screenshot
+    label: saved-list
+  - id: saved-list-ui
+    name: Capture saved-list UI evidence
+    action: dump_ui
+    label: saved-list
+  - id: close-before-cold-start
+    name: Force-stop Wikipedia before persistence verification
+    action: close
+  - id: wait-for-process-stop
+    name: Wait for the app process to stop
+    action: wait
+    seconds: 1
+  - id: relaunch-wikipedia
+    name: Cold-launch Wikipedia
+    action: launch
+  - id: relaunch-home-wait
+    name: Wait for the home feed after cold start
+    action: wait_for_text
+    text: "社群"
+    timeout: 40
+  - id: reopened-saved-tab
+    name: Open the saved-items tab after cold start
+    action: tap_text
+    text: "已保存"
+    field: content-desc
+    match: exact
+    timeout: 15
+  - id: persisted-list-wait
+    name: Wait for the persisted reading list
+    action: wait_for_text
+    text: "QA Reading List"
+    timeout: 25
+  - id: persisted-description-assertion
+    name: Verify the saved article description survived the cold start
+    action: assert_ui_contains
+    text: "English mathematician (1815–1852)"
+  - id: persisted-shot
+    name: Capture the persisted reading list
+    action: screenshot
+    label: persisted
+  - id: persisted-ui
+    name: Capture cold-start persistence UI evidence
+    action: dump_ui
+    label: persisted
+teardown:
+  - id: close-wikipedia
+    name: Close Wikipedia
+    action: close
+    continue_on_error: true
+  - id: final-logcat
+    name: Capture final Wikipedia logcat
+    action: logcat
+    label: final
+    lines: 3000
+    continue_on_error: true
+  - id: reset-orientation
+    name: Reset orientation
+    action: orientation
+    mode: portrait
+    continue_on_error: true

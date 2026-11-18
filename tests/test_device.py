@@ -12,6 +12,7 @@ from app_testbench.device import (
     parse_adb_devices,
     parse_package_identity,
     parse_surface_orientation,
+    parse_top_activity,
     validate_activity,
     validate_mime_type,
     validate_open_uri,
@@ -68,6 +69,25 @@ def test_parse_surface_orientation() -> None:
     assert parse_surface_orientation("no orientation here") is None
 
 
+def test_parse_top_activity_supports_common_dumpsys_shapes() -> None:
+    top_resumed = "  topResumedActivity=ActivityRecord{123 u0 com.example.app/.MainActivity t42}"
+    assert parse_top_activity(top_resumed) == {
+        "component": "com.example.app/.MainActivity",
+        "package": "com.example.app",
+        "activity": ".MainActivity",
+        "source_line": top_resumed.strip(),
+    }
+
+    focused = (
+        "  mFocusedApp=ActivityRecord{abc u0 org.mozilla.fennec_fdroid/"
+        "org.mozilla.fenix.HomeActivity t9}"
+    )
+    assert parse_top_activity(focused)["component"] == (
+        "org.mozilla.fennec_fdroid/org.mozilla.fenix.HomeActivity"
+    )
+    assert parse_top_activity("ACTIVITY MANAGER ACTIVITIES") is None
+
+
 def test_android_device_fixture_workflow(fake_tools: dict[str, Path], tmp_path: Path) -> None:
     runner = ProcessRunner(10)
     device = AndroidDevice(fake_tools["adb"], runner)
@@ -86,6 +106,8 @@ def test_android_device_fixture_workflow(fake_tools: dict[str, Path], tmp_path: 
     ui = device.dump_ui(tmp_path / "ui.xml")
     assert "Login" in device.ui_text(ui)
     assert device.ui_node_count(ui) >= 3
+    assert device.top_activity()["component"] == "com.example.app/.MainActivity"
+    assert "sample error" in device.logcat_text(lines=100)
     logcat = device.logcat(tmp_path / "log.txt")
     assert "sample error" in logcat.read_text(encoding="utf-8")
 

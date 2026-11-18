@@ -4,115 +4,61 @@
 
 ![App TestBench: repeatable Android app testing on MuMu](assets/banner.png)
 
-**Repeatable Android app tests on MuMu, with screenshots, UI trees, and logs retained on failure.**
+**Repeatable Android app testing on a mature MuMu runtime. Keep every step explicit, and keep the screenshot, UI tree, logcat, and HTML report when a run fails.**
 
-App TestBench is a Windows CLI for Android app test automation. It drives MuMu Player through `MuMuManager.exe` and `adb`, describes installs, launches, taps, text input, waits, assertions, screenshots, UI dumps, and logcat collection in JSON/YAML flows, and produces a self-contained HTML report, `result.json`, and optional JUnit XML.
+App TestBench is a Windows-first command-line tool for Android app UI testing. It turns APK installation, app launch, taps, text entry, waits, assertions, screenshots, UI dumps, and logcat collection into JSON/YAML flows. Every run produces a self-contained HTML report, `result.json`, and optional JUnit XML.
 
-It does not ask a vision model to improvise every tap. Each step is explicitly declared in a flow, pass/fail is decided by assertions, and failed runs retain the evidence needed by QA, developers, and CI.
+The runner does not ask a vision model to guess the next screen. The flow declares every action, and explicit UI, Activity, logcat, or file assertions decide whether a step passes. When something breaks, you get the failed step, timing, current screen, UI hierarchy, and recent logs instead of a vague "cannot reproduce" note.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
 ![Status](https://img.shields.io/badge/status-v0.1.1-0B7A75.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> Independent open-source project. Not affiliated with NetEase or the MuMu team. Use it only with devices, apps, and accounts you are authorized to test.
+> Independent open-source project. Not affiliated with or endorsed by NetEase or the MuMu team. Test only apps, accounts, devices, and data that you own or are explicitly authorized to test.
 
-## v0.1.1
+## Is this the right tool?
 
-- Package and CLI version: `0.1.1`. The published `v0.1.0` tag is unchanged.
-- Two live MuMu cases passed: AnkiDroid deck/card persistence **49/49 steps**, Markor note persistence **46/46 steps**.
-- Coverage includes first-run UI, dynamic waits, text/content-desc selectors, dialogs and form input, external-storage permissions, deck/card creation, note save, force-stop, cold launch, search, and persistence assertions.
-- `tap_text` locates and taps by `text` or `content-desc`; `clear_text` clears a focused input; `wait_for_text.recover_anr` can handle an Android not-responding dialog in a controlled test environment.
-- Failed `run --json` returns both `error` and the complete `data` payload, keeps exit code `1`, and validates against the published `cli-v1.schema.json`.
-- No telemetry, cloud upload, or account system.
-
-## Live cases
-
-### AnkiDroid: deck creation, card entry, and cold-start persistence
-
-![AnkiDroid still shows the TestBench deck and one pending card after a cold start](docs/assets/cases/ankidroid/persistence.png)
-
-The flow starts from an empty AnkiDroid collection, completes first-run onboarding, creates a `TestBench` deck, enters a `Capital of France / Paris` question-and-answer card, checks the pending-card count, force-stops and cold-launches the app, then opens the saved card and verifies both fields.
-
-**Result: 49/49 steps passed in 75.203 seconds.** It covers real Android dialogs, form input, dynamic waits, external-storage reset, cold start, and in-app data persistence.
-
-[Reproduction](examples/ankidroid-deck-persistence/README.md) · [Case details](docs/cases.md)
-
-### Markor: create a Markdown note, save it, and find it after a cold start
-
-![Markor still lists app-testbench-markor.md after a cold start](docs/assets/cases/markor/note-persisted.png)
-
-The flow completes Markor onboarding, creates a Markdown file, enters and saves a body, force-stops and cold-launches the app, searches by filename, reopens the note, and asserts that the body survived.
-
-**Result: 46/46 steps passed in 80.203 seconds.** It covers a text editor, file-system permission, file browser, search dialog, cold-start file persistence, and UI assertions.
-
-[Reproduction](examples/markor-note-persistence/README.md) · [Case details](docs/cases.md)
-
-### Failure reports retain diagnostics
-
-![Failed HTML report with local paths and serial redacted](docs/assets/cases/evidence/report-failed.png)
-
-A failed flow exits with code `1`, emits a structured `error`, retains the complete `data` payload, and preserves a failure screenshot, UI tree, logcat, HTML report, and JUnit. The public image comes from a live failure run; local paths and the ADB serial were redacted before rendering.
-
-## Why MuMu is the default runtime
-
-Starting an Android environment for a one-off demo is easy. Reproducing the same failure a week later is the hard part. MuMu provides mature instance management, a real Android system, an ADB channel, and configurable virtual devices. App TestBench adds test orchestration, assertions, waits, evidence, and machine-readable results.
-
-| Approach | Good fit | Main limitation |
-| --- | --- | --- |
-| Manual testing on a physical device | Final acceptance and hardware-specific behavior | Expensive to repeat; evidence is manual |
-| Vision-model screen-by-screen clicking | Exploration and demos | Environment, model, and decisions are hard to reproduce |
-| One-off ADB scripts | A single action or short task | Weak structure, assertions, reports, and failure evidence |
-| App TestBench + MuMu | Frequent smoke/regression, app/WebView tests, defect handoff | Windows + MuMu first; physical-device validation still matters |
-
-App TestBench treats MuMu as a reliable Android runtime backend instead of building an improvised emulator. Test authors retain control of coordinates and selectors; the tool owns repeatable execution and evidence delivery.
-
-## Use cases for authorized testing
-
-- **App-only or WebView-only behavior.** When a web surface is incomplete or an authorized test environment places stricter limits on browser automation, use the native app as the legitimate test surface when the app, account, and data belong to your organization.
-- **Authenticated regression with dedicated test accounts.** Sign in normally on an isolated MuMu instance, then verify authenticated pages, permissions, and business behavior.
-- **Browser and WebView state persistence.** Verify login state, query state, cookie lifetime, and cold-start recovery without exporting or forging cookies/tokens.
-- **Media, permissions, and system UI.** Exercise runtime permissions, first-play tutorials, orientation, HTTP Range, MediaCodec, and real rendered frames.
-- **Compatibility checks.** Record whether behavior depends on MuMu, Android image, resolution, app build, or cold/warm launch state.
-- **Small-team smoke and regression testing.** Start with flows, HTML, JSON, and JUnit instead of building a large test platform.
-- **Failure reproduction and defect handoff.** Keep the screenshot, UI tree, logcat, timings, and error in one report.
-
-These use cases do not include bypassing login, CAPTCHA, anti-automation, anti-scraping, risk controls, rate limits, paywalls, or access controls. See [`docs/use-cases.md`](docs/use-cases.md) and [`RESPONSIBLE_USE.md`](RESPONSIBLE_USE.md).
-
-## How a flow runs
-
-1. Parse JSON/YAML and strictly validate actions, fields, package names, URIs, ports, and types.
-2. Discover `MuMuManager.exe`, `adb.exe`, the target instance, and the ADB serial.
-3. Optionally wait for `sys.boot_completed`, then execute setup.
-4. Run install, launch, input, waits, assertions, and evidence collection in order.
-5. On failure, stop the main section, retain error text, screenshots, UI trees, and logcat, then run teardown.
-6. Generate self-contained HTML, `result.json`, and optional JUnit XML.
-
-| Layer | Responsibility |
+| What you need | Fit |
 | --- | --- |
-| Discovery | MuMuManager, ADB, instance, port, and version |
-| Device operations | install, launch, open, close, clear-data, orientation, reverse-port, tap, swipe, text, keyevent |
-| Evidence | screenshot, dump-ui, logcat |
-| Flow semantics | setup, steps, teardown, wait, wait_for_text, UI assertions |
-| Delivery | HTML, JSON, JUnit, process exit code |
+| Repeat the same app journey without clicking through it by hand | **Good fit**: define steps, waits, and assertions in JSON/YAML |
+| Preserve evidence when a test fails | **Good fit**: failed-step screenshot, UI tree, logcat, timings, and HTML |
+| A stable Android runtime on Windows | **Good fit**: MuMu Player is the first supported runtime backend |
+| Machine-readable results for CI or an agent | **Good fit**: `result.json`, JUnit XML, and the versioned `--json` envelope |
+| A one-off tap or a temporary ADB command | **Supported**, but the flow runner is the main product |
+| Bypass login, CAPTCHA, anti-bot controls, rate limits, or access controls | **Not supported** |
 
-## Quick start
+## Supported capabilities
 
-### Requirements
+| Area | What is supported | What you get |
+| --- | --- | --- |
+| Environment and instances | `doctor`, MuMu instance list/start/stop/restart, ADB discovery, instance or serial selection | A known-good toolchain and device before a run |
+| APK and app lifecycle | APK install, package/version verification, launch, URI open, force-stop, clear data, orientation | Install, cold launch, deep links, reset, and screen orientation in one flow |
+| UI interaction | Coordinate tap, text/content-desc tap, swipe, printable-ASCII text, clear text, key events, Back, Home | Reusable steps instead of manual interaction |
+| Waits and assertions | Fixed wait, `wait_for_text`, `wait_for_activity`, UI contains/not-contains, logcat contains, visible ANR recovery | A test that can actually pass or fail on a condition |
+| Evidence | Screenshots, UI hierarchy, logcat, failure diagnostics, step status and timing | A clear record of what failed and what the app showed |
+| Flow orchestration | JSON/YAML, `setup`/`steps`/`teardown`, environment interpolation, `continue_on_error`, boot readiness gate | Install, test, cleanup, and evidence in one repeatable document |
+| Local test services | `reverse-port` for host-to-device ports and `open` for URIs | WebView, download, media, and local QA fixture coverage |
+| Reports and CI | Self-contained HTML, `result.json`, optional JUnit XML, structured failure JSON | Humans read the report; CI and agents read the result |
+| Agent support | Packaged Codex skill, English agent runbook, strict schemas, five reproducible live cases | A stable operating procedure instead of guessed coordinates and ad-hoc environments |
 
-- Windows 10/11
-- Python 3.10+
-- MuMu Player with at least one running instance and ADB debugging enabled
-- `MuMuManager.exe` and `adb.exe` discoverable or supplied explicitly
+## First run: from installation to the first HTML report
 
-Common MuMuManager locations:
+### 1. Prepare the runtime
 
-```text
-<MuMu root>\shell\MuMuManager.exe
-<MuMu root>\nx_main\MuMuManager.exe
-```
+You need:
 
-### Install
+- Windows 10/11;
+- Python 3.10 or newer;
+- MuMu Player installed with ADB debugging enabled;
+- a dedicated MuMu test instance, initially instance `0`;
+- an app, account, and data set that you own or are authorized to test.
+
+Start the MuMu instance first. Do not begin with a production account, personal data, or an unauthorized device.
+
+### 2. Install App TestBench
+
+The current supported installation path is from source:
 
 ```powershell
 git clone https://github.com/albertwickous-droid/app-testbench.git
@@ -123,66 +69,127 @@ python -m pip install -e ".[dev]"
 app-testbench --version
 ```
 
-Or install a built wheel:
+Continue when the command reports `app-testbench 0.1.1`.
 
-```powershell
-python -m pip install .\dist\app_testbench-0.1.1-py3-none-any.whl
-```
-
-### Discover the environment
+### 3. Check MuMu, ADB, and the selected instance
 
 ```powershell
 app-testbench doctor --json
 ```
 
-If discovery fails, provide the tool paths explicitly:
+Check three things in the JSON:
+
+- MuMuManager and ADB were found;
+- the selected instance is running;
+- ADB can reach that instance.
+
+If discovery fails, pass explicit paths or use environment variables:
 
 ```powershell
-$mumuPlayer = "<path to MuMuPlayer>"
-app-testbench doctor `
-  --mumumanager (Join-Path $mumuPlayer "nx_main\MuMuManager.exe") `
-  --adb (Join-Path $mumuPlayer "nx_device\12.0\shell\adb.exe") `
+app-testbench doctor --json `
+  --mumumanager "C:\path\to\MuMuManager.exe" `
+  --adb "C:\path\to\adb.exe" `
+  --instance 0
+```
+
+The supported environment variables are `APP_TESTBENCH_MUMUMANAGER`, `APP_TESTBENCH_ADB`, `APP_TESTBENCH_INSTANCE`, and `APP_TESTBENCH_SERIAL`.
+
+### 4. Create a minimal first flow
+
+Save this as `first-flow.yaml`. It does not need your business app. It opens Android Settings, takes a screenshot, dumps the UI hierarchy, and captures logcat so you can verify the runner and report pipeline end to end.
+
+```yaml
+version: 1
+name: first-smoke
+description: Open Android Settings and capture the first evidence bundle.
+device:
+  instance: 0
+  wait_for_boot: true
+  boot_timeout: 60
+report:
+  title: First App TestBench smoke test
+  capture_screenshots: all
+  collect_logcat: true
+  clear_logcat: true
+  include_ui_xml: true
+steps:
+  - name: Launch Android Settings
+    action: launch
+    package: com.android.settings
+  - name: Let the first screen settle
+    action: wait
+    seconds: 2
+  - name: Capture the settings screen
+    action: screenshot
+    label: settings
+  - name: Capture the UI hierarchy
+    action: dump_ui
+    label: settings
+teardown:
+  - name: Capture recent logcat
+    action: logcat
+    label: final
+    lines: 1000
+```
+
+### 5. Validate, then run
+
+```powershell
+app-testbench validate .\first-flow.yaml --json
+app-testbench run .\first-flow.yaml `
+  --output .\runs `
+  --junit-xml .\runs\first-smoke-junit.xml `
   --json
 ```
 
-### Run the live cases
+`validate` checks the flow document without touching the device. `run` performs the device actions. Exit codes are `0` for success, `1` for execution failure, `2` for invalid arguments or flow configuration, `3` for an environment that is not ready, and `130` for interruption.
 
-```powershell
-.\examples\ankidroid-deck-persistence\run.ps1
-.\examples\markor-note-persistence\run.ps1
+### 6. Open the artifacts
+
+The run directory looks like this:
+
+```text
+runs/<timestamp>-first-smoke/
+├── report.html       # self-contained; opens offline
+├── result.json       # versioned machine-readable result
+├── screenshots/
+├── ui/
+└── logs/
 ```
 
-Both scripts download and verify a pinned APK from a trusted F-Droid source, validate package/version/SHA256 identity, run `doctor` and the flow, write JUnit, and clean app data or files created by the case. APKs, original screenshots, logcat, and run directories stay under the Git-ignored `runs/` directory.
+Open `report.html` first. Read `result.json` from CI or an agent. Pass `--junit-xml` when the result must enter a JUnit-compatible test system.
 
-## Commands
+![App TestBench HTML report preview](assets/report-preview.png)
+
+The report embeds screenshots, UI snippets, and logcat and does not load a CDN, external script, or external stylesheet. The desktop step rail scrolls independently, and the report supports Light and Dark themes.
+
+## Start testing your own app
+
+### Path A: verify one action at a time
 
 ```powershell
-# Install, launch, open a URI, close
-app-testbench install .\app.apk --expected-package com.example.app
+# Install and verify package name, versionCode, and versionName.
+app-testbench install .\app.apk `
+  --expected-package com.example.app `
+  --expected-version-code 42 `
+  --expected-version-name 1.2.3
+
+# Launch the app and capture the current state.
 app-testbench launch com.example.app
-app-testbench open "https://example.test/" --package com.example.app --mime-type text/html
-app-testbench close com.example.app
-
-# Device state
-app-testbench clear-data com.example.app
-app-testbench orientation landscape
-app-testbench reverse-port 18765 --local-port 18765
-
-# Input
-app-testbench tap 540 1200
-app-testbench swipe 540 1600 540 500 --duration-ms 500
-app-testbench text "qa@example.test"
-app-testbench keyevent ENTER
-
-# Evidence
 app-testbench screenshot --output .\artifacts\home.png
 app-testbench dump-ui --output .\artifacts\home.xml
 app-testbench logcat --output .\artifacts\logcat.txt --lines 2000
 ```
 
-Every device command supports `--json`. Success and failure both use a versioned envelope suitable for CI and agents.
+### Path B: turn the steps into a flow
 
-## JSON/YAML flows
+1. Generate a template with `app-testbench init --output .\app-testbench-flow.yaml`.
+2. Replace `device.package`, the APK path, and the sample steps with your target.
+3. Inspect the real screen with `screenshot` and `dump_ui`; prefer `wait_for_text` and `tap_text` before coordinates.
+4. Add `assert_ui_contains`, `wait_for_activity`, or `assert_logcat_contains` so the flow can fail for the right reason.
+5. Run `app-testbench validate`, then run the flow.
+
+A small but realistic flow:
 
 ```yaml
 version: 1
@@ -191,15 +198,9 @@ device:
   instance: 0
   package: com.example.app
   wait_for_boot: true
-  boot_timeout: 60
-report:
-  title: Login smoke
-  capture_screenshots: failures
-  collect_logcat: true
-  include_ui_xml: true
 setup:
   - action: install
-    apk: ${APP_APK}
+    apk: ./app.apk
     expected_package: com.example.app
     expected_version_code: 42
 steps:
@@ -207,173 +208,149 @@ steps:
   - action: wait_for_text
     text: Login
     timeout: 20
-  - action: tap
-    x: 540
-    y: 1200
+  - action: tap_text
+    text: Username
   - action: text
-    text: qa@example.test
+    text: qa-user
+  - action: tap_text
+    text: Continue
+  - action: wait_for_activity
+    activity: com.example.app/.HomeActivity
+    timeout: 10
   - action: assert_ui_contains
-    text: Welcome
-  - action: screenshot
-    label: welcome
+    text: Home
 teardown:
-  - action: close
   - action: logcat
     label: final
     lines: 2000
+    continue_on_error: true
 ```
+
+`text` currently supports printable ASCII only. Chinese, Japanese, and other Unicode input require a separately approved ADBKeyboard, clipboard, or IME path.
+
+## Goal-to-command map
+
+| I want to... | Direct command | Flow action |
+| --- | --- | --- |
+| Start/stop/restart a MuMu instance | `app-testbench instance start 0` | Usually prepared outside the flow |
+| Check runtime readiness | `app-testbench doctor --json` | Run before the business flow |
+| Install and verify an APK | `app-testbench install .\app.apk --expected-package com.example.app` | `action: install` with `expected_*` |
+| Launch an app | `app-testbench launch com.example.app` | `action: launch` |
+| Launch a specific Activity | `app-testbench launch com.example.app --activity .MainActivity` | `action: launch` + `activity` |
+| Open a URI or deep link | `app-testbench open "https://example.test/" --package com.example.app` | `action: open` |
+| Force-stop an app | `app-testbench close com.example.app` | `action: close` |
+| Clear app data | `app-testbench clear-data com.example.app` | `action: clear_app_data` |
+| Change orientation | `app-testbench orientation landscape` | `action: orientation` |
+| Tap coordinates | `app-testbench tap 540 1200` | `action: tap` |
+| Tap by visible text or content description | Prefer a flow | `action: tap_text` with exact/contains, index, and timeout |
+| Enter ASCII text | `app-testbench text "qa@example.test"` | `action: text` |
+| Clear an input | Focus it, then use a flow | `action: clear_text` |
+| Send Back or Home | `app-testbench keyevent BACK` | `action: back` / `action: home` |
+| Wait for visible text | Use a flow | `action: wait_for_text`; optional ANR recovery |
+| Wait for an Activity | Use a flow | `action: wait_for_activity` |
+| Assert text is present/absent | Use a flow | `action: assert_ui_contains` / `action: assert_ui_not_contains` |
+| Assert a logcat substring | Use a flow | `action: assert_logcat_contains` |
+| Capture a screenshot | `app-testbench screenshot --output .\artifacts\home.png` | `action: screenshot` |
+| Dump the UI hierarchy | `app-testbench dump-ui --output .\artifacts\ui.xml` | `action: dump_ui` |
+| Capture recent logcat | `app-testbench logcat --output .\artifacts\log.txt --lines 2000` | `action: logcat` |
+| Map a local test server | `app-testbench reverse-port 18765 --local-port 18765` | `action: reverse_port` |
+| Produce a complete HTML report | `app-testbench run .\flow.yaml --junit-xml .\junit.xml` | Generated automatically by `run` |
+| Feed results into CI | `app-testbench run .\flow.yaml --json` | `result.json` + JSON envelope |
+
+See [`docs/flow-reference.md`](docs/flow-reference.md) for every field, alias, default, and validation rule.
+
+## Live cases: evidence, not just "it can tap"
+
+All five public cases were run on a real MuMu instance. Each uses a pinned APK with SHA256 verification, and every public app screenshot comes from the actual run.
+
+| Case | Risk covered | Observed result |
+| --- | --- | --- |
+| [Wikipedia search, article, and cold-start persistence](examples/wikipedia-research-session/) | Live network app, onboarding, dynamic search, WebView article, saved item, force-stop/restore | **63/63 passed, 113.563 s** |
+| [Firefox browser state, download, and tabs](examples/firefox-webapp-session/) | Cookie + LocalStorage, scoped test state, file download, two tabs, cold-start restore | **66/66 passed, 143.016 s** |
+| [VLC media, Activity, and logcat](examples/vlc-media-playback/) | Native player Activity, byte-range MP4, decoded frames, media logs, orientation | **43/43 passed, 50.579 s** |
+| [AnkiDroid deck, card, and cold start](examples/ankidroid-deck-persistence/) | Onboarding, dialogs, card entry, database persistence, post-restart assertions | **49/49 passed, 75.203 s** |
+| [Markor note save, search, and cold start](examples/markor-note-persistence/) | Multi-page onboarding, editor input, file save, exact search, body recovery | **46/46 passed, 80.203 s** |
+
+Each wrapper downloads and verifies a pinned APK, uses case-owned test data, and keeps APKs, raw screenshots, UI XML, logcat, and complete run directories under the ignored `runs/` tree.
 
 ```powershell
-app-testbench validate .\app-testbench-flow.yaml --json
-app-testbench run .\app-testbench-flow.yaml `
-  --output .\runs `
-  --junit-xml .\artifacts\junit.xml `
-  --wait-for-boot --boot-timeout 60
+# Run one case at a time on a free test instance.
+.\examples\wikipedia-research-session\run.ps1
+.\examples\firefox-webapp-session\run.ps1
+.\examples\vlc-media-playback\run.ps1
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
 ```
 
-See [`docs/flow-reference.md`](docs/flow-reference.md) for the full action reference.
+See [`docs/cases.md`](docs/cases.md) for versions, screenshots, observed results, evidence boundaries, and known limits.
 
-## Output and evidence
+## Why build on MuMu
 
-A run creates:
+Starting a temporary Android environment on Windows is easy. Making the same failure explainable a week later requires a known instance, Android image, ADB path, and retained evidence.
 
-```text
-runs/<timestamp>-<flow-name>/
-├── report.html
-├── result.json
-├── screenshots/
-├── ui/
-└── logs/
-```
+MuMu Player provides the mature instance lifecycle, Android runtime, and ADB connectivity. App TestBench does not reimplement that layer. It adds test orchestration, dynamic waits, assertions, failure diagnostics, and report delivery.
 
-The HTML report embeds styles, scripts, screenshots, and log excerpts; it works offline with no CDN. `result.json` records the environment, steps, timings, errors, and relative artifact paths. JUnit maps one testcase to each flow action.
+| Approach | Good for | Main limitation |
+| --- | --- | --- |
+| Manual testing on a physical device | Final acceptance and hardware behavior | Repetition cost and manually assembled evidence |
+| A temporary ADB script | One action | No waits, assertions, failure context, or common result format |
+| Vision-model screen clicking | Exploratory automation | Environment and per-step decisions are difficult to reproduce |
+| An ad-hoc AI-built Android environment | A quick demo | Toolchain instability and hard-to-diagnose failures |
+| **App TestBench + MuMu** | Frequent smoke tests, regression, WebView/browser journeys, defect handoff | v0.1.1 is Windows + MuMu first; physical-device acceptance still matters |
 
-## Codex skill
+## Authorized scenarios and boundaries
 
-The repository includes [`skills/app-testbench/SKILL.md`](skills/app-testbench/SKILL.md). With the skill installed, an agent can:
+Use App TestBench only in environments you are authorized to test. Typical fits include:
 
-1. Run `doctor --json`.
-2. Install the APK and verify package/version identity.
-3. Inspect screenshots and UI trees, then write or repair a flow.
-4. Run passing and failing paths.
-5. Return the report, JSON, JUnit, and raw evidence paths.
+- the web version is incomplete or behaves differently, while the organization permits native-app testing;
+- desktop-web automation is constrained and the team has an approved native-app test environment or test API;
+- an isolated MuMu instance signs in to a dedicated test account through the normal UI, then verifies authenticated pages and permissions;
+- a flow needs to verify Cookie, LocalStorage, downloads, tabs, and state after a cold start;
+- a defect needs a repeatable handoff across QA, development, and product;
+- behavior must be compared across instances, Android images, resolutions, app builds, or cold/warm starts.
 
-```powershell
-app-testbench skill-path
-Copy-Item -Recurse .\skills\app-testbench "$HOME\.codex\skills\" -Force
-```
+The system, account, data, and device must be owned or explicitly authorized for testing. App TestBench does not steal cookies, export tokens, solve CAPTCHAs, evade risk controls, or bypass access controls. If a web restriction is part of the product's security design, use an organization-approved native test environment or test API rather than treating this tool as a bypass.
 
-English deployment and publishing runbook: [`docs/agent-deployment.md`](docs/agent-deployment.md).
+More examples and boundaries are in [`docs/use-cases.md`](docs/use-cases.md), [`RESPONSIBLE_USE.md`](RESPONSIBLE_USE.md), and [`DISCLAIMER.md`](DISCLAIMER.md).
 
-## Exit codes and JSON contract
+## Outputs and CI
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Success |
-| `1` | Execution failure, such as an assertion, ADB, or MuMuManager operation |
-| `2` | Invalid CLI argument, flow configuration, or required tool |
-| `130` | User interruption |
+Each `run` creates a unique output directory. When possible, a failure retains:
 
-Failed `run --json` example:
+- the failed step and original error;
+- a failure screenshot;
+- the UI hierarchy;
+- recent logcat;
+- completed and skipped steps with timings;
+- a consistent `result.json`, HTML report, and JUnit state.
 
-```json
-{
-  "schema_version": "1.0",
-  "ok": false,
-  "command": "run",
-  "generated_at": "2026-11-16T02:35:17+08:00",
-  "error": {
-    "type": "step_failure",
-    "message": "Flow step '...' failed: ...",
-    "hint": "Visible text: ..."
-  },
-  "data": {
-    "status": "failed"
-  }
-}
-```
+Every device command supports `--json`. A failed `run --json` still returns the complete `data` payload and a structured `error`. The JSON contracts are packaged Draft 2020-12 schemas.
 
-Schemas live in `src/app_testbench/schemas/`. v0.1.1 did not relax the schema: the failure envelope is validated by a regression test and by a live MuMu failure run.
+## Known limits
 
-## Validation status
+- v0.1.1 is Windows + MuMu Player first. It does not claim every MuMu, Android, ADB, resolution, or language combination.
+- Selectors and coordinates are calibrated for pinned apps, languages, and `720x1280`; app updates require flow maintenance.
+- Native `text` input supports printable ASCII only; Chinese input is not covered.
+- Games, Canvas surfaces, custom-rendered UI, and incomplete accessibility trees may not be readable through `uiautomator dump`.
+- The VLC case is not a DRM, HLS/DASH, subtitle, or audio-track compatibility certification.
+- A passing automated run is not production release approval. Physical devices, OEM behavior, and production accounts still require separate acceptance.
+- Reports and logs can contain environment data. Redact them before publishing.
 
-See [`docs/validation.md`](docs/validation.md) for the complete record.
+## Documentation
 
-- MuMu Player 6.8.8.0 / Android 12 / ADB 1.0.41.
-- 720×1280 with a Simplified Chinese system language.
-- AnkiDroid 2.25.3: 49 passed, 0 failed, 0 skipped, 75.203 seconds.
-- Markor 2026.10.0: 46 passed, 0 failed, 0 skipped, 80.203 seconds.
-- Failure contract: exit 1, schema valid, failure screenshot, UI tree, logcat, HTML, and JUnit all retained.
-- APKs, complete run directories, unfiltered logcat/UI XML, and virtual environments are excluded from Git.
+- [Five live cases and screenshots](docs/cases.md)
+- [Complete flow action reference](docs/flow-reference.md)
+- [Architecture](docs/architecture.md)
+- [Use cases](docs/use-cases.md)
+- [Validation record](docs/validation.md)
+- [Agent deployment runbook](docs/agent-deployment.md)
+- [Publishing and maintenance](docs/publishing.md)
+- [Changelog](CHANGELOG.md)
 
-## Security and privacy
+## Contributing
 
-- Reports can contain accounts, chats, orders, internal pages, tokens, URLs, or device identifiers. Treat them as sensitive by default.
-- Review `runs/`, screenshots, UI XML, and logcat before sharing.
-- The project has no telemetry and does not upload artifacts.
-- Do not commit real accounts, production tokens, cookies, personal APKs, or user data.
-- Do not test devices, apps, or accounts without authorization.
-- `install`, `clear-data`, `close`, `orientation`, and `reverse-port` mutate emulator or app state; declare them explicitly in flows.
+Reproducible bug reports, new flows, documentation fixes, and code improvements are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md), and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before opening an issue or pull request. Never submit real accounts, cookies, tokens, API keys, private addresses, or unredacted customer data in an issue, PR, screenshot, or log.
 
-See [`SECURITY.md`](SECURITY.md) for vulnerability reporting.
+## License and third-party notices
 
-## Limitations
-
-- The first release targets **Windows + MuMu Player + ADB**. Other emulators may reuse ADB operations, but instance management is not verified.
-- No OCR or image-template matching. Coordinates come from the test author, screenshots, or the UI tree.
-- `text` supports printable ASCII only. Chinese input requires a separately authorized and tested ADBKeyboard/clipboard approach.
-- MuMu upgrades may change paths, ports, or MuMuManager output formats.
-- `wait_for_text` depends on `uiautomator dump`; game engines, custom-rendered controls, and incomplete accessibility trees may not expose text.
-- Live cases prove only the app, version, resolution, language, and MuMu image recorded here. Recalibrate for another environment.
-- Physical devices remain the final acceptance environment.
-
-## Development
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m ruff format .
-python -m ruff check .
-python -m ruff format --check .
-python -m pytest -q
-python -m build
-python -m twine check dist/*
-```
-
-CI uses deterministic fake `adb` and `MuMuManager` backends to verify command construction, flows, reports, and schemas. Live MuMu results are recorded separately and are never represented as CI results.
-
-## Publishing and promotion
-
-- [`docs/publishing.md`](docs/publishing.md)
-- [`docs/github-repository-setup.md`](docs/github-repository-setup.md)
-- [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md)
-- [`docs/promotion.md`](docs/promotion.md)
-- [`docs/launch-copy.md`](docs/launch-copy.md)
-- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md)
-
-## Support and contributing
-
-- Usage, bugs, and feature requests: [`SUPPORT.md`](SUPPORT.md)
-- Contribution workflow: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
-- Security reports: [`SECURITY.md`](SECURITY.md)
-
-## Legal, responsibility, and usage boundaries
-
-The project is released under the **MIT License**:
-
-- [`LICENSE`](LICENSE): MIT permissions, warranty disclaimer, and liability limitation
-- [`DISCLAIMER.md`](DISCLAIMER.md): disclaimer, third-party relationships, and responsibility boundaries
-- [`RESPONSIBLE_USE.md`](RESPONSIBLE_USE.md): authorized testing, misuse boundaries, and safe-operation responsibility
-- [`PRIVACY.md`](PRIVACY.md): local data handling, sensitive evidence, and retention responsibility
-- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md): third-party trademarks, dependencies, and non-affiliation
-- [`SECURITY.md`](SECURITY.md): security boundaries and vulnerability reporting
-
-The software is provided "as is" without a guarantee of compatibility with every MuMu, Android, or app version. Users are responsible for confirming legal authorization and compliance for devices, accounts, applications, data, and automation activity.
-
-## License
-
-MIT © 2026 App TestBench contributors
-
-## Disclaimer
-
-MuMu Player, Android, ADB, Python, GitHub, AnkiDroid, Markor, F-Droid, and related trademarks belong to their respective owners. App TestBench is an independent open-source project. It does not distribute MuMu installers or APKs, bypass application security controls, or provide unauthorized access to third-party accounts or devices.
+MIT. MuMu, ADB, Android, test apps, and test media remain subject to their own licenses and trademark rules. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

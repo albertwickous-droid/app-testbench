@@ -46,7 +46,7 @@ Instance JSON is normalized into `Instance`. ADB serial resolution prefers the r
 
 ### `device.py`
 
-Wraps ADB commands with a fixed serial and bounded timeout. It validates package names, coordinates, key names, text encoding, PNG signatures, and UI XML before recording artifacts. It can poll `sys.boot_completed` as an opt-in readiness gate and can verify installed package identity/version fields through `dumpsys package`.
+Wraps ADB commands with a fixed serial and bounded timeout. It validates package names, coordinates, key names, text encoding, PNG signatures, and UI XML before recording artifacts. It can poll `sys.boot_completed` as an opt-in readiness gate, verify installed package identity/version fields through `dumpsys package`, read the resumed/top Activity through `dumpsys activity`, and capture bounded logcat text for assertions.
 
 ### `flow.py`
 
@@ -54,7 +54,7 @@ Implements a strict, versioned flow schema. Unknown fields and wrong types are c
 
 ### `runner.py`
 
-Executes `setup` → `steps` → `teardown`, records every step, and continues teardown after failures. It attempts a diagnostic screenshot and final logcat on failure.
+Executes `setup` → `steps` → `teardown`, records every step, and continues teardown after failures. It attempts a diagnostic screenshot and final logcat on failure. Deterministic assertions cover UI text, top Activity components, and logcat content; `wait_for_activity` retains the last observed component when a timeout occurs.
 
 ### `reporting.py`
 
@@ -97,7 +97,7 @@ Residual risks include malicious APKs, compromised ADB binaries, sensitive scree
 - CLI subprocess test for the `python -m app_testbench` boundary.
 - CI matrix for Windows and Linux, Python 3.10–3.12.
 
-The fake backends cover command shape, artifacts, reports, and failure handling. They do not prove compatibility with every MuMu release; that requires a live integration test on a supported Windows host.
+The fake backends cover command shape, artifacts, reports, and failure handling. They do not prove compatibility with every MuMu release; that requires a live integration test on a supported Windows host. The current main branch records five real MuMu cases: Wikipedia (network app and cold-start state), Firefox/Fennec (browser storage, download, tabs), VLC (native Activity, media logs, orientation), AnkiDroid (deck/card database persistence), and Markor (note file search and cold-start recovery).
 
 ## Extension points
 

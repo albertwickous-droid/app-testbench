@@ -1,6 +1,6 @@
 ---
 name: app-testbench
-description: Run repeatable Android app UI test flows through App TestBench, with MuMu Player as the first mature runtime backend. Use for verified APK installation, boot readiness gates, launch/close, tap/swipe/text/keyevent, screenshots, UI dump, logcat, JSON/YAML regression flows, JUnit XML, and self-contained HTML test reports.
+description: Run repeatable Android app test flows through App TestBench, with MuMu Player as the first mature runtime backend. Use for verified APK installation, boot readiness gates, launch/close, tap/swipe/text/keyevent, Activity and logcat assertions, screenshots, UI dump, JSON/YAML regression flows, JUnit XML, and self-contained HTML test reports.
 ---
 
 # App TestBench
@@ -86,14 +86,20 @@ app-testbench run .\app-testbench-flow.yaml --output .\runs --junit-xml .\artifa
 Before inventing a new smoke test, reproduce one of the committed cases when the environment matches:
 
 ```powershell
+.\examples\wikipedia-research-session\run.ps1
+.\examples\firefox-webapp-session\run.ps1
+.\examples\vlc-media-playback\run.ps1
 .\examples\ankidroid-deck-persistence\run.ps1
 .\examples\markor-note-persistence\run.ps1
 ```
 
-- AnkiDroid: 49-step case with first-run onboarding, deck/card creation, external-storage state reset, cold start, card-count validation, and saved-field verification.
-- Markor: 46-step case with multi-page onboarding, Markdown note creation, editor input, save, exact filename search, cold start, and reopened-note verification.
+- Wikipedia: 63-step network-app case with onboarding, English search, a real WebView article, a reading list, force-stop, cold start, and saved-item verification.
+- Firefox/Fennec: 66-step browser case with Cookie + LocalStorage, a case-owned download, two tabs, force-stop, and restored session/tabs.
+- VLC: 43-step media case with a real byte-range MP4, `VideoPlayerActivity`, decoded frames, media input and AudioTrack log assertions, and orientation checks.
+- AnkiDroid: 49-step native-app case with onboarding, deck/card creation, system dialogs, cold start, due-count validation, and reopened card fields.
+- Markor: 46-step native-app case with multi-page onboarding, Markdown editor input, save, exact filename search, cold start, and body recovery.
 
-The scripts download and verify APKs under `runs/case-assets/`. Require the documented step counts, JUnit, screenshots, and self-contained HTML before reporting success. `clear-data` is destructive to the selected app's state; use it only when the test contract requires a clean start.
+The wrappers download and verify pinned APKs under `runs/case-assets/`. Require the documented step counts, JUnit, screenshots, and self-contained HTML before reporting success. `clear-data` is destructive to the selected app's state; use it only when the test contract requires a clean start.
 
 ## Agent workflow for a requested App journey
 
@@ -129,6 +135,12 @@ steps:
   - action: wait_for_text
     text: Login
     timeout: 20
+  - action: wait_for_activity
+    activity: com.example.app/.HomeActivity
+    timeout: 10
+  - action: assert_logcat_contains
+    text: HomeActivity
+    lines: 5000
   - action: screenshot
     label: login
 teardown:
@@ -181,7 +193,8 @@ Failure:
     "type": "flow_error",
     "message": "...",
     "hint": "..."
-  }
+  },
+  "data": {}
 }
 ```
 

@@ -7,47 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+This maintenance update intentionally keeps the package version at `0.1.1` and
+does not move the existing `v0.1.1` tag.
+
+### Added
+
+- Post-release AnkiDroid deck/card persistence case (49/49) and Markor note
+  persistence case (46/46), joining the published Wikipedia, Firefox/Fennec, and
+  VLC cases for five reproducible live examples in the current `main` branch.
+- Human onboarding sections in both READMEs covering suitable and unsuitable
+  use, a capability matrix, a goal-to-command/action map, a complete first-run
+  walkthrough, artifact inspection, and an independent English version.
+- README guidance for authorized native-app testing when a web surface is
+  incomplete or desktop automation is constrained, with explicit anti-bypass and
+  data-handling boundaries.
+
 ### Changed
 
-- Automation cleanup documentation now distinguishes the native Scheduled and fallback execution paths, re-checks instance state before UI closure, and requires a normal-close attempt before force-closing a visible MuMu UI window.
-- Automation guidance now targets the `app-testbench` project at 03:30 local time and keeps the Windows fallback disabled.
-- Daily maintenance now presents a cumulative unexecuted proposal backlog and a value/feasibility shortlist, with at most two genuinely new proposals per run.
+- The self-contained HTML report now provides Light/Dark theme controls and a
+  vertically scrollable desktop step rail without adding CDN or runtime web
+  dependencies.
+- Documentation now distinguishes the published `v0.1.1` tag from later
+  maintenance changes on `main` and requires explicit approval for new tags,
+  Releases, or package publication.
 
 ### Fixed
 
-- `wait_for_text` ANR recovery now respects the configured timeout instead of retrying indefinitely when the dialog remains visible.
+- `wait_for_text` ANR recovery now respects the configured timeout instead of
+  retrying indefinitely when the not-responding dialog remains visible.
 
 ## [0.1.1] - 2026-11-16
 
 ### Added
 
-- Two live MuMu cases with reproducible flows, pinned open-source APKs, public
-  screenshots, and recorded validation results: AnkiDroid deck/card persistence
-  (49/49 steps) and Markor note persistence (46/46 steps).
-- AnkiDroid case covering first-run onboarding, deck and card creation through
-  real dialogs, external-storage state reset, cold launch, card-count validation,
-  and reopening the saved question and answer after restart.
-- Markor case covering five-page onboarding, Markdown file creation, editor input,
-  save, cold launch, exact filename search, and reopening a persisted note.
-- `tap_text` with `text` / `content-desc`, exact / contains matching, index,
-  timeout, case-insensitive matching, and optional no-op behavior.
-- `clear_text` for explicitly clearing a focused input and
-  `wait_for_text.recover_anr` for handling a visible Android not-responding
-  dialog in a controlled test environment.
-- `open`, `reverse-port`, `clear-data`, and `orientation` device commands and
-  flow actions, including URI/MIME, TCP port, package, and orientation validation.
-- Reproducible PowerShell preparation scripts that download APKs from trusted
-  F-Droid sources, verify package/version/hash identity, clean only case-owned
-  data, and keep binaries under ignored local storage.
-- Public-image provenance and SHA256 records for the committed case screenshots.
+- Three live MuMu cases with reproducible flows, pinned open-source APKs,
+  audited real screenshots, and recorded validation results:
+  - Wikipedia `63/63` steps: onboarding, English search, a real WebView article,
+    reading-list creation, force-stop, cold launch, and saved-item persistence.
+  - Firefox/Fennec `66/66` steps: Cookie + LocalStorage state, a case-owned file
+    download verified through ADB, two tabs, force-stop, and session/tab restore.
+  - VLC `43/43` steps: `VideoPlayerActivity`, a real byte-range MP4, decoded
+    frames, libVLC media-input and `android_audiotrack` log assertions, and
+    portrait/landscape verification.
+- `wait_for_activity` for deterministic native component transitions, including
+  `topResumedActivity`, `mResumedActivity`, `ResumedActivity`, and
+  `mFocusedApp` parsing.
+- `assert_logcat_contains` for subsystem assertions that cannot be expressed
+  through the UI hierarchy.
+- Reproducible PowerShell preparation scripts for the three cases. They download
+  fixed assets from trusted sources, verify SHA256, keep binaries under ignored
+  storage, and use case-owned runtime state.
+- Public-image provenance and SHA256 records for the selected real screenshots.
+- Chinese, English, and English Agent entry points with direct user-facing usage
+  guidance, authorized-testing scenarios, and explicit anti-bypass boundaries.
 
 ### Changed
 
-- `app-testbench init` defaults to `app-testbench-flow.yaml` / `.json`; explicit
-  `--output` remains supported.
-- README, English README, Agent runbook, Codex skill, case index, validation
-  record, and release notes now center the AnkiDroid and Markor live evidence.
-- Package version is `0.1.1`.
+- The public examples now emphasize product-level failure surfaces rather than
+  two simple persistence demos: a network-backed app, an Android browser, and a
+  native media player.
+- README, English README, Agent runbook, Codex skill, flow reference, architecture,
+  use cases, case index, validation record, launch copy, promotion playbook, and
+  release notes now describe the new live evidence.
+- Package and CLI version are `0.1.1`.
+- The Firefox case uses a unique case-owned download filename and verifies its
+  exact contents outside the browser rather than trusting a stale file.
+- The VLC case isolates unrelated log-heavy browser processes so media log
+  assertions remain observable in Android's bounded logcat buffer.
 
 ### Fixed
 

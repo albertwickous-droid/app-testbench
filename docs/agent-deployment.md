@@ -1,405 +1,280 @@
-# App TestBench Agent Runbook
+# Agent Runbook
 
 [简体中文](../README.md) | [English](../README.en.md) | **Agent**
 
-If you are an agent, use this runbook as the operating contract for App TestBench. Follow only the path that matches the request. Run the checks yourself when you have shell access, and stop at the first failed gate instead of working around it.
+> If you are an agent, treat this page as an execution contract. Follow the steps in order, preserve unrelated working-tree changes, and do not infer permission for a state-changing operation that the owner has not authorized.
 
-## Choose the task
+App TestBench is a Windows-first Android app test execution layer built on MuMu Player, `MuMuManager.exe`, and ADB. This runbook is for an agent that must deploy, reproduce, verify, or publish the repository, not for a general product introduction.
 
-| Request | Follow |
-| --- | --- |
-| Install the tool, control MuMu, write a flow, or run a test | Sections 1-7 |
-| Reproduce the public live cases | Sections 1-8 |
-| Change source code or packaging | Sections 1-4 and 9 |
-| Push the repository or configure GitHub | Sections 1-4 and 10-11 |
-| Create a tag, GitHub Release, or PyPI package | Sections 1-4 and 12-13 |
+## 1. Establish the authorization boundary
 
-State the intended task and external side effects before making changes. A request to test an app does not authorize publishing the repository. A request to push code does not authorize a tag, Release, visibility change, or PyPI upload.
+Read the repository's `AGENTS.md` first, then this page. State the requested outcome, allowed side effects, and required approvals before acting.
 
-## 1. Establish the operating boundary
+Treat these as state-changing operations:
 
-App TestBench is a Windows-first CLI for repeatable Android app testing through MuMu Player, `MuMuManager.exe`, and ADB. The supported v0.1.1 path is Windows 10/11 with a MuMu instance that has ADB enabled.
+- starting, stopping, or restarting MuMu;
+- installing, clearing, launching, force-stopping, or uninstalling an app;
+- writing screenshots, UI dumps, logcat, reports, or downloaded packages;
+- creating or removing `adb reverse` mappings;
+- changing repository visibility or GitHub settings;
+- pushing commits, creating tags or Releases, or publishing a package.
 
-Use the tool only for applications, accounts, devices, and test environments that the owner is authorized to test. Normal test-account login is allowed. Do not use the tool to bypass login, CAPTCHA, anti-automation controls, risk controls, rate limits, paywalls, or access controls.
+A request to test the app does not authorize publishing. A request to push code does not authorize a tag, Release, visibility change, or package publication. Use only apps, accounts, devices, and data the owner is authorized to test.
 
-Treat these actions as state-changing:
+Normal test-account login is permitted. Do not bypass login, CAPTCHA, anti-automation, anti-scraping, risk controls, rate limits, paywalls, or access controls.
 
-- starting, restarting, or stopping a MuMu instance
-- installing or uninstalling an APK
-- launching or force-stopping an app
-- writing screenshots, UI dumps, logs, reports, or downloaded packages
-- pushing commits, changing repository visibility, creating tags or Releases, or publishing a package
-
-Completion criterion: the requested outcome, the allowed side effects, and the required approvals are stated explicitly.
-
-## 2. Read the repository sources of truth
-
-Read these files before acting:
-
-1. `AGENTS.md`
-2. `README.en.md`
-3. `docs/flow-reference.md` when editing a flow
-4. `docs/cases.md` when reproducing the public live cases
-5. `docs/publishing.md` when publishing
-6. `docs/github-repository-setup.md` when changing GitHub settings
-7. `RELEASE_CHECKLIST.md` when creating a Release
-8. `SECURITY.md`, `PRIVACY.md`, and `RESPONSIBLE_USE.md` before handling evidence or publishing data
-
-When two sources appear to conflict, prefer the action that exposes less data, mutates less external state, and preserves the documented product scope.
-
-Completion criterion: every branch used by the task has a current source of truth.
-
-## 3. Inspect the working state
+## 2. Inspect the workspace before changing it
 
 Run from the repository root:
 
 ```powershell
 git status --short --branch
-git log -3 --oneline --decorate
+git diff --stat
+git diff --check
+git log -5 --oneline --decorate
 git remote -v
-git config user.name
-git config user.email
 ```
 
-If the worktree is not clean, identify which changes belong to the current task and which predate it. Preserve unrelated changes. Do not reset, discard, overwrite, or commit them without owner approval.
+Identify which changes predate the task and which belong to the current goal. Never reset, discard, overwrite, or commit unrelated user changes. If a `runs/` worktree or release worktree already exists, verify its ownership and intended use before touching it.
 
-Completion criterion: the current branch, remote, author identity, and ownership of every uncommitted change are known.
+Completion criterion: current branch, remote, author identity, and ownership of every uncommitted change are known.
 
-## 4. Install and verify the local tool
+## 3. Install and verify the local tool
 
 Use the checked-out source when working inside the repository:
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 app-testbench --version
 app-testbench --help
 ```
 
-For development work, install the development extras and run the full gate:
+For development work, run the repository gate:
 
 ```powershell
-python -m pip install -e ".[dev]"
-.\scripts\check.ps1 -SkipInstall
-```
-
-The gate must include Ruff, formatting, the full test suite, wheel and sdist builds, and `twine check`. If the package is available from a package index and the task is end-user installation, verify the package entry point directly:
-
-```powershell
-python -m pip install app-testbench
-app-testbench --version
-```
-
-Do not claim PyPI availability unless the install command succeeds against the intended index and version.
-
-Completion criterion: `app-testbench --version` succeeds, and every required local check passes.
-
-## 5. Discover MuMu and ADB
-
-Start with read-only discovery:
-
-```powershell
-app-testbench doctor --json
-app-testbench instance list --json
-```
-
-If auto-discovery fails, pass explicit paths or set environment variables:
-
-```powershell
-# Set MUMU_HOME and ADB_HOME to your own installation directories.
-$env:APP_TESTBENCH_MUMU_MANAGER = (Join-Path $env:MUMU_HOME "shell\MuMuManager.exe")
-$env:APP_TESTBENCH_ADB = (Join-Path $env:ADB_HOME "adb.exe")
-$env:APP_TESTBENCH_INSTANCE = "0"
-$env:APP_TESTBENCH_JSON = "1"
-
-app-testbench doctor --json
-app-testbench instance list --json
-```
-
-If testing a live app, select a dedicated test instance and verify that the instance is running, the Android boot has completed, and ADB reports the expected device before installing anything.
-
-Completion criterion: the JSON output identifies the MuMuManager path, ADB path, instance, serial or port, Android state, and any discovery error.
-
-## 6. Write and validate the flow
-
-Create a starter flow, then replace the example package and steps with the authorized test target:
-
-```powershell
-app-testbench init --output .\app-testbench-flow.yaml
-app-testbench validate .\app-testbench-flow.yaml
-```
-
-Before choosing coordinates, collect evidence from the actual screen:
-
-```powershell
-app-testbench --instance 0 screenshot --output .\artifacts\screen.png
-app-testbench --instance 0 dump-ui --output .\artifacts\screen.xml
-```
-
-Additional deterministic setup actions are available when the authorized test requires them:
-
-```powershell
-app-testbench open "https://example.test/" --package com.example.app --mime-type text/html
-app-testbench reverse-port 18765 --local-port 18765
-app-testbench clear-data com.example.app
-app-testbench orientation landscape
-```
-
-`clear-data` is destructive to that app's local state. `reverse-port`, `orientation`, and `open` may change device/runtime state; declare them in the flow, not as unexplained side effects.
-
-Use coordinates supported by the screenshot and UI hierarchy. Prefer text waits and assertions where the UI exposes readable text. Keep test credentials in environment variables or an approved secret store; do not write production credentials, cookies, tokens, or personal data into the flow or report.
-
-Run the validated flow:
-
-```powershell
-app-testbench run .\app-testbench-flow.yaml `
-  --output .\runs `
-  --junit-xml .\artifacts\junit.xml `
-  --wait-for-boot `
-  --boot-timeout 60 `
-  --json
-```
-
-`--boot-timeout` implies the boot-readiness wait. A failed step stops later steps and should produce diagnostic evidence when the backend allows it.
-
-Completion criterion: validation succeeds before execution, and the run exits with a documented status rather than an unexplained shell error.
-
-## 7. Verify the evidence
-
-Read `result.json` and inspect the run directory. A run normally contains:
-
-```text
-runs/<timestamp>-<flow-name>/
-├── report.html
-├── result.json
-├── screenshots/
-├── ui/
-└── logs/
-```
-
-Check:
-
-1. The process exit code matches the result status.
-2. Every expected step appears with its duration.
-3. The first failed step includes the original error.
-4. Screenshots, UI XML, logcat, and JUnit output exist when the flow requests them.
-5. `report.html` opens locally and does not depend on a CDN.
-6. No token, cookie, account, private hostname, or personal data will be published with the evidence.
-
-Exit codes are `0` for success, `1` for execution failure, `2` for invalid arguments or flow configuration, and `130` for interruption.
-
-If MuMu was started only for this task, stop it after the evidence is written. Follow any owner-specified cleanup window or automation rule.
-
-Completion criterion: the reported pass/fail can be reproduced from the flow, exit code, and saved evidence.
-
-## 8. Reproduce the public live cases
-
-The v0.1.1 release includes two real Android cases. Treat them as executable examples, not synthetic documentation.
-
-### AnkiDroid deck and card persistence
-
-```powershell
-.\examples\ankidroid-deck-persistence\run.ps1
-```
-
-The script downloads AnkiDroid `2.25.3` (`versionCode 225033004`) from the official F-Droid repository into ignored `runs/case-assets/` and verifies:
-
-```text
-SHA256: c7056f611c66fc91a8e290e18268a0d708e813704f51c66e4af1534d468f6790
-```
-
-It pre-installs the APK, denies the all-files app-op, removes only the case-owned `/storage/emulated/0/AnkiDroid` directory, then runs the 49-action flow. The flow completes onboarding, creates `TestBench`, enters `Capital of France / Paris`, checks the pending-card count, force-stops and cold-launches the app, and reopens the card to verify both fields.
-
-Require all of the following before calling the case passed:
-
-- process exit code `0`;
-- CLI JSON has `ok: true` and `data.summary.passed == 49`;
-- JUnit contains 49 testcases with zero failures and zero errors;
-- 8 real screenshots exist at 720x1280;
-- the run contains UI XML, logcat, `report.html`, `result.json`, and JUnit;
-- `report.html` embeds its images and has no external script, stylesheet, or CDN dependency;
-- the public assets in `docs/assets/cases/ankidroid/` match the recorded SHA256 manifest.
-
-### Markor note persistence
-
-```powershell
-.\examples\markor-note-persistence\run.ps1
-```
-
-The script downloads Markor `2026.10.0` (`versionCode 164`) from a trusted F-Droid source into ignored `runs/case-assets/` and verifies size `11,849,016` bytes plus:
-
-```text
-SHA256: c29412e02d03e4f0511746a1bcef48c6b73fc1f70c1024fbf04903b0b3f4c485
-```
-
-It clears Markor app data, grants `MANAGE_EXTERNAL_STORAGE` only inside the isolated test instance, removes only `/sdcard/Documents/markor/app-testbench-*.md`, runs the 46-action flow, and uninstalls Markor by default. The flow completes onboarding, creates and saves `app-testbench-markor.md`, force-stops and cold-launches the app, searches by exact filename, reopens the note, and asserts the body survived.
-
-Require exit code `0`, `data.summary.passed == 46`, 46 JUnit testcases, five real 720x1280 screenshots, the saved/persisted/search/reopened images, UI tree and logcat evidence, a self-contained report, and matching public SHA256 values.
-
-### Failure envelope contract
-
-Create a temporary failing flow under `runs/` that launches an installed app and waits for a marker guaranteed not to exist. Run it with `--json`, capture stdout as UTF-8, and require:
-
-- process exit code `1`;
-- `ok: false`;
-- `error.type == "step_failure"`;
-- a complete `data` object with `status == "failed"`;
-- the JSON envelope validates against `src/app_testbench/schemas/cli-v1.schema.json` using Draft 2020-12;
-- a failure screenshot, UI XML, final logcat, HTML report, and JUnit file exist;
-- later main steps are recorded as skipped while teardown still runs.
-
-Do not relax the schema to make this pass. The regression test is `tests/test_cli.py::test_failed_run_json_matches_cli_schema`.
-
-Cleanup rule: stop the tested apps, remove any test `adb reverse` mappings, uninstall test APKs, stop any MuMu instance started for the case, and close the MuMu main window when the owner's timing rule requires it. Do not commit APKs, raw run directories, full logs, UI XML, or unselected screenshots.
-
-Completion criterion: the committed flow and scripts reproduce the documented step counts and real evidence on the stated MuMu/Android/display/language baseline, or the agent reports the exact environment difference.
-
-## 9. Change source code safely
-
-For code changes:
-
-```powershell
-python -m pip install -e ".[dev]"
+python -m pytest
 python -m ruff check .
 python -m ruff format --check .
-python -m pytest -q
-```
-
-For packaging changes, also run:
-
-```powershell
 python -m build
 python -m twine check dist/*
 ```
 
-Keep host command execution behind the process adapter and argument arrays. Keep flow validation strict. Escape report content, preserve offline reports, and keep telemetry and cloud uploads out of the product. Add or update tests whenever behavior changes.
+Do not claim PyPI availability unless an install against the intended package index actually succeeds. GitHub Release availability and PyPI publication are separate channels.
 
-Do not describe fake-backend coverage as live MuMu coverage. Record the MuMu version, Windows version, Python version, selected instance, and observed result when a live test is performed.
+## 4. Discover MuMu and ADB
 
-Completion criterion: tests and checks pass, and the final report distinguishes fake-backend tests from live-device evidence.
+Start read-only:
 
-## 10. Publish the repository
+```powershell
+app-testbench doctor --json
+app-testbench instance list --json
+```
 
-Require explicit owner approval before changing visibility, creating a tag or Release, or publishing to a package index. A normal `git push` still requires approval to commit and push the owner's changes.
+If discovery fails, set explicit paths for the current process:
 
-Before publishing, run:
+```powershell
+$env:APP_TESTBENCH_MUMU_MANAGER = (Join-Path $env:MUMU_HOME "nx_main\MuMuManager.exe")
+$env:APP_TESTBENCH_ADB = (Join-Path $env:ADB_HOME "adb.exe")
+$env:APP_TESTBENCH_INSTANCE = "0"
+app-testbench doctor --json
+```
+
+Require all of the following before a live run:
+
+- MuMuManager and ADB are found;
+- the selected instance is running;
+- Android boot is complete;
+- ADB reports exactly the expected device;
+- no unrelated case is using the same instance.
+
+Do not print or commit the ADB serial, private IP, local username, proxy configuration, or absolute MuMu installation paths in public output.
+
+## 5. Run the five public cases
+
+Run one live case at a time. Do not start a second case while a MuMu slot is occupied.
+
+```powershell
+.\examples\wikipedia-research-session\run.ps1
+.\examples\firefox-webapp-session\run.ps1
+.\examples\vlc-media-playback\run.ps1
+.\examples\ankidroid-deck-persistence\run.ps1
+.\examples\markor-note-persistence\run.ps1
+```
+
+Expected coverage:
+
+| Case | Required proof |
+| --- | --- |
+| Wikipedia | Onboarding, live search, article WebView, saved list, force-stop, cold-start persistence |
+| Firefox/Fennec | Cookie + LocalStorage, case-owned download verified through ADB, two tabs, cold-start restore |
+| VLC | `VideoPlayerActivity`, byte-range MP4, decoded frame, media-input log, `android_audiotrack`, portrait/landscape |
+| AnkiDroid | Onboarding, deck/card creation, pending count, force-stop, cold-start persistence, reopened card fields |
+| Markor | Multi-page onboarding, Markdown note input, save, exact filename search, cold-start body recovery |
+
+A final passing case must report `failed=0` and `skipped=0` in `result.json`, with screenshots, UI XML, logcat, HTML, and JUnit present. A previously passing run is not a substitute for the clean run associated with the release candidate.
+
+If a live run fails:
+
+1. Read the failed step, error, hint, screenshot, UI tree, and logcat.
+2. Determine whether the cause is code, flow, app, network, ADB, or environment.
+3. Fix the actual cause; do not weaken an assertion merely to get green output.
+4. Re-run from a clean state.
+5. Keep failed exploratory runs in ignored `runs/`; do not publish raw evidence from them.
+
+## 6. Verify machine-readable contracts
+
+Validate success and failure JSON against the packaged schema, not a hand-written approximation:
+
+```powershell
+python -m pytest tests/test_cli.py -q
+```
+
+The failed `run --json` contract must contain:
+
+```json
+{
+  "schema_version": "1.0",
+  "ok": false,
+  "command": "run",
+  "error": {
+    "type": "step_failure"
+  },
+  "data": {
+    "status": "failed"
+  }
+}
+```
+
+Required failure behavior:
+
+- exit code is `1`;
+- `error` exists when `ok=false`;
+- complete step data remains under `data`;
+- failure screenshot, UI tree, logcat, HTML, and JUnit survive;
+- `cli-v1.schema.json` validates without relaxation.
+
+Also validate the successful envelope and `result-v1.schema.json` for both passing and failing runs.
+
+## 7. Audit the public tree before committing
+
+Run all checks from the public worktree, not from an ignored run directory:
 
 ```powershell
 git status --short
 git diff --check
-.\scripts\check.ps1
+git ls-files
 ```
 
-Check tracked paths for likely sensitive artifacts:
+Reject or redact:
+
+- APK, AAB, XAPK, MP4, or other downloaded binaries;
+- `runs/`, virtual environments, build outputs, caches, or raw evidence directories;
+- raw logcat or unfiltered UI XML;
+- local absolute paths, usernames, hostnames, ADB serials, private IPs, proxy settings, or MuMu UUIDs;
+- account names, passwords, cookies, tokens, API keys, session exports, or authorization headers;
+- screenshots containing a real account, chat, order, notification, contact, or production data.
+
+Scan both tracked files and the staged diff. Public fixture values such as `127.0.0.1:18765`, `127.0.0.1:18766`, and the synthetic username `qa-runner` are acceptable only when they are clearly test-only.
+
+Public PNG evidence must:
+
+- come from a real MuMu run;
+- show the app page or the claimed evidence state;
+- contain no password field, personal account, secret, local path, or ADB serial;
+- have metadata stripped;
+- be listed in `docs/assets/cases/SHA256SUMS`;
+- pass the screenshot dimension and file-set tests.
+
+Completion criterion: the staged tree contains only intentional source, docs, tests, and audited public evidence.
+
+## 8. Build and verify the installable package
 
 ```powershell
-git ls-files | Select-String -Pattern '(^|/)(\.env|runs|reports|artifacts|dist|build)(/|$)|\.(apk|aab|xapk|log|pem|key|p12|pfx)$|(^|/)(cookies\.(txt|json)|auth\.json|secrets\.)'
+python -m pytest
+python -m ruff check .
+python -m ruff format --check .
+python -m build
+python -m twine check dist/*
 ```
 
-The command should return nothing relevant. If it finds an APK, log, screenshot, credential file, exported session, private key, personal profile, or other sensitive data, stop and ask the owner to classify or remove it. Do not merely delete the file and continue if a real secret may already have been exposed; report it and recommend credential rotation.
-
-Push normally and verify the remote branch:
+Create a fresh virtual environment under ignored storage, install the built wheel, and verify:
 
 ```powershell
-git push origin main
-git ls-remote --heads origin main
+app-testbench --version
+app-testbench doctor --json
+app-testbench skill-path
+app-testbench init --output .\app-testbench-flow.yaml
+app-testbench validate .\app-testbench-flow.yaml --json
 ```
 
-Never use `git push --force` or rewrite published history. If the repository uses a proxy because of network policy, pass it only for the command being run; do not persist credentials or proxy secrets in the repository.
+Run at least one real flow from the clean wheel environment. Confirm that the installed package includes the schemas and skill resource it claims.
 
-Completion criterion: the remote branch matches local `HEAD`, the working tree is understood, and no sensitive file is staged or tracked.
+## 9. Publish only after explicit authorization
 
-## 11. Configure GitHub
+If the owner explicitly authorized a GitHub publication, use a dedicated branch and logical commits. Separate these permissions: push to `main`, create or move a tag, create or edit a GitHub Release, change visibility, and publish to PyPI. One permission does not imply the others.
 
-Follow `docs/github-repository-setup.md` for the current owner/repository. Verify:
-
-- the repository description matches the product
-- topics describe Android app testing rather than general RPA
-- default branch is the intended branch
-- Secret Scanning and push protection are enabled when available
-- Dependabot security updates and private vulnerability reporting are enabled when available
-- CodeQL or the configured code-scanning workflow passes
-- branch and tag rulesets protect `main` and release tags
-- Actions permissions follow least privilege
-
-Changing a repository from private to public is an owner decision. Do not infer approval from a successful CI run.
-
-Completion criterion: the repository settings match the documented setup, or the agent reports the exact setting it could not verify.
-
-## 12. Create a release
-
-Before creating a tag, confirm:
-
-- the owner explicitly approved the version and tag
-- `main` is clean and pushed
-- the version in `pyproject.toml` and `app_testbench.__version__` match
-- release notes describe actual changes and do not overstate live validation
-- release assets are built from the tagged commit
-- the Release workflow creates a Draft until the owner approves publication
-
-Then run only after approval:
+For a documentation-only or implicit maintenance update, push the reviewed commit without changing the package version, tag, or Release. Never move or overwrite an existing tag.
 
 ```powershell
-git tag -a vX.Y.Z -m "App TestBench vX.Y.Z"
-git push origin vX.Y.Z
+git switch -c codex/release-maintenance
+git add <reviewed files>
+git commit -m "docs: improve user onboarding and capability guidance"
+git push -u origin codex/release-maintenance
 ```
 
-Download the resulting wheel, sdist, and checksum file. Verify the checksums and a clean installation in a temporary environment. Do not move or delete a published tag.
+Before a versioned release:
 
-Completion criterion: the tag points at the intended commit, CI passes for that tag, artifacts match their checksums, and the Release visibility matches the owner's approval.
+1. Confirm the final commit is on `main`.
+2. Confirm CI is green.
+3. Confirm the version in `pyproject.toml`, `CHANGELOG.md`, tag, and release notes agree.
+4. Create the tag only when the owner explicitly requested a new version.
+5. Create the GitHub Release from the matching file under `docs/releases/`.
+6. Verify the remote tag target, Release URL, assets, and CI status.
 
-## 13. Publish to PyPI
+Do not claim a successful push, tag, Release, or package publication unless the remote API or web page confirms it.
 
-PyPI is a separate release channel. A GitHub tag, GitHub Release, and PyPI upload do not publish one another automatically.
+## 10. Clean up live state
 
-Before running the PyPI workflow, confirm:
+At the end of the task, stop any MuMu Android instance and close the main window unless the owner requested otherwise. Remove case-owned reverse mappings and uninstall test apps from the dedicated instance.
 
-- the owner explicitly approved the package name and version
-- PyPI Trusted Publishing is configured for the exact owner, repository, workflow, and environment
-- the `pypi` environment exists in GitHub
-- the workflow is manually triggered
-- the wheel and sdist have passed `twine check`
-- installation and `app-testbench --version` succeed from the intended index
+Suggested cleanup:
 
-After publication, verify the project page, the uploaded version, `pip install app-testbench`, and the CLI entry point. Report failure as failure; do not substitute a local editable install for a successful package publication.
-
-Completion criterion: the intended version is visible on the package index and installs in a clean environment.
-
-## Stop conditions
-
-Stop and report immediately when any of these occurs:
-
-- required authorization, login, or owner approval is missing
-- the worktree contains unexplained changes
-- the full test gate fails
-- a real credential, cookie, token, private key, personal profile, or private user data is found
-- the live MuMu environment is unavailable and the task requires live evidence
-- CI fails
-- a command would require force-pushing or rewriting published history
-- a release step would change visibility or publish artifacts without explicit approval
-
-## Final report
-
-Report only facts that can be verified from commands or stored evidence:
-
-```text
-Requested task:
-Repository:
-Branch:
-Commit:
-Remote:
-Worktree:
-Local checks:
-CI:
-MuMu / Android:
-Flow validation:
-Run result:
-Evidence paths:
-Release:
-PyPI:
-Cleanup:
-Outstanding risks:
+```powershell
+app-testbench reverse-port 18765 --remove --json
+app-testbench reverse-port 18766 --remove --json
+app-testbench close org.wikipedia
+app-testbench close org.mozilla.fennec_fdroid
+app-testbench close org.videolan.vlc
+app-testbench close com.ichi2.anki
+app-testbench close net.gsantner.markor
+app-testbench instance stop 0 --json
 ```
 
-Do not describe a Draft Release as a published Release. Do not describe fake-backend tests as a live-device test. Do not describe local build success as package-index availability.
+There is no one-shot `app-testbench uninstall` command in v0.1.1. If a dedicated test instance must remove a package, use the wrapper's documented cleanup or `adb shell pm uninstall <package>` with the verified serial, and only after confirming that the package is case-owned.
+
+Do not delete ignored `runs/` evidence that may be needed for the final report. Do not remove unrelated background MuMu services if they belong to the host owner and the task only requires stopping the Android instance.
+
+Verify:
+
+- no ready ADB device remains;
+- the MuMu Android instance is stopped;
+- the visible MuMu window is closed;
+- case-owned reverse ports are gone;
+- the public worktree still passes `git diff --check`.
+
+## 11. Final report
+
+Report only verified facts:
+
+- branch and commit hashes;
+- version, tag, CI, and Release status;
+- exact live case results and durations;
+- public screenshot paths;
+- HTML, `result.json`, and JUnit evidence;
+- failure-envelope schema result;
+- privacy audit findings;
+- remaining limitations and cleanup state.
+
+If a gate fails, report the blocking check and continue fixing it. Do not describe a partial result as “basically complete.”

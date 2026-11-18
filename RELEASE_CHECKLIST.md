@@ -47,8 +47,10 @@
 - [ ] screenshot、`dump-ui`、logcat 已验证 / evidence actions tested
 - [ ] 至少一个 JSON 或 YAML flow 生成报告 / one flow produces a report
 - [ ] `report.html` 离线打开且截图已内嵌 / report opens offline with embedded images
-- [ ] AnkiDroid 真实案例 49/49 步通过 / AnkiDroid live case passed 49/49 steps
-- [ ] Markor 真实案例 46/46 步通过 / Markor live case passed 46/46 steps
+- [ ] Wikipedia 真实案例 63/63 步通过 / Wikipedia live case passed 63/63 steps
+- [ ] Firefox/Fennec 真实案例 66/66 步通过，下载文件精确校验 / Firefox live case passed 66/66 with exact download verification
+- [ ] VLC 真实案例 43/43 步通过，Activity 与 logcat 断言通过 / VLC live case passed 43/43 with Activity and logcat assertions
+- [ ] `wait_for_activity` 与 `assert_logcat_contains` 有单元测试 / new actions have unit and flow tests
 - [ ] 失败 `run --json` 通过打包的 `cli-v1.schema.json` / failed `run --json` validates against the packaged schema
 - [ ] 测试的 MuMu 版本记录在 release notes / MuMu version documented
 - [ ] 无法完成的真实环境项明确列为限制 / unavailable live checks are documented as limits
@@ -101,7 +103,7 @@
 - [ ] `docs/promotion.md` 的渠道策略已审阅 / promotion playbook reviewed
 - [ ] `docs/launch-copy.md` 文案已按真实链接和能力替换 / launch copy customized
 - [ ] social preview 与 report preview 已检查 / social and report previews reviewed
-- [ ] 所有截图、视频和日志均为合成或脱敏数据 / all media is synthetic or redacted
+- [ ] 所有公开截图来自真实运行并已脱敏、去元数据 / public screenshots are live, redacted, and metadata-free
 - [ ] 文案没有“支持所有模拟器”“绕过检测”等不实宣传 / no unsupported claims
 - [ ] 已阅读目标社区/板块的 self-promotion 规则 / community rules checked
 - [ ] 首发渠道不超过 2–3 个，避免同日重复灌水 / intentional channel list

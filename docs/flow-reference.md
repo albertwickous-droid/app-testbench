@@ -317,6 +317,33 @@ Fails if the text is present. `ignore_case` defaults to `false`.
 
 Polls `uiautomator dump` until the text appears. `timeout` is seconds (default `10`), `interval` is seconds (default `0.5`). Transient dump failures such as `null root node` are retried until the timeout; the last real dump error and UI XML are kept if the wait still fails. With `recover_anr: true`, a visible Android "app is not responding" dialog is handled by tapping its **Wait** action and continuing to poll; the step output records `anr_recoveries`.
 
+
+### `wait_for_activity`
+
+```yaml
+- action: wait_for_activity
+  activity: org.videolan.vlc/.gui.video.VideoPlayerActivity
+  timeout: 30
+  interval: 0.5
+```
+
+Polls Android's resumed/top Activity until `package/.Activity` (or a fully qualified component) matches. `timeout` defaults to `30` seconds and `interval` to `0.5`. The step result includes the observed component and current Activity identity. A timeout is a normal step failure with the last observed Activity in the hint, which is useful when a WebView, player, or deep link lands somewhere other than expected.
+
+Activity checks complement UI dumps: they let a flow prove that a native surface transition happened even when that surface exposes little or no text to accessibility services.
+
+### `assert_logcat_contains`
+
+```yaml
+- action: assert_logcat_contains
+  text: "Creating an input for 'sintel-trailer.mp4'"
+  lines: 30000
+  ignore_case: true
+```
+
+Reads the device log buffer and requires at least one matching line. `lines` defaults to `5000` and accepts up to `100000`. The result records `match_count` and the last matching line; a failure includes the recent log tail.
+
+Use this for assertions that are not visible in the UI hierarchy, such as a media framework opening a file, an audio output module initializing, or an expected SDK transition. Keep the device free of unrelated log-heavy apps when the buffer may roll over during a long wait.
+
 ## Report settings
 
 ```yaml
@@ -377,6 +404,8 @@ These aliases are accepted and normalized:
 - `clear-data` → `clear_app_data`
 - `reverse-port` → `reverse_port`
 - `tap-text` → `tap_text`
+- `wait-for-activity` → `wait_for_activity`
+- `assert-logcat-contains` → `assert_logcat_contains`
 - `clear-text` → `clear_text`
 
 Prefer underscore names in committed examples.

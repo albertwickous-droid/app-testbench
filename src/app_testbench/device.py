@@ -21,6 +21,10 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MIME_TYPE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+-]*/[A-Za-z0-9][A-Za-z0-9.+-]*$")
 OPEN_URI_SCHEMES = frozenset({"http", "https", "file", "content"})
 UI_BOUNDS_RE = re.compile(r"^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$")
+ACTIVITY_COMPONENT_RE = re.compile(
+    r"(?P<package>[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)/"
+    r"(?P<activity>[A-Za-z0-9_.$]+)"
+)
 
 
 def validate_package(package: str) -> str:
@@ -182,6 +186,34 @@ def parse_surface_orientation(output: str) -> int | None:
 
     match = re.search(r"^\s*SurfaceOrientation:\s*([0-3])\s*$", output, re.MULTILINE)
     return int(match.group(1)) if match else None
+
+
+def parse_top_activity(output: str) -> dict[str, str] | None:
+    """Extract the resumed Activity component from ``dumpsys activity`` output."""
+
+    markers = (
+        "topResumedActivity",
+        "mResumedActivity",
+        "ResumedActivity",
+        "mFocusedApp",
+    )
+    lines = output.splitlines()
+    for marker in markers:
+        for raw_line in lines:
+            if marker not in raw_line:
+                continue
+            match = ACTIVITY_COMPONENT_RE.search(raw_line)
+            if match is None:
+                continue
+            package = match.group("package")
+            activity = match.group("activity")
+            return {
+                "component": f"{package}/{activity}",
+                "package": package,
+                "activity": activity,
+                "source_line": raw_line.strip()[:1000],
+            }
+    return None
 
 
 class AndroidDevice:
@@ -424,6 +456,19 @@ class AndroidDevice:
                 hint=output[:2000],
             )
         return output.strip()
+
+    def top_activity(self) -> dict[str, str]:
+        """Return the current top resumed Activity component."""
+
+        result = self._run("shell", "dumpsys", "activity", "activities", check=False)
+        identity = parse_top_activity(result.combined_output)
+        if result.returncode != 0 or identity is None:
+            detail = result.combined_output.strip()[-2000:] or "no output"
+            raise DeviceError(
+                "Could not determine the top Activity.",
+                hint=detail,
+            )
+        return identity
 
     def open_uri(
         self,
@@ -704,6 +749,18 @@ class AndroidDevice:
     def clear_logcat(self) -> None:
         self._run("logcat", "-c", check=False)
 
+    def logcat_text(
+        self,
+        *,
+        lines: int = 1000,
+        clear: bool = False,
+    ) -> str:
+        if lines < 1 or lines > 100_000:
+            raise DeviceError("logcat lines must be between 1 and 100000")
+        if clear:
+            self._run("logcat", "-c", check=False)
+        return self._run("logcat", "-d", "-v", "threadtime", "-t", str(lines)).stdout
+
     def logcat(
         self,
         output: Path,
@@ -711,11 +768,7 @@ class AndroidDevice:
         lines: int = 1000,
         clear: bool = False,
     ) -> Path:
-        if lines < 1 or lines > 100_000:
-            raise DeviceError("logcat lines must be between 1 and 100000")
-        if clear:
-            self._run("logcat", "-c", check=False)
-        result = self._run("logcat", "-d", "-v", "threadtime", "-t", str(lines))
+        text = self.logcat_text(lines=lines, clear=clear)
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(result.stdout, encoding="utf-8", newline="\n")
+        output.write_text(text, encoding="utf-8", newline="\n")
         return output

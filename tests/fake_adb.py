@@ -83,6 +83,9 @@ def main() -> int:
         if "-c" in argv:
             return 0
         print("11-05 12:00:00.000 I/FakeApp( 1000): started")
+        extra = os.environ.get("FAKE_ADB_LOGCAT_EXTRA")
+        if extra:
+            print(extra)
         print("11-05 12:00:01.000 E/FakeApp( 1000): sample error")
         return 0
     if command == "exec-out":
@@ -108,6 +111,24 @@ def main() -> int:
                     sys.stdout.buffer.write(UI_XML.replace(b"Login", text.encode("utf-8")))
             return 0
     if command == "shell":
+        if len(argv) >= 3 and argv[1] == "dumpsys" and argv[2] == "activity":
+            if os.environ.get("FAKE_ADB_ACTIVITY_UNPARSEABLE") == "1":
+                print("ACTIVITY MANAGER ACTIVITIES (no resumed activity)")
+                return 0
+            sequence = os.environ.get("FAKE_ADB_ACTIVITY_SEQUENCE")
+            if sequence:
+                values = [value.strip() for value in sequence.split(",") if value.strip()]
+                state = Path(os.environ.get("FAKE_ADB_STATE", "."))
+                state.mkdir(parents=True, exist_ok=True)
+                counter = state / "activity-count.txt"
+                index = int(counter.read_text(encoding="utf-8")) if counter.exists() else 0
+                component = values[min(index, len(values) - 1)]
+                counter.write_text(str(index + 1), encoding="utf-8")
+            else:
+                component = os.environ.get("FAKE_ADB_ACTIVITY", "com.example.app/.MainActivity")
+            print("ACTIVITY MANAGER ACTIVITIES (faked)")
+            print(f"  topResumedActivity=ActivityRecord{{123 u0 {component} t42}}")
+            return 0
         if len(argv) >= 3 and argv[1] == "dumpsys" and argv[2] == "input":
             sequence = os.environ.get("FAKE_ADB_SURFACE_ORIENTATION_SEQUENCE")
             if sequence:
