@@ -4,11 +4,15 @@
 
 ![App TestBench: repeatable Android app testing on MuMu](assets/banner.png)
 
-**Repeatable Android app testing on a mature MuMu runtime. Keep every step explicit, and keep the screenshot, UI tree, logcat, and HTML report when a run fails.**
+*Above: a YAML flow is executed through App TestBench, MuMuManager, and ADB, then packaged into an offline HTML evidence report.*
 
-App TestBench is a Windows-first command-line tool for Android app UI testing. It turns APK installation, app launch, taps, text entry, waits, assertions, screenshots, UI dumps, and logcat collection into JSON/YAML flows. Every run produces a self-contained HTML report, `result.json`, and optional JUnit XML.
+> **A local-first Android smoke and regression workbench for individual developers and small teams.**
 
-The runner does not ask a vision model to guess the next screen. The flow declares every action, and explicit UI, Activity, logcat, or file assertions decide whether a step passes. When something breaks, you get the failed step, timing, current screen, UI hierarchy, and recent logs instead of a vague "cannot reproduce" note.
+Start without a device cloud: install an APK, run a flow, and produce HTML/JUnit evidence on your Windows machine. APKs, screenshots, UI trees, and logcat stay local by default. The goal is not “more devices”; it is a faster, more controlled last mile with complete failure evidence.
+
+**As coding agents ship more changes, app regression cannot still depend on someone clicking through the UI by hand.** App TestBench turns install, launch, tap, input, wait, and assertion steps into explicit JSON/YAML flows. It runs them on a mature MuMu runtime and preserves the screenshot, UI tree, logcat, and HTML report when a run fails.
+
+The runner does not ask a vision model to guess the next screen. Each step passes or fails on UI text, Activity, logcat, or file assertions. The same failure can be replayed, compared, and handed off instead of ending as “cannot reproduce”.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4.svg)
@@ -17,247 +21,248 @@ The runner does not ask a vision model to guess the next screen. The flow declar
 
 > Independent open-source project. Not affiliated with or endorsed by NetEase or the MuMu team. Test only apps, accounts, devices, and data that you own or are explicitly authorized to test.
 
-## Is this the right tool?
+## Why now
 
-| What you need | Fit |
+Trend check: 2026-11-19
+
+| Change | Impact on testing | How this project responds |
+| --- | --- | --- |
+| [GitHub Octoverse 2026 (2026-10-28)](https://github.blog/news-insights/octoverse/octoverse-commits-pushes-reach-new-highs-in-2026-as-developers-build-with-agents/) reports that by September 2026, developers start more than 40% of pull requests with an agent | Changes arrive faster, so manual regression, reproduction, and evidence collection become the bottleneck | Explicit flows, assertions, exit codes, and structured results support high-frequency regression |
+| [Android Emulator 37.2.13 (2026-10-28)](https://developer.android.com/studio/releases/emulator#37-2-13) continues to ship graphics, stability, and resource-release fixes | Runtime and toolchain drift can make a failure hard to explain | Use MuMu as the mature execution layer, then pin the environment with `doctor`, fixed APKs, and evidence reports |
+
+## Fast path: what do you want to do?
+
+| Goal | Start here | Result |
+| --- | --- | --- |
+| Check whether the environment works | `app-testbench doctor` | MuMu, ADB, and instance status |
+| Test your own APK | Run `install → launch → screenshot → dump-ui` | Confirm the single-device actions first |
+| Produce a complete test report | Follow the five-minute path: `init → validate → run` | HTML + `result.json` + evidence |
+| See a real case first | `.\examples\ankidroid-deck-persistence\run.ps1` | Download a pinned APK, run 49 steps, generate a report |
+| Feed CI or an agent | `run --json`, or read the [Agent runbook](docs/agent-deployment.md) | Structured results, exit codes, and JUnit |
+
+## Who is it for?
+
+| User or scenario | Fit |
 | --- | --- |
-| Repeat the same app journey without clicking through it by hand | **Good fit**: define steps, waits, and assertions in JSON/YAML |
-| Preserve evidence when a test fails | **Good fit**: failed-step screenshot, UI tree, logcat, timings, and HTML |
-| A stable Android runtime on Windows | **Good fit**: MuMu Player is the first supported runtime backend |
-| Machine-readable results for CI or an agent | **Good fit**: `result.json`, JUnit XML, and the versioned `--json` envelope |
-| A one-off tap or a temporary ADB command | **Supported**, but the flow runner is the main product |
-| Bypass login, CAPTCHA, anti-bot controls, rate limits, or access controls | **Not supported** |
+| Individual developers and indie builders | **Best fit**: one Windows machine plus MuMu is enough for daily smoke tests, regression checks, and defect reproduction without setting up a device cloud |
+| Small engineering / QA teams, especially 1–10 people | **Good fit**: developers, QA, and agents can share flows, HTML, JUnit, and CI results |
+| Teams sensitive to APK, account, screenshot, or log location | **Good fit**: the tool has no built-in cloud upload and keeps raw evidence local by default |
+| Small teams with frequent regression | **Good fit**: no upload, queue, metering, or platform setup in the daily loop |
+| Compatibility matrices across dozens or hundreds of devices | **Not a standalone fit**: pair it with a cloud device farm or physical-device lab |
+| High-concurrency device pools or large-scale load testing | **Not a fit**: this is not a device cloud |
+| Bypassing login, CAPTCHA, anti-bot controls, rate limits, or access controls | **Not supported** |
+
+## App TestBench vs. a cloud device farm
+
+A cloud device farm optimizes **device coverage and concurrency**. App TestBench optimizes the **last mile of verification**. They solve different problems and can be used together.
+
+| Dimension | Cloud device farm | App TestBench |
+| --- | --- | --- |
+| Device coverage | **Strong**: cross-brand, cross-OS, cross-model validation | **Not competing**: currently Windows + MuMu first |
+| Concurrency | **Strong**: large parallel runs | **Not competing**: optimized for one machine or a small number of parallel runs |
+| Setup cost | Sign-up, APK upload, device configuration, quotas, and billing | Install locally and start from commands |
+| Data location | APK, screenshots, and logs are usually uploaded to the platform | Local by default; no built-in cloud upload |
+| Recurring cost | Priced by device, concurrency, or time | No cloud-device usage fee; uses local compute |
+| Fast smoke tests | Upload, queueing, and result retrieval can take longer than the test | Local execution writes artifacts directly |
+| Customization | Constrained by platform APIs, UI, and execution boundaries | Flows, scripts, CI, and agents remain customizable |
+| Evidence handoff | Usually viewed or exported inside the platform | HTML + `result.json` + JUnit + screenshots / UI tree / logcat |
+| Chinese apps / MuMu scenarios | Not always a focused optimization area | An explicit, current runtime differentiator |
+
+> “Local by default” means App TestBench does not upload run artifacts itself. The app under test, system components, and any CI or cloud service you connect may still use the network. Local prerequisites are Windows, Python, and MuMu; the optimization applies to every verification loop after setup.
+
+### Three direct promises
+
+| Promise | What you actually get |
+| --- | --- |
+| **Five-minute first run** | With MuMu and Python already installed: install an APK → run a flow → get HTML/JUnit without an account, server, or cloud quota; `validate` does not touch the device, while `run` does |
+| **Failure evidence you can hand off** | While the device is still reachable, the failed step, timing, screenshot, UI tree, logcat, `result.json`, and HTML remain in the same run directory by default |
+| **Ready for agents and CI** | `--json`, Draft 2020-12 schemas, stable exit codes, JUnit XML, and environment interpolation |
+
+**Why choose it:** if the pain is “I rerun the same app journey every day and do not want to upload, queue, or pay by the minute”, the local-first path is shorter. If the pain is “I need dozens of device models in one run”, a cloud device farm is still the better tool.
+
+**Explicit non-goals:** a device-cloud platform, a large test-management suite, or a general AI / RPA platform.
 
 ## Supported capabilities
+
+App TestBench does not compete on device-matrix breadth. It completes one verification workflow: author → execute → assert → diagnose → report → consume from CI or an agent.
 
 | Area | What is supported | What you get |
 | --- | --- | --- |
 | Environment and instances | `doctor`, MuMu instance list/start/stop/restart, ADB discovery, instance or serial selection | A known-good toolchain and device before a run |
-| APK and app lifecycle | APK install, package/version verification, launch, URI open, force-stop, clear data, orientation | Install, cold launch, deep links, reset, and screen orientation in one flow |
+| APK and app lifecycle | APK install, package/version verification, launch, URI open, force-stop, clear data, orientation | Install, cold launch, deep links, reset, and orientation in one flow |
 | UI interaction | Coordinate tap, text/content-desc tap, swipe, printable-ASCII text, clear text, key events, Back, Home | Reusable steps instead of manual interaction |
-| Waits and assertions | Fixed wait, `wait_for_text`, `wait_for_activity`, UI contains/not-contains, logcat contains, visible ANR recovery | A test that can actually pass or fail on a condition |
+| Waits and assertions | `wait_for_text`, `wait_for_activity`, UI contains/not-contains, logcat contains, visible ANR recovery | A test that can pass or fail on an actual condition |
 | Evidence | Screenshots, UI hierarchy, logcat, failure diagnostics, step status and timing | A clear record of what failed and what the app showed |
 | Flow orchestration | JSON/YAML, `setup`/`steps`/`teardown`, environment interpolation, `continue_on_error`, boot readiness gate | Install, test, cleanup, and evidence in one repeatable document |
 | Local test services | `reverse-port` for host-to-device ports and `open` for URIs | WebView, download, media, and local QA fixture coverage |
 | Reports and CI | Self-contained HTML, `result.json`, optional JUnit XML, structured failure JSON | Humans read the report; CI and agents read the result |
-| Agent support | Packaged Codex skill, English agent runbook, strict schemas, five reproducible live cases | A stable operating procedure instead of guessed coordinates and ad-hoc environments |
+| Agent support | Packaged Codex skill, English agent runbook, strict schemas, five reproducible live cases | A stable operating procedure instead of guessed coordinates |
 
-## First run: from installation to the first HTML report
+## Five-minute path
 
-### 1. Prepare the runtime
+> First-time users should follow this one path. Continue only after each step’s success condition; save the full command table for later.
 
-You need:
+### 1. Install
 
-- Windows 10/11;
-- Python 3.10 or newer;
-- MuMu Player installed with ADB debugging enabled;
-- a dedicated MuMu test instance, initially instance `0`;
-- an app, account, and data set that you own or are authorized to test.
-
-Start the MuMu instance first. Do not begin with a production account, personal data, or an unauthorized device.
-
-### 2. Install App TestBench
-
-The current supported installation path is from source:
+Requirements: Windows 10/11, Python 3.10+, and MuMu Player installed with ADB debugging enabled.
 
 ```powershell
 git clone https://github.com/albertwickous-droid/app-testbench.git
 cd app-testbench
-py -3.11 -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install .
 app-testbench --version
 ```
 
 Continue when the command reports `app-testbench 0.1.1`.
 
-### 3. Check MuMu, ADB, and the selected instance
+### 2. Check MuMu, ADB, and the instance
+
+Start the dedicated test instance first; skip the first command if it is already running:
 
 ```powershell
-app-testbench doctor --json
+app-testbench instance start 0 --wait 60
+app-testbench doctor
 ```
 
-Check three things in the JSON:
+**Continue when:** `doctor` succeeds and reports that `MuMuManager`, `adb`, the instance, and the ADB connection are ready.
 
-- MuMuManager and ADB were found;
-- the selected instance is running;
-- ADB can reach that instance.
-
-If discovery fails, pass explicit paths or use environment variables:
+If discovery fails, stop here and pass explicit paths:
 
 ```powershell
-app-testbench doctor --json `
+app-testbench doctor `
   --mumumanager "C:\path\to\MuMuManager.exe" `
   --adb "C:\path\to\adb.exe" `
   --instance 0
 ```
 
-The supported environment variables are `APP_TESTBENCH_MUMUMANAGER`, `APP_TESTBENCH_ADB`, `APP_TESTBENCH_INSTANCE`, and `APP_TESTBENCH_SERIAL`.
+Supported environment variables: `APP_TESTBENCH_MUMUMANAGER`, `APP_TESTBENCH_ADB`, `APP_TESTBENCH_INSTANCE`, and `APP_TESTBENCH_SERIAL`.
 
-### 4. Create a minimal first flow
+### 3. Confirm the APK and first screen with single commands
 
-Save this as `first-flow.yaml`. It does not need your business app. It opens Android Settings, takes a screenshot, dumps the UI hierarchy, and captures logcat so you can verify the runner and report pipeline end to end.
-
-```yaml
-version: 1
-name: first-smoke
-description: Open Android Settings and capture the first evidence bundle.
-device:
-  instance: 0
-  wait_for_boot: true
-  boot_timeout: 60
-report:
-  title: First App TestBench smoke test
-  capture_screenshots: all
-  collect_logcat: true
-  clear_logcat: true
-  include_ui_xml: true
-steps:
-  - name: Launch Android Settings
-    action: launch
-    package: com.android.settings
-  - name: Let the first screen settle
-    action: wait
-    seconds: 2
-  - name: Capture the settings screen
-    action: screenshot
-    label: settings
-  - name: Capture the UI hierarchy
-    action: dump_ui
-    label: settings
-teardown:
-  - name: Capture recent logcat
-    action: logcat
-    label: final
-    lines: 1000
-```
-
-### 5. Validate, then run
+Replace the example package and APK path, then run the shortest four-command check:
 
 ```powershell
-app-testbench validate .\first-flow.yaml --json
-app-testbench run .\first-flow.yaml `
-  --output .\runs `
-  --junit-xml .\runs\first-smoke-junit.xml `
-  --json
-```
-
-`validate` checks the flow document without touching the device. `run` performs the device actions. Exit codes are `0` for success, `1` for execution failure, `2` for invalid arguments or flow configuration, `3` for an environment that is not ready, and `130` for interruption.
-
-### 6. Open the artifacts
-
-The run directory looks like this:
-
-```text
-runs/<timestamp>-first-smoke/
-├── report.html       # self-contained; opens offline
-├── result.json       # versioned machine-readable result
-├── screenshots/
-├── ui/
-└── logs/
-```
-
-Open `report.html` first. Read `result.json` from CI or an agent. Pass `--junit-xml` when the result must enter a JUnit-compatible test system.
-
-![App TestBench HTML report preview](assets/report-preview.png)
-
-The report embeds screenshots, UI snippets, and logcat and does not load a CDN, external script, or external stylesheet. The desktop step rail scrolls independently, and the report supports Light and Dark themes.
-
-## Start testing your own app
-
-### Path A: verify one action at a time
-
-```powershell
-# Install and verify package name, versionCode, and versionName.
-app-testbench install .\app.apk `
-  --expected-package com.example.app `
-  --expected-version-code 42 `
-  --expected-version-name 1.2.3
-
-# Launch the app and capture the current state.
+app-testbench install .\app.apk --expected-package com.example.app
 app-testbench launch com.example.app
 app-testbench screenshot --output .\artifacts\home.png
 app-testbench dump-ui --output .\artifacts\home.xml
-app-testbench logcat --output .\artifacts\logcat.txt --lines 2000
 ```
 
-### Path B: turn the steps into a flow
+**Continue when:** `artifacts\home.png` shows the app’s first screen and `artifacts\home.xml` is not empty.
 
-1. Generate a template with `app-testbench init --output .\app-testbench-flow.yaml`.
-2. Replace `device.package`, the APK path, and the sample steps with your target.
-3. Inspect the real screen with `screenshot` and `dump_ui`; prefer `wait_for_text` and `tap_text` before coordinates.
-4. Add `assert_ui_contains`, `wait_for_activity`, or `assert_logcat_contains` so the flow can fail for the right reason.
-5. Run `app-testbench validate`, then run the flow.
+If you do not know the package or version yet, omit `--expected-package` first. Add `--expected-version-code` and `--expected-version-name` only when you want strict version checks.
 
-A small but realistic flow:
+### 4. Generate the first report
+
+Generate the starter file instead of building YAML from scratch:
+
+```powershell
+app-testbench init --output .\first-flow.yaml
+```
+
+Open `first-flow.yaml` and usually change only these values:
+
+| Find | Template value | Replace with |
+| --- | --- | --- |
+| `device.instance` | `0` | Your MuMu instance; change it only when it is not `0` |
+| `device.package` | `com.example.app` | Your APK package name |
+| `setup[].apk` | `./app.apk` | APK path relative to the YAML file |
+| `wait_for_text.text` | `Login` | Stable text on your app’s first screen |
+
+Validate first, then run:
+
+```powershell
+app-testbench validate .\first-flow.yaml
+app-testbench run .\first-flow.yaml --output .\runs --junit-xml .\runs\first-flow-junit.xml
+```
+
+**Continue when:** `validate` prints `Flow is valid` and `run` exits with code `0`. `validate` does not touch the device; `run` performs the actions.
+
+<details>
+<summary>Prefer not to use init? Expand the minimal valid flow</summary>
 
 ```yaml
 version: 1
-name: login-smoke
+name: first-app-smoke
 device:
   instance: 0
   package: com.example.app
-  wait_for_boot: true
 setup:
   - action: install
     apk: ./app.apk
     expected_package: com.example.app
-    expected_version_code: 42
 steps:
   - action: launch
   - action: wait_for_text
     text: Login
     timeout: 20
-  - action: tap_text
-    text: Username
-  - action: text
-    text: qa-user
-  - action: tap_text
-    text: Continue
-  - action: wait_for_activity
-    activity: com.example.app/.HomeActivity
-    timeout: 10
-  - action: assert_ui_contains
-    text: Home
-teardown:
-  - action: logcat
-    label: final
-    lines: 2000
-    continue_on_error: true
+  - action: screenshot
+    label: first-screen
 ```
 
-`text` currently supports printable ASCII only. Chinese, Japanese, and other Unicode input require a separately approved ADBKeyboard, clipboard, or IME path.
+</details>
 
-## Goal-to-command map
+CI and agents use the same command with `--json`. Exit codes are `0` success, `1` execution failure, `2` configuration error, `3` environment not ready, and `130` interruption.
+
+### 5. Open the artifacts
+
+```text
+runs/<timestamp>-first-app-smoke/
+├── report.html       # self-contained; opens offline
+├── result.json       # machine-readable result
+├── screenshots/
+├── ui/
+└── logs/
+```
+
+Open `report.html` first. The desktop step rail scrolls independently, Light/Dark themes are available, and screenshots, UI snippets, and logcat are embedded without a CDN, external script, or external stylesheet.
+
+![App TestBench HTML report preview](assets/report-preview.png)
+
+*Illustration: the report opens offline and supports Light/Dark themes; a real run replaces it with that run’s screenshots, UI tree, and logcat.*
+
+## Advanced: command lookup
+
+> Return here after the first successful run. Every field, alias, default, and validation rule is in [`docs/flow-reference.md`](docs/flow-reference.md).
+
+<details>
+<summary>Expand the CLI and flow action table</summary>
 
 | I want to... | Direct command | Flow action |
 | --- | --- | --- |
-| Start/stop/restart a MuMu instance | `app-testbench instance start 0` | Usually prepared outside the flow |
-| Check runtime readiness | `app-testbench doctor --json` | Run before the business flow |
+| Check the environment | `app-testbench doctor` | Run before the flow |
+| Start/stop/restart an instance | `app-testbench instance start 0` | Usually prepared outside the flow |
 | Install and verify an APK | `app-testbench install .\app.apk --expected-package com.example.app` | `action: install` with `expected_*` |
-| Launch an app | `app-testbench launch com.example.app` | `action: launch` |
-| Launch a specific Activity | `app-testbench launch com.example.app --activity .MainActivity` | `action: launch` + `activity` |
+| Launch an app or specific Activity | `app-testbench launch com.example.app [--activity .MainActivity]` | `action: launch` + `activity` |
 | Open a URI or deep link | `app-testbench open "https://example.test/" --package com.example.app` | `action: open` |
-| Force-stop an app | `app-testbench close com.example.app` | `action: close` |
-| Clear app data | `app-testbench clear-data com.example.app` | `action: clear_app_data` |
+| Force-stop or clear an app | `app-testbench close com.example.app` / `clear-data com.example.app` | `action: close` / `clear_app_data` |
 | Change orientation | `app-testbench orientation landscape` | `action: orientation` |
-| Tap coordinates | `app-testbench tap 540 1200` | `action: tap` |
-| Tap by visible text or content description | Prefer a flow | `action: tap_text` with exact/contains, index, and timeout |
-| Enter ASCII text | `app-testbench text "qa@example.test"` | `action: text` |
-| Clear an input | Focus it, then use a flow | `action: clear_text` |
-| Send Back or Home | `app-testbench keyevent BACK` | `action: back` / `action: home` |
-| Wait for visible text | Use a flow | `action: wait_for_text`; optional ANR recovery |
-| Wait for an Activity | Use a flow | `action: wait_for_activity` |
-| Assert text is present/absent | Use a flow | `action: assert_ui_contains` / `action: assert_ui_not_contains` |
-| Assert a logcat substring | Use a flow | `action: assert_logcat_contains` |
-| Capture a screenshot | `app-testbench screenshot --output .\artifacts\home.png` | `action: screenshot` |
-| Dump the UI hierarchy | `app-testbench dump-ui --output .\artifacts\ui.xml` | `action: dump_ui` |
-| Capture recent logcat | `app-testbench logcat --output .\artifacts\log.txt --lines 2000` | `action: logcat` |
+| Tap or swipe | `app-testbench tap 540 1200` / `swipe ...` | `action: tap` / `swipe` |
+| Tap by text or content description | Prefer a flow | `action: tap_text`: text / content-desc, exact / contains, index, timeout |
+| Enter ASCII text or clear input | `app-testbench text "qa@example.test"` | `action: text` / `clear_text` |
+| Wait for text or Activity | Use a flow | `action: wait_for_text` / `wait_for_activity` |
+| Assert UI or logcat | Use a flow | `assert_ui_contains`, `assert_ui_not_contains`, `assert_logcat_contains` |
+| Capture screenshot / UI / logcat | `screenshot` / `dump-ui` / `logcat` | `action: screenshot` / `dump_ui` / `logcat` |
 | Map a local test server | `app-testbench reverse-port 18765 --local-port 18765` | `action: reverse_port` |
-| Produce a complete HTML report | `app-testbench run .\flow.yaml --junit-xml .\junit.xml` | Generated automatically by `run` |
-| Feed results into CI | `app-testbench run .\flow.yaml --json` | `result.json` + JSON envelope |
+| Generate a report / feed CI | `app-testbench run .\flow.yaml` | `run` generates it; add `--json` for CI/agents |
 
-See [`docs/flow-reference.md`](docs/flow-reference.md) for every field, alias, default, and validation rule.
+</details>
+
+## When something fails
+
+| Symptom | Do this first |
+| --- | --- |
+| MuMuManager or ADB is not found | Pass `--mumumanager` / `--adb` or set the matching environment variables; see the doctor command above |
+| No device is available | Start the MuMu instance, then run `app-testbench doctor`; do not restart ADB at random |
+| The expected text cannot be found | Use `screenshot` and `dump-ui` to inspect the current screen; prefer `tap_text` when possible, coordinates last |
+| Input succeeds but the next step fails | Add `wait_for_text` or `wait_for_activity` before the next action instead of using a long fixed sleep |
+| Chinese or other Unicode input fails | Native `text` supports printable ASCII only; use an approved ADBKeyboard, clipboard, or IME path |
+| The flow breaks after an app update | Recapture the screen and UI tree; update text, Activity, coordinates, and waits |
+| A failed run has no obvious cause | Open the failed step in the report and inspect its screenshot, UI tree, and logcat before changing assertions |
+
+> `clear-data` removes app-local state; `reverse-port` and `orientation` change device state. Use them only on a dedicated test instance.
 
 ## Live cases: evidence, not just "it can tap"
 
