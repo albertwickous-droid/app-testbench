@@ -21,6 +21,20 @@
 
 > 独立开源项目，与网易 / MuMu 官方无隶属关系。只测试你拥有或明确获授权测试的应用、账号、设备和数据。
 
+## 0.2.0 的五个可展示钩子
+
+> 不是“又一个 ADB 包装器”，而是把本地 App 验证做成可编排、可观察、可交接的工作流。
+
+| 钩子 | 一句话卖点 | 直接证据 |
+| --- | --- | --- |
+| **一条 flow 变成一组测试** | `suite` + `tags` 顺序跑多条 flow，每个 flow 保留独立证据；`run --data` 让一份 CSV/JSON/YAML 生成多条 case | 聚合 HTML/JUnit + `suite-result.json` / `data-result.json` |
+| **每一步都能实时看见** | `--events-jsonl` 立即输出 flow/step start/end 事件，Agent 和 CI 不用等整条 flow 结束 | NDJSON 事件流 + `events-v1.schema.json` |
+| **失败不是一句报错** | 截图、UI 树、logcat、步骤耗时、失败步骤和 SHA-256 manifest 一次留下 | 自包含 HTML + `result.json` + `manifest.json` |
+| **先看计划，再碰设备** | `--dry-run` 解析 flow、实例、变量和预期命令；`--vars-file` / `--var` 固定输入 | 不连接 MuMu/ADB、不创建 run 目录 |
+| **Agent/CI 原生接口** | 结构化 JSON、稳定退出码、JUnit XML 和四个 Draft 2020-12 schema | 适合自动修复、回归和结果归档 |
+
+这不是设备云替代品：需要几十/几百种机型时，仍应配合云真机或真机实验室；它的优势是把个人/小团队的本地验证循环做短、做稳、做得可交接。
+
 ## 为什么是现在
 
 趋势核验：2026-11-19
@@ -37,6 +51,9 @@
 | 先确认环境能不能用 | `app-testbench doctor` | 看到 MuMu、ADB 和实例状态 |
 | 测自己的 APK | 安装后执行 `install → launch → screenshot → dump-ui` | 先确认单步动作可用 |
 | 生成一份完整测试报告 | 按下方 5 分钟主线执行 `init → validate → run` | HTML + `result.json` + 证据 |
+| 批量跑一组 flow | `app-testbench suite .\suite.yaml --tag smoke` | 多个独立 run + 聚合 HTML/JUnit |
+| 用数据跑同一流程 | `app-testbench run .\flow.yaml --data .\cases.csv` | 每行一条 case + `data-result.json` |
+| 让 Agent 实时看步骤 | `app-testbench run .\flow.yaml --events-jsonl .\events.ndjson` | 即时 NDJSON 事件流 |
 | 先看一个真实案例 | `.\examples\ankidroid-deck-persistence\run.ps1` | 下载固定 APK，跑 49 步并生成报告 |
 | 接入 CI 或 Agent | `run --json`，或阅读 [Agent runbook](docs/agent-deployment.md) | 结构化结果、退出码和 JUnit |
 
@@ -102,9 +119,10 @@ App TestBench 不追求“设备矩阵全面”，而是把一条验证链路做
 | 等待与断言 | `wait_for_text`、`wait_for_activity`、UI 包含/不包含、logcat 包含、可见 ANR 恢复 | 把“应该到页面了”变成明确的通过/失败条件 |
 | 证据收集 | 截图、UI 树、logcat、失败诊断、步骤耗时和状态 | 失败后仍能说明“在哪一步、看到了什么、日志是什么” |
 | 流程编排 | JSON/YAML、`setup`/`steps`/`teardown`、环境变量、`continue_on_error`、开机就绪门禁 | 把安装、测试、清理和证据收集组合起来 |
+| 可复现执行 | `--vars-file` / `--var`、`--dry-run`、Flow 级超时、`wait_for_boot` | 固定输入、先看计划，再触碰设备 |
 | 批量与复用 | Flow `include`/`template`、`tags`、`suite` 顺序编排、CSV/JSON `--data` 数据驱动 | 多个 flow 或数据行各自生成独立证据，并聚合 JUnit/HTML |
 | 本地测试服务 | `reverse-port` 映射宿主机端口、`open` 打开 URI | 覆盖 WebView、下载、媒体和本地 QA fixture |
-| 报告与 CI | 自包含 HTML、`result.json`、可选 JUnit XML、失败 JSON envelope | 人看报告，CI/Agent 读结构化结果 |
+| 报告与 CI | 自包含 HTML、`result.json`、可选 JUnit XML、失败 JSON envelope、NDJSON 事件流 | 人看报告，CI/Agent 实时消费过程 |
 | Agent 协助 | 打包的 Codex skill、Agent runbook、严格 schema、五个可复现案例 | Agent 按步骤执行，不靠猜坐标和临时环境 |
 
 ## 5 分钟跑通

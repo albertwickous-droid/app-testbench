@@ -21,6 +21,20 @@ The runner does not ask a vision model to guess the next screen. Each step passe
 
 > Independent open-source project. Not affiliated with or endorsed by NetEase or the MuMu team. Test only apps, accounts, devices, and data that you own or are explicitly authorized to test.
 
+## Five hooks in 0.2.0
+
+> This is not “just another ADB wrapper”. It turns local app validation into an orchestrated, observable, handoff-ready workflow.
+
+| Hook | Why it matters | Evidence you get |
+| --- | --- | --- |
+| **One flow becomes a test set** | `suite` + `tags` runs multiple flows in order, while `run --data` turns one CSV/JSON/YAML file into multiple cases | Aggregate HTML/JUnit + `suite-result.json` / `data-result.json` |
+| **Every step is visible live** | `--events-jsonl` emits flow/step start/end events immediately, so agents and CI do not wait for the whole flow | NDJSON stream + `events-v1.schema.json` |
+| **A failure is more than an error** | Screenshots, UI tree, logcat, step timing, failed step, and a SHA-256 manifest are retained together | Self-contained HTML + `result.json` + `manifest.json` |
+| **Inspect the plan before touching a device** | `--dry-run` resolves the flow, instance, variables, and expected commands; `--vars-file` / `--var` pin inputs | No MuMu/ADB connection and no run directory |
+| **Agent/CI-native contracts** | Structured JSON, stable exit codes, JUnit XML, and four Draft 2020-12 schemas | Suitable for automated repair, regression, and result archival |
+
+This is not a replacement for a device farm. When you need dozens or hundreds of models, pair it with a cloud device farm or a physical-device lab. Its advantage is making the local validation loop shorter, steadier, and easier to hand off.
+
 ## Why now
 
 Trend check: 2026-11-19
