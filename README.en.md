@@ -6,7 +6,34 @@
 
 *Above: a workflow illustration from authoring a flow to local execution, assertions, and report generation; actual screens and artifacts come from real runs.*
 
-> **A local-first Android smoke and regression workbench for individual developers and small teams.**
+**App TestBench is a local-first Android smoke and regression workbench for individual developers and small teams.**
+
+If you do not understand the following, copy the prompt below to your agent.
+
+```text
+You are helping me install and run App TestBench.
+
+Read README.md, AGENTS.md, and docs/agent-deployment.md in the repository root first, then follow the documented commands. Do not guess command syntax.
+
+My environment:
+- Repository path: <absolute path to the app-testbench repository>
+- MuMu instance: <instance number, default 0>
+- APK under test: <absolute path to the APK>
+- Target package: <package name>
+- Stable text on the first screen: <text>
+
+Complete these tasks:
+1. Run `app-testbench doctor` and check Windows, Python, MuMuManager, ADB, and the instance. If the environment is not ready, explain what is missing before continuing.
+2. Install the APK and verify its package name and version.
+3. Run `app-testbench init --output .\first-flow.yaml` to generate the starter file, then change only the required device and step fields.
+4. Run validate first, then run, until HTML, result.json, and JUnit are produced.
+5. Report commands, exit codes, artifact paths, and failure reasons. Preserve evidence on failure; never fabricate a passing result.
+
+Constraints:
+- Do not request or write cookies, tokens, API keys, passwords, or private keys.
+- Do not upload, publish, or commit APKs, screenshots, logcat, runs/, or real account data.
+- Operate only on apps, accounts, devices, and data that I own or am explicitly authorized to test.
+```
 
 Start without a device cloud: install an APK, run a flow, and produce HTML/JUnit evidence on your Windows machine. APKs, screenshots, UI trees, and logcat stay local by default. The goal is not “more devices”; it is a faster, more controlled last mile with complete failure evidence.
 
@@ -51,6 +78,9 @@ Trend check: 2026-11-19
 | Check whether the environment works | `app-testbench doctor` | MuMu, ADB, and instance status |
 | Test your own APK | Run `install → launch → screenshot → dump-ui` | Confirm the single-device actions first |
 | Produce a complete test report | Follow the five-minute path: `init → validate → run` | HTML + `result.json` + evidence |
+| Run a set of flows | `app-testbench suite .\suite.yaml --tag smoke` | Separate runs + aggregate HTML/JUnit |
+| Run one flow with data | `app-testbench run .\flow.yaml --data .\cases.csv` | One case per row + `data-result.json` |
+| Let an agent watch steps live | `app-testbench run .\flow.yaml --events-jsonl .\events.ndjson` | Immediate NDJSON event stream |
 | See a real case first | `.\examples\ankidroid-deck-persistence\run.ps1` | Download a pinned APK, run 49 steps, generate a report |
 | Feed CI or an agent | `run --json`, or read the [Agent runbook](docs/agent-deployment.md) | Structured results, exit codes, and JUnit |
 

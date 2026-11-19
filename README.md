@@ -6,7 +6,34 @@
 
 *上图：编写 flow → 本机执行 → 断言 → 报告的工作流示意；实际界面和产物以运行结果为准。*
 
-> **面向个人开发者和小微团队的本地优先 Android 快速验证工作台。**
+**App TestBench 是一个面向个人开发者和小微团队的本地优先 Android 快速验证工作台。**
+
+如果你不懂以下内容，直接复制下面这段话给你的 Agent。
+
+```text
+你正在协助我安装并运行 App TestBench。
+
+请先阅读仓库根目录的 README.md、AGENTS.md 和 docs/agent-deployment.md，再按文档执行，不要猜命令。
+
+我的环境：
+- 仓库路径：<app-testbench 仓库绝对路径>
+- MuMu 实例：<实例编号，默认 0>
+- 待测 APK：<APK 绝对路径>
+- 目标包名：<package name>
+- 首屏稳定文字：<text>
+
+请完成：
+1. 运行 `app-testbench doctor`，检查 Windows、Python、MuMuManager、ADB 和实例状态；环境未就绪时先说明缺什么。
+2. 安装 APK，并确认包名和版本。
+3. 运行 `app-testbench init --output .\first-flow.yaml` 生成模板，只修改必要的设备和步骤字段。
+4. 先运行 validate，再运行 run，直到生成 HTML、result.json 和 JUnit。
+5. 汇报命令、退出码、产物路径和失败原因；失败时保留证据，不要伪造成功结果。
+
+限制：
+- 不要索取或写入 cookie、token、API key、密码或私钥。
+- 不要上传、发布或提交 APK、截图、logcat、runs/ 或真实账号数据。
+- 只在我拥有或明确授权的 App、账号、设备和数据上执行。
+```
 
 不用先接入云真机：在本机 MuMu 上安装 APK、执行 flow、生成 HTML/JUnit；APK、截图、UI 树和 logcat 默认都留在本机。它不追求“设备更多”，而是让最后一公里验证**开始更快、过程更可控、失败证据更完整**。
 
